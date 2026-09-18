@@ -594,43 +594,37 @@ main { flex:1; position:relative; overflow-y:auto; }
 .lm-degrow .lm-degtag{width:34px;flex-shrink:0;text-align:center;font-size:11px;font-weight:800;padding:4px 0;border-radius:6px;color:#fff}
 .lm-degrow input{flex:1}
 .lm-degtag.SC{background:#2e7d4f}.lm-degtag.S{background:#1d5fa8}.lm-degtag.F{background:#c05a1f}.lm-degtag.FC{background:#b3392f}
-/* ---- Janela estilo RPG vintage (rolador) ---- */
-.lm-jrpg-backdrop{display:none;position:fixed;inset:0;background:rgba(6,10,6,.78);z-index:220;align-items:center;justify-content:center;padding:14px}
-.lm-jrpg-backdrop.open{display:flex}
-.lm-jrpg-window{width:min(500px,96vw);max-height:94vh;overflow:auto;background:#0b1520;color:#f4e9c1;font-family:'Courier New',ui-monospace,monospace;box-shadow:0 0 0 3px #f4e9c1,0 0 0 7px #0b1520,0 0 0 10px #f4e9c1,0 12px 30px rgba(0,0,0,.55)}
-.lm-jrpg-title{background:#f4e9c1;color:#12200f;font-weight:800;letter-spacing:1.5px;text-align:center;padding:10px 8px;font-size:14px;text-transform:uppercase;border-bottom:3px solid #12200f;display:flex;align-items:center;justify-content:center;gap:8px}
-.lm-jrpg-body{padding:14px}
-.lm-jrpg-sec{border:2px solid #3a4d3a;padding:8px 10px;margin-bottom:10px;background:#0f1c12}
-.lm-jrpg-sec h5{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#9fd89f;margin-bottom:6px}
-.lm-jrpg-body label{font-size:11px;color:#c9dcc0;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px}
-.lm-jrpg-body select,.lm-jrpg-body input{width:100%;box-sizing:border-box;background:#12200f;border:2px solid #3a4d3a;color:#f4e9c1;font-family:inherit;padding:6px;border-radius:0;margin-bottom:6px}
-.lm-die-row{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-bottom:8px}
-.lm-die-face{width:40px;height:36px;display:flex;align-items:center;justify-content:center;background:#12200f;border:2px solid #3a4d3a;color:#6b8a6b;font-weight:800;font-size:11px}
-.lm-die-face.active{background:#f4e9c1;color:#12200f;border-color:#f4e9c1}
-.lm-roll-screen{min-height:100px;border:2px solid #f4e9c1;margin:6px 0 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;text-align:center;background:#060b06}
-.lm-roll-expr{font-size:14px;color:#c9dcc0;letter-spacing:.5px}
-.lm-roll-total{font-size:40px;font-weight:900;color:#ffd966;text-shadow:2px 2px 0 #000;line-height:1.1}
-.lm-roll-sub{font-size:11px;color:#9fd89f;margin-top:2px}
-.lm-deg-badge{display:inline-block;margin-top:8px;padding:5px 14px;border:2px solid;font-weight:800;letter-spacing:1.5px;font-size:12px}
-.lm-deg-badge.SC{color:#3fe27a;border-color:#3fe27a}
-.lm-deg-badge.S{color:#8fd8ff;border-color:#8fd8ff}
-.lm-deg-badge.F{color:#ff9d5c;border-color:#ff9d5c}
-.lm-deg-badge.FC{color:#ff5c5c;border-color:#ff5c5c}
-.lm-target-list{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto;margin-bottom:4px}
-.lm-target-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border:2px solid #2a3a2a;background:#0f1810;cursor:pointer;font-size:11px;color:#cfe0cf}
-.lm-target-item span.tn{flex:1;color:#f4e9c1;font-weight:700}
-.lm-target-item span.tm{color:#9fd89f}
-.lm-target-item.sel{border-color:#f4e9c1;background:#1a2a16}
-.lm-target-result{font-size:10px;font-weight:800;padding:1px 6px}
-.lm-jbtn-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:6px}
-.lm-jbtn{background:#12200f;border:2px solid #f4e9c1;color:#f4e9c1;padding:9px 12px;font-family:inherit;font-weight:700;font-size:12px;cursor:pointer;letter-spacing:.5px}
-.lm-jbtn:hover{background:#f4e9c1;color:#12200f}
-.lm-jbtn.primary{background:#c05a1f;border-color:#ffd966;color:#fff}
-.lm-jbtn.primary:hover{background:#ffd966;color:#3a2400}
+/* ---- Rolador (mesmo estilo visual das demais janelas do app) ---- */
+.lm-roll-head{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:16px}
+.lm-roll-body label{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#4f624f;display:block;margin:8px 0 3px}
+.lm-roll-body select,.lm-roll-body input{width:100%;box-sizing:border-box;margin-bottom:2px}
+.lm-roll-sec{border:1px solid #c9d8c9;border-radius:10px;padding:10px 12px;margin-bottom:10px;background:#f7faf7}
+.lm-roll-sec h5{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#1e4a28;font-weight:700;margin-bottom:6px}
+.lm-roll-screen{border:1px solid #c9d8c9;border-radius:10px;margin:8px 0 10px;padding:14px;text-align:center;background:#ffffff}
+.lm-roll-expr{font-size:13px;color:#4f624f}
+.lm-roll-total{font-size:38px;font-weight:800;color:#1e4a28;line-height:1.15}
+.lm-roll-sub{font-size:11px;color:#4f624f;margin-top:2px}
+.lm-deg-badge{display:inline-block;margin-top:6px;padding:3px 12px;border-radius:999px;font-weight:700;letter-spacing:.5px;font-size:11px;color:#fff}
+.lm-deg-badge.SC{background:#2e7d4f}
+.lm-deg-badge.S{background:#1d5fa8}
+.lm-deg-badge.F{background:#c05a1f}
+.lm-deg-badge.FC{background:#b3392f}
+.lm-target-list{display:flex;flex-direction:column;gap:4px;max-height:200px;overflow:auto;margin-bottom:4px}
+.lm-target-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid #c9d8c9;border-radius:8px;background:#ffffff;cursor:pointer;font-size:12px}
+.lm-target-item:hover{border-color:#1e4a28}
+.lm-target-item span.tn{flex:1;color:#1f2b1f;font-weight:600}
+.lm-target-item span.tm{color:#4f624f}
+.lm-target-item.sel{border-color:#1e4a28;background:#eef5ee}
+.lm-target-result{font-size:10px}
+.lm-jbtn-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.lm-jbtn{background:#d7e4d7;color:#1f2b1f;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600}
+.lm-jbtn:hover{background:#c4d6c4}
+.lm-jbtn.primary{background:#1e4a28;color:#fff}
+.lm-jbtn.primary:hover{background:#2a6c3c}
 .lm-jbtn.wide{flex:1 1 100%}
-.lm-jbtn:disabled{opacity:.4;cursor:not-allowed}
-.lm-breakdown{font-size:11px;color:#9fd89f;text-align:left;margin-top:8px;line-height:1.6;width:100%}
-.lm-breakdown b{color:#f4e9c1}
+.lm-jbtn:disabled{opacity:.45;cursor:not-allowed}
+.lm-breakdown{font-size:11px;color:#4f624f;text-align:left;margin-top:8px;line-height:1.6;width:100%}
+.lm-breakdown b{color:#1f2b1f}
 .lm-legend-popup{display:none;position:fixed;inset:0;background:rgba(20,32,22,.5);z-index:240;align-items:center;justify-content:center;padding:20px}
 .lm-legend-popup.open{display:flex}
 .lm-legend-box{background:#fff;border:1px solid #b9cbb9;border-radius:12px;padding:16px;width:min(520px,94vw);max-height:80vh;overflow:auto}
@@ -1280,6 +1274,19 @@ main { flex:1; position:relative; overflow-y:auto; }
       <div><label>NOME *</label><input type="text" id="lmNome" placeholder="Ex.: Flecha Flamejante +1"></div>
       <div><label>NOTA (opcional)</label><input type="text" id="lmNota" placeholder="Ex.: usar com o Air Repeater"></div>
     </div>
+    <div class="lm-formrow">
+      <div>
+        <label>ÍCONE DO APLICADOR</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="lmIconPreview" style="font-size:24px;width:38px;height:38px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:1px solid #c9d8c9;border-radius:8px;background:#f7faf7"></span>
+          <input type="hidden" id="lmIcone">
+          <button type="button" class="mini-btn" onclick="lmToggleEmojiGrid()">🙂 Escolher emoji</button>
+          <button type="button" class="mini-btn" onclick="lmClearIcon()">↺ Padrão do tipo</button>
+        </div>
+        <div class="emoji-grid" id="lmEmojiGrid" style="display:none;margin-top:8px"></div>
+      </div>
+      <div></div>
+    </div>
 
     <div class="lm-block" id="lmDanoBlock">
       <h4>💥 Dano (caixas de dados — pode ter múltiplos tipos/runas)</h4>
@@ -1353,7 +1360,8 @@ main { flex:1; position:relative; overflow-y:auto; }
 
     <div class="row-btns">
       <button onclick="closeLmForm()">Cancelar</button>
-      <button class="gold" onclick="saveLmEngine()">💾 Salvar</button>
+      <button id="lmSaveVersionBtn" style="display:none" onclick="saveLmEngine(true)">🧬 Salvar como Nova Versão</button>
+      <button class="gold" onclick="saveLmEngine(false)">💾 Salvar</button>
     </div>
   </div>
 </div>
@@ -1378,10 +1386,10 @@ main { flex:1; position:relative; overflow-y:auto; }
 </div>
 
 <!-- ---- Rolador estilo RPG vintage (invocar a engine contra alvos) ---- -->
-<div class="lm-jrpg-backdrop" id="lmRollBackdrop">
-  <div class="lm-jrpg-window">
-    <div class="lm-jrpg-title"><span id="lmRollIcon">⚔️</span><span id="lmRollTitle">Engine</span></div>
-    <div class="lm-jrpg-body" id="lmRollBody"></div>
+<div class="modal-backdrop" id="lmRollBackdrop">
+  <div class="modal-box" style="max-width:560px">
+    <h2 class="lm-roll-head"><span id="lmRollIcon">⚔️</span><span id="lmRollTitle">Engine</span></h2>
+    <div class="lm-roll-body" id="lmRollBody"></div>
   </div>
 </div>
 
@@ -7533,8 +7541,35 @@ const LM_KIND_INFO = {
 };
 const LM_DMG_TYPES = ['Cortante','Perfurante','Contusão','Fogo','Frio','Elétrico','Ácido','Sônico','Mental','Força','Veneno','Negativo','Positivo','Sangramento','Outro'];
 const LM_DIE_SIZES = [4,6,8,10,12,20,100];
+const LM_EMOJIS = ['⚔️','🗡️','🏹','🔥','❄️','⚡','💧','🌪️','🪨','☠️','🧪','🩸','🌑','☀️','✨','🔮','🌀','🛡️','💫','⭐','💥','🎯','🩹','💚','💙','💛','🧊','🌫️','🕸️','🦴','👁️','🧠','😱','😵','🧟','🐍','🦂','🕷️','🪄','📿','⚗️','🔱','💀','🌟'];
 let lmKindFilter = 'todos';
 let lmRoll = null; /* { engineId, casterId, targetIds:[], castLevel, atkBonus, dc, attackRoll, saveRolls:{}, dmgResult, healResult, applied } */
+
+/* ---- ícone do aplicador (emoji escolhido pelo usuário, com fallback pro ícone do tipo) ---- */
+function lmToggleEmojiGrid(){
+  const grid = document.getElementById('lmEmojiGrid');
+  const show = grid.style.display === 'none';
+  if (show) lmBuildEmojiGrid();
+  grid.style.display = show ? 'flex' : 'none';
+}
+function lmBuildEmojiGrid(){
+  const cur = document.getElementById('lmIcone').value;
+  document.getElementById('lmEmojiGrid').innerHTML = LM_EMOJIS.map(em =>
+    '<button type="button" class="emoji-btn' + (em === cur ? ' active' : '') + '" onclick="lmPickEmoji(\'' + em + '\')">' + em + '</button>'
+  ).join('');
+}
+function lmPickEmoji(em){
+  document.getElementById('lmIcone').value = em;
+  document.getElementById('lmIconPreview').textContent = em;
+  lmBuildEmojiGrid();
+}
+function lmClearIcon(){
+  document.getElementById('lmIcone').value = '';
+  const kind = document.getElementById('lmKind').value;
+  document.getElementById('lmIconPreview').textContent = (LM_KIND_INFO[kind] || {}).icon || '⚔️';
+  lmBuildEmojiGrid();
+}
+function lmIconFor(e){ return (e && e.icone) || (LM_KIND_INFO[e && e.kind] || {}).icon || '⚔️'; }
 
 /* ---- caixas de dados (qtd + dⁿ + bônus + tipo) ---- */
 function lmDiceRowHtml(containerId, idx, part, isCura){
@@ -7579,6 +7614,10 @@ function newLmEngine(kind){
   document.getElementById('lmKind').value = kind;
   document.getElementById('lmNome').value = '';
   document.getElementById('lmNota').value = '';
+  document.getElementById('lmIcone').value = '';
+  document.getElementById('lmIconPreview').textContent = (LM_KIND_INFO[kind] || {}).icon || '⚔️';
+  document.getElementById('lmEmojiGrid').style.display = 'none';
+  document.getElementById('lmSaveVersionBtn').style.display = 'none';
   document.getElementById('lmFatal').value = '';
   document.getElementById('lmMortal').value = '';
   document.getElementById('lmNivelBase').value = '';
@@ -7606,6 +7645,10 @@ function openLmForm(id){
   document.getElementById('lmKind').value = e.kind;
   document.getElementById('lmNome').value = e.nome || '';
   document.getElementById('lmNota').value = e.nota || '';
+  document.getElementById('lmIcone').value = e.icone || '';
+  document.getElementById('lmIconPreview').textContent = lmIconFor(e);
+  document.getElementById('lmEmojiGrid').style.display = 'none';
+  document.getElementById('lmSaveVersionBtn').style.display = '';
   document.getElementById('lmFatal').value = e.fatalDado || '';
   document.getElementById('lmMortal').value = e.mortalDado || '';
   document.getElementById('lmNivelBase').value = (e.nivelBase !== undefined && e.nivelBase !== null) ? e.nivelBase : '';
@@ -7638,15 +7681,31 @@ function lmFormKindChanged(){
   document.getElementById('lmResistTipoWrap').style.display = (modo === 'resistencia') ? '' : 'none';
 }
 function closeLmForm(){ document.getElementById('lmForm').classList.remove('open'); }
-function saveLmEngine(){
+/* Gera o próximo nome "Base (vN)" a partir do nome já salvo, olhando as versões existentes. */
+function lmNextVersionName(baseName){
+  const stripped = baseName.replace(/\s*\(v\d+\)\s*$/i, '').trim();
+  const esc2 = stripped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp('^' + esc2 + '\\s*\\(v(\\d+)\\)$', 'i');
+  let maxV = 1;
+  (state.lm || []).forEach(x => {
+    const m = (x.nome || '').match(re);
+    if (m) maxV = Math.max(maxV, parseInt(m[1]));
+    else if (norm(x.nome) === norm(stripped)) maxV = Math.max(maxV, 1);
+  });
+  return stripped + ' (v' + (maxV + 1) + ')';
+}
+function saveLmEngine(asNewVersion){
   const kind = document.getElementById('lmKind').value;
-  const nome = document.getElementById('lmNome').value.trim();
+  let nome = document.getElementById('lmNome').value.trim();
   if (!nome) { alert('Dê um nome para a engine.'); return; }
   const idVal = document.getElementById('lmId').value;
+  const original = idVal ? state.lm.find(x => x.id === parseInt(idVal)) : null;
+  if (asNewVersion && original && original.nome === nome) nome = lmNextVersionName(nome);
   const nivelBaseRaw = document.getElementById('lmNivelBase').value;
   const obj = {
-    id: idVal ? parseInt(idVal) : Date.now() + Math.floor(Math.random() * 1000),
+    id: (idVal && !asNewVersion) ? parseInt(idVal) : Date.now() + Math.floor(Math.random() * 1000),
     kind, nome,
+    icone: document.getElementById('lmIcone').value || '',
     nota: document.getElementById('lmNota').value.trim(),
     dano: lmReadDiceRows('lmDanoRows', false),
     nivelBase: nivelBaseRaw === '' ? '' : parseInt(nivelBaseRaw),
@@ -7697,7 +7756,7 @@ function lmSetKindFilter(k){ lmKindFilter = k; renderMecanica(); }
 function lmCardHtml(e){
   const info = LM_KIND_INFO[e.kind] || { label:'?', icon:'❓' };
   return '<div class="lm-card">' +
-      '<div class="lm-head"><span class="lm-icon">' + info.icon + '</span><span class="lm-name">' + esc(e.nome) + '</span></div>' +
+      '<div class="lm-head"><span class="lm-icon">' + lmIconFor(e) + '</span><span class="lm-name">' + esc(e.nome) + '</span></div>' +
       '<span class="lm-kindtag">' + info.label + '</span>' +
       '<div class="lm-sum">' + lmSummary(e) + (e.nota ? '<br><i>' + esc(e.nota) + '</i>' : '') + '</div>' +
       '<div class="lm-btns">' +
@@ -7731,7 +7790,7 @@ function lmShowLegend(){
 function openLmInfo(id){
   const e = state.lm.find(x => x.id === id); if (!e) return;
   const info = LM_KIND_INFO[e.kind] || {};
-  document.getElementById('lmInfoTitle').textContent = (info.icon || '') + ' ' + e.nome;
+  document.getElementById('lmInfoTitle').textContent = lmIconFor(e) + ' ' + e.nome;
   let h = '<p><b>Tipo:</b> ' + (info.label || '') + '</p>';
   if (e.nota) h += '<p><b>Nota:</b> ' + esc(e.nota) + '</p>';
   if (e.kind !== 'magiaEf') h += '<p><b>Dano base:</b> ' + esc(lmDiceText(e.dano)) + '</p>';
@@ -7909,7 +7968,7 @@ function openLmRoll(id){
     atkBonus: 0, dc: '',
     attackRoll: null, saveRolls: {}, dmgResult: null, healResult: null, applied: false
   };
-  document.getElementById('lmRollIcon').textContent = (LM_KIND_INFO[e.kind] || {}).icon || '⚔️';
+  document.getElementById('lmRollIcon').textContent = lmIconFor(e);
   document.getElementById('lmRollTitle').textContent = e.nome;
   lmRenderRollBody();
   document.getElementById('lmRollBackdrop').classList.add('open');
@@ -8005,7 +8064,7 @@ function lmRenderRollBody(){
   const hasTargets = lmRoll.targetIds.length > 0;
   let h = '';
 
-  h += '<div class="lm-jrpg-sec"><h5>🧙 Conjurador / Atacante (opcional)</h5>';
+  h += '<div class="lm-roll-sec"><h5>🧙 Conjurador / Atacante (opcional)</h5>';
   h += '<select onchange="lmSetCaster(this.value)"><option value="">— nenhum (bônus manual) —</option>' +
        lmTargetsPool().map(c => '<option value="' + c.id + '"' + (String(lmRoll.casterId) === String(c.id) ? ' selected' : '') + '>' + esc(c.name) + '</option>').join('') +
        '</select>';
@@ -8030,7 +8089,7 @@ function lmRenderRollBody(){
     h += '</div>';
   }
 
-  h += '<div class="lm-jrpg-sec"><h5>🎯 Alvos (' + lmRoll.targetIds.length + ' selecionado' + (lmRoll.targetIds.length === 1 ? '' : 's') + ')</h5>';
+  h += '<div class="lm-roll-sec"><h5>🎯 Alvos (' + lmRoll.targetIds.length + ' selecionado' + (lmRoll.targetIds.length === 1 ? '' : 's') + ')</h5>';
   h += '<div class="lm-target-list">';
   const pool = lmTargetsPool();
   if (!pool.length) h += '<div class="lm-roll-sub">Nenhum combatente ativo. Monte um combate em ⚔️ Combate primeiro.</div>';
@@ -8059,7 +8118,7 @@ function lmRenderRollBody(){
   h += '</div>';
 
   if (showEfeito){
-    h += '<div class="lm-jrpg-sec"><h5>🩹 Efeito por grau</h5>' +
+    h += '<div class="lm-roll-sec"><h5>🩹 Efeito por grau</h5>' +
       ['SC','S','F','FC'].filter(g => e.grau !== 'simples' || g === 'S' || g === 'F').map(g => '<div class="lm-roll-sub"><b>' + g + ':</b> ' + (esc((e.efeitos || {})[g]) || '—') + '</div>').join('') +
       '</div>';
   }
