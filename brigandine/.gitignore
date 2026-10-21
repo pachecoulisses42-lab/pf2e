@@ -1,0 +1,3 @@
+# O repositório pai ignora dist/ e docs/; aqui eles são parte do subprojeto.
+!dist/
+!docs/

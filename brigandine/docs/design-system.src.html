@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brigandine DS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..800&display=swap">
+<style>
+/*@css*/
+body { overflow: auto; display: block; user-select: text; -webkit-user-select: text; }
+.doc { max-width: 1040px; margin: 0 auto; padding: var(--s-6) var(--s-4) 96px; display: flex; flex-direction: column; gap: 64px; }
+.doc h1 { font-size: var(--text-2xl); line-height: 1.1; }
+.doc h2 { font-size: var(--text-xl); margin-bottom: var(--s-4); }
+.doc h3 { font-size: var(--text-md); margin: var(--s-5) 0 var(--s-2); color: var(--text-2); font-weight: 650; }
+.doc p { color: var(--text-2); max-width: 68ch; line-height: 1.6; font-size: var(--text-md); }
+.doc code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.85em; background: var(--ink-800); padding: 1px 6px; border-radius: 5px; color: var(--accent); }
+.lede { font-size: var(--text-lg) !important; color: var(--text) !important; }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--s-3); }
+.sw { border-radius: var(--r-md); overflow: hidden; background: var(--ink-850); }
+.sw i { display: block; height: 56px; }
+.sw b { display: block; padding: 8px 10px 0; font-size: var(--text-xs); }
+.sw span { display: block; padding: 0 10px 8px; font-size: var(--text-2xs); color: var(--text-3); font-family: ui-monospace, Menlo, monospace; }
+.demo { background: var(--ink-900); border-radius: var(--r-lg); padding: var(--s-5); display: flex; flex-wrap: wrap; gap: var(--s-4); align-items: flex-start; }
+.demo > .col { display: flex; flex-direction: column; gap: var(--s-3); min-width: 260px; flex: 1; }
+.tok-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--s-4); }
+.tok { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: var(--s-3); border-radius: var(--r-md); background: var(--ink-900); }
+.tok svg { width: 128px; height: 128px; filter: drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+.tok b { font-family: var(--font-display); }
+.tok span { font-size: var(--text-xs); color: var(--text-3); }
+table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--text-3); font-weight: 650; font-size: var(--text-xs); }
+td:first-child { font-family: ui-monospace, Menlo, monospace; color: var(--text-2); font-size: var(--text-xs); white-space: nowrap; }
+.type-row { display: flex; align-items: baseline; gap: var(--s-4); padding: 10px 0; border-bottom: 1px solid var(--line); }
+.type-row small { width: 120px; flex: none; color: var(--text-3); font-size: var(--text-xs); }
+.scale { display: flex; gap: var(--s-3); align-items: flex-end; }
+.scale div { background: var(--accent); border-radius: 3px; width: 28px; }
+.radii { display: flex; gap: var(--s-4); }
+.radii div { width: 72px; height: 72px; background: var(--ink-800); box-shadow: inset 0 0 0 1px var(--line-strong); display: grid; place-items: center; font-size: var(--text-xs); color: var(--text-2); }
+.mode-toggle { position: sticky; top: var(--s-3); align-self: flex-end; z-index: 5; }
+</style>
+</head>
+<body class="mode-setup">
+<div class="doc">
+  <div class="mode-toggle seg" style="width:240px">
+    <button class="seg-btn active" id="m1" onclick="setMode('setup')">Montagem</button>
+    <button class="seg-btn" id="m2" onclick="setMode('combat')">Combate</button>
+  </div>
+
+  <header>
+    <h1>Brigandine DS</h1>
+    <p class="lede" style="margin-top:12px">Sistema visual do motor tático Brigandine. Grafite frio como base, uma cor de acento por modo (latão na montagem, gelo no combate) e cores de jogo reservadas: cada uma significa uma coisa só.</p>
+    <p style="margin-top:12px">Alterne o modo no canto superior para ver o acento mudar. Todos os valores vêm de <code>src/styles/tokens.css</code>.</p>
+  </header>
+
+  <section>
+    <h2>O que existia no v4</h2>
+    <p style="margin-bottom:var(--s-4)">Extraído do arquivo original e mapeado para o novo sistema. O v4 usava valores crus repetidos em ~800 linhas de CSS; o v5 concentra tudo em tokens.</p>
+    <table>
+      <tr><th>v4</th><th>v5</th><th>Mudança</th></tr>
+      <tr><td>--gold #d4af37</td><td>--brass-400 #e6b95f</td><td>Mais claro e menos amarelo; acento do modo Montagem</td></tr>
+      <tr><td>--cyan #38bdf8</td><td>--ice-400 #5ccbff</td><td>Acento do modo Combate</td></tr>
+      <tr><td>--crimson #ef4444</td><td>--strike #f0616d</td><td>Ataque, alcance, perigo</td></tr>
+      <tr><td>--emerald #22c55e</td><td>--move #3ecf8e</td><td>Movimento</td></tr>
+      <tr><td>--purple #a855f7</td><td>--arcane #a78bfa</td><td>Magia e reação</td></tr>
+      <tr><td>--amber #f59e0b</td><td>--supply #f5a524</td><td>Itens</td></tr>
+      <tr><td>(novo)</td><td>--ward #5ccbff</td><td>Defesa: Erguer Escudo, CA elevada</td></tr>
+      <tr><td>--bg-dark/panel/card</td><td>--ink-950 … --ink-700</td><td>Escala de 8 degraus; bordas viram <code>--line</code> translúcido</td></tr>
+      <tr><td>Segoe UI</td><td>Bricolage Grotesque + Figtree</td><td>Display com personalidade; UI legível em 12–13px</td></tr>
+      <tr><td>raios 4–10px soltos</td><td>6 / 8 / 12 / 16 / pílula</td><td>Raio maior para contêineres, menor para controles</td></tr>
+      <tr><td>espaços ad hoc</td><td>escala de 4px (--s-1…--s-6)</td><td></td></tr>
+      <tr><td>emojis como ícones</td><td>sprite SVG (traço 1.8)</td><td>Cor herdada, nítido em qualquer escala</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Cor</h2>
+    <h3>Superfícies</h3>
+    <div class="swatches">
+      <div class="sw"><i style="background:var(--ink-1000)"></i><b>ink-1000</b><span>palco do tabuleiro</span></div>
+      <div class="sw"><i style="background:var(--ink-950)"></i><b>ink-950</b><span>fundo, campos</span></div>
+      <div class="sw"><i style="background:var(--ink-900)"></i><b>ink-900</b><span>painéis</span></div>
+      <div class="sw"><i style="background:var(--ink-850)"></i><b>ink-850</b><span>cartões</span></div>
+      <div class="sw"><i style="background:var(--ink-800)"></i><b>ink-800</b><span>botões</span></div>
+      <div class="sw"><i style="background:var(--ink-750)"></i><b>ink-750</b><span>hover, ativo</span></div>
+      <div class="sw"><i style="background:var(--ink-700)"></i><b>ink-700</b><span>trilhas</span></div>
+      <div class="sw"><i style="background:var(--ink-600)"></i><b>ink-600</b><span>barras de rolagem</span></div>
+    </div>
+    <h3>Texto</h3>
+    <div class="swatches">
+      <div class="sw"><i style="background:var(--text)"></i><b>text</b><span>conteúdo</span></div>
+      <div class="sw"><i style="background:var(--text-2)"></i><b>text-2</b><span>rótulos, ajuda</span></div>
+      <div class="sw"><i style="background:var(--text-3)"></i><b>text-3</b><span>desativado, meta</span></div>
+    </div>
+    <h3>Acento do modo (var(--accent))</h3>
+    <div class="swatches">
+      <div class="sw"><i style="background:var(--brass-400)"></i><b>brass-400</b><span>Montagem</span></div>
+      <div class="sw"><i style="background:var(--brass-500)"></i><b>brass-500</b><span>pressionado</span></div>
+      <div class="sw"><i style="background:var(--ice-400)"></i><b>ice-400</b><span>Combate</span></div>
+      <div class="sw"><i style="background:var(--ice-500)"></i><b>ice-500</b><span>pressionado</span></div>
+    </div>
+    <h3>Cores de jogo — cada uma com um significado</h3>
+    <div class="swatches">
+      <div class="sw"><i style="background:var(--strike)"></i><b>strike</b><span>ataque · alcance · perigo</span></div>
+      <div class="sw"><i style="background:var(--move)"></i><b>move</b><span>movimento</span></div>
+      <div class="sw"><i style="background:var(--arcane)"></i><b>arcane</b><span>magia · reação</span></div>
+      <div class="sw"><i style="background:var(--supply)"></i><b>supply</b><span>itens</span></div>
+      <div class="sw"><i style="background:var(--ward)"></i><b>ward</b><span>defesa · escudo</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tipografia</h2>
+    <p style="margin-bottom:var(--s-4)">Bricolage Grotesque dá voz a títulos e números grandes (PV, bônus, rodada). Figtree cuida de toda a interface. Números usam <code>tabular-nums</code>.</p>
+    <div class="type-row"><small>2xl · 32</small><span class="display" style="font-size:var(--text-2xl);font-weight:700">Rodada 3</span></div>
+    <div class="type-row"><small>xl · 24</small><span class="display" style="font-size:var(--text-xl);font-weight:700">+12 &nbsp; CA 21</span></div>
+    <div class="type-row"><small>lg · 18</small><span class="display" style="font-size:var(--text-lg);font-weight:700">Guerreiro de Brigandine</span></div>
+    <div class="type-row"><small>md · 15</small><span style="font-size:var(--text-md)">Escolha a arma e clique em uma peça na área vermelha.</span></div>
+    <div class="type-row"><small>sm · 13</small><span style="font-size:var(--text-sm)">Texto padrão de painel, botões e campos.</span></div>
+    <div class="type-row"><small>xs · 12</small><span style="font-size:var(--text-xs)">Rótulos, ajuda e metadados.</span></div>
+    <div class="type-row"><small>2xs · 11</small><span style="font-size:var(--text-2xs)">Badges e tags de dano.</span></div>
+  </section>
+
+  <section>
+    <h2>Espaço, raio e elevação</h2>
+    <h3>Escala de 4px</h3>
+    <div class="scale"><div style="height:4px"></div><div style="height:8px"></div><div style="height:12px"></div><div style="height:16px"></div><div style="height:24px"></div><div style="height:32px"></div></div>
+    <h3>Raios</h3>
+    <div class="radii"><div style="border-radius:var(--r-xs)">6</div><div style="border-radius:var(--r-sm)">8</div><div style="border-radius:var(--r-md)">12</div><div style="border-radius:var(--r-lg)">16</div><div style="border-radius:var(--r-pill);width:96px">pílula</div></div>
+  </section>
+
+  <section>
+    <h2>Componentes</h2>
+    <div class="demo">
+      <div class="col">
+        <h3 style="margin-top:0">Botões</h3>
+        <div class="row" style="flex-wrap:wrap">
+          <button class="btn btn-primary">Principal</button>
+          <button class="btn">Padrão</button>
+          <button class="btn btn-ghost">Discreto</button>
+          <button class="btn btn-danger">Perigo</button>
+          <button class="btn btn-ward">Defesa</button>
+          <button class="btn btn-icon" aria-label="Régua"><svg class="icon"><use href="#i-ruler"/></svg></button>
+        </div>
+        <h3>Controle segmentado</h3>
+        <div class="seg"><button class="seg-btn active">Hexagonal</button><button class="seg-btn">Quadriculado</button></div>
+        <h3>Chips, tags e badges</h3>
+        <div class="chip-row"><button class="chip active">Rio</button><button class="chip">Masmorra</button><button class="chip">Salão</button></div>
+        <div class="chip-row">
+          <span class="tag tag-phys">cortante</span><span class="tag tag-fire">+1d6 fogo</span><span class="tag tag-cold">+1d6 gélido</span><span class="tag tag-elec">+1d6 elétrico</span><span class="tag tag-acid">+1d6 ácido</span><span class="tag tag-sonic">+1d6 sônico</span><span class="tag tag-holy">+1d4 espiritual</span>
+        </div>
+        <div class="chip-row"><span class="badge badge-hero">HERÓI</span><span class="badge badge-villain">VILÃO</span><span class="badge badge-accent">9m / ação</span><span class="badge badge-dead">MORTO</span></div>
+      </div>
+      <div class="col">
+        <h3 style="margin-top:0">Campos</h3>
+        <div class="field"><label>Nome</label><input type="text" value="Espada Longa"></div>
+        <div class="grid-2">
+          <div class="field"><label>Tipo de dano</label><select><option>cortante</option></select></div>
+          <div class="field"><label>Dado</label><input type="text" value="1d8"></div>
+        </div>
+        <label class="check"><input type="checkbox" checked> Ataque e dano seguem a ficha</label>
+        <div class="field"><div class="field-label"><span>Colunas</span><strong>14 células</strong></div><div class="stepper"><button class="btn btn-sm btn-icon">−</button><input type="range" value="40"><button class="btn btn-sm btn-icon">+</button></div></div>
+        <h3>Barra de vida</h3>
+        <div class="hp-bar-outer"><div class="hp-bar-inner" style="width:80%"></div></div>
+        <div class="hp-bar-outer"><div class="hp-bar-inner" data-level="mid" style="width:40%"></div></div>
+        <div class="hp-bar-outer"><div class="hp-bar-inner" data-level="low" style="width:15%"></div></div>
+      </div>
+    </div>
+
+    <h3>Economia de ações — a assinatura do sistema</h3>
+    <div class="demo">
+      <div class="economy" style="width:100%;max-width:360px">
+        <div class="action-diamonds"><div class="action-pip available">1</div><div class="action-pip available">2</div><div class="action-pip">3</div></div>
+        <div class="reaction-pip available"><svg class="icon"><use href="#i-undo"/></svg>Reação</div>
+      </div>
+    </div>
+
+    <h3>Comandos e abas</h3>
+    <div class="demo">
+      <div class="col">
+        <div class="cmd-nav">
+          <button class="cmd active" data-cmd="attack"><svg class="icon"><use href="#i-swords"/></svg>Ação</button>
+          <button class="cmd" data-cmd="move"><svg class="icon"><use href="#i-move"/></svg>Mover</button>
+          <button class="cmd" data-cmd="magic"><svg class="icon"><use href="#i-sparkles"/></svg>Magias</button>
+          <button class="cmd" data-cmd="items"><svg class="icon"><use href="#i-flask"/></svg>Itens</button>
+          <button class="cmd" data-cmd="sheet"><svg class="icon"><use href="#i-scroll"/></svg>Ficha</button>
+        </div>
+        <div class="tabs"><button class="tab active">Atributos</button><button class="tab">Testes</button><button class="tab">Combate</button><button class="tab">Build</button></div>
+      </div>
+      <div class="col">
+        <div class="option-card selected-attack"><div class="option-main"><div class="option-title">Espada Longa</div><div class="option-sub">Adjacente · 1d8+4 cortante</div><div class="chip-row"><span class="tag tag-fire">+1d6 fogo</span></div></div><div class="option-side"><span class="option-stat" style="color:var(--strike)">+12</span><span class="option-sub">◆</span></div></div>
+        <div class="option-card selected-magic"><div class="option-main"><div class="option-title">Bola de Fogo</div><div class="option-sub">Explosão de 9 m · alcance 18 m</div></div><div class="option-side"><span class="option-stat" style="color:var(--arcane)">+9</span><span class="option-sub">◆◆</span></div></div>
+        <div class="defense-bar"><div class="defense-text"><strong>Erguer escudo ◆</strong><span>+2 CA até o início do seu próximo turno</span></div><button class="btn btn-ward"><svg class="icon"><use href="#i-shield"/></svg>Erguer</button></div>
+      </div>
+    </div>
+
+    <h3>Ficha</h3>
+    <div class="demo">
+      <div class="col" style="max-width:340px"><div class="attr-grid">
+        <div class="attr-box"><div class="attr-box-label">FOR</div><div class="attr-box-val">+4</div></div>
+        <div class="attr-box key"><div class="attr-box-label">DES · chave</div><div class="attr-box-val">+3</div></div>
+        <div class="attr-box"><div class="attr-box-label">CON</div><div class="attr-box-val">+2</div></div>
+      </div></div>
+      <div class="col" style="max-width:340px"><div class="save-grid">
+        <div class="save-card"><span class="save-name">Fortitude</span><span class="save-val">+11</span><span class="save-foot"><span class="prof-pill">Especialista</span></span></div>
+        <div class="save-card"><span class="save-name">Reflexos</span><span class="save-val">+9</span><span class="save-foot"><span class="prof-pill">Treinado</span></span></div>
+      </div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tokens de peça</h2>
+    <p style="margin-bottom:var(--s-4)">Medalhões 256×256 desenhados em SVG: aro de ouro para heróis e de ferro com gemas vermelhas para vilões, campo com raios de luz, busto com materiais (aço, ouro, couro, pano) e armas que ultrapassam o aro. A cor da gema inferior identifica a classe.</p>
+    <div class="tok-grid"><!--@tokens--></div>
+  </section>
+
+  <section>
+    <h2>Princípios</h2>
+    <p><b style="color:var(--text)">Mostre uma coisa por vez.</b> Painéis usam acordeões, abas e gavetas: o tabuleiro fica sempre em evidência. Configurações raras (ajuste rápido de grade, legenda, modelos) ficam recolhidas.</p>
+    <p style="margin-top:12px"><b style="color:var(--text)">Cor tem significado.</b> Vermelho é alcance e ataque, verde é movimento, roxo é magia, âmbar é item, azul-gelo é defesa. Nunca decoração.</p>
+    <p style="margin-top:12px"><b style="color:var(--text)">Resumo primeiro, detalhe sob demanda.</b> Listas mostram nome, bônus e dano em uma linha; o editor completo abre só ao tocar no lápis. O registro mostra a última rolagem e expande em uma gaveta.</p>
+  </section>
+</div>
+<script>
+/*@icons-js*/
+function setMode(m) {
+  document.body.className = 'mode-' + m;
+  document.getElementById('m1').classList.toggle('active', m === 'setup');
+  document.getElementById('m2').classList.toggle('active', m === 'combat');
+}
+</script>
+<!--@icons-->
+</body>
+</html>

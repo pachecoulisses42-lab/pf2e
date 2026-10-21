@@ -1,0 +1,111 @@
+/* ==========================================================================
+   Brigandine DS — Tokens
+   Camada única de decisões visuais. Nada fora daqui usa valores crus.
+   ========================================================================== */
+:root {
+  color-scheme: dark;
+
+  /* Tipografia */
+  --font-display: 'Bricolage Grotesque', 'Figtree', system-ui, sans-serif;
+  --font-ui: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --text-2xs: 0.6875rem;  /* 11 */
+  --text-xs: 0.75rem;     /* 12 */
+  --text-sm: 0.8125rem;   /* 13 */
+  --text-md: 0.9375rem;   /* 15 */
+  --text-lg: 1.125rem;    /* 18 */
+  --text-xl: 1.5rem;      /* 24 */
+  --text-2xl: 2rem;       /* 32 */
+
+  /* Superfícies (grafite frio, do mais fundo ao mais elevado) */
+  --ink-1000: #07090c;
+  --ink-950: #0b0e12;
+  --ink-900: #10141a;
+  --ink-850: #151a21;
+  --ink-800: #1b212a;
+  --ink-750: #222a35;
+  --ink-700: #2b3441;
+  --ink-600: #3a4555;
+
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.13);
+
+  /* Texto */
+  --text: #e8ebf0;
+  --text-2: #a3adbb;
+  --text-3: #727d8d;
+
+  /* Acentos de modo */
+  --brass-300: #f0cd85;
+  --brass-400: #e6b95f;
+  --brass-500: #d49a32;
+  --ice-300: #9adfff;
+  --ice-400: #5ccbff;
+  --ice-500: #27a9e6;
+
+  /* Cores semânticas de jogo — cada uma tem UM significado */
+  --strike: #f0616d;     /* ataque, alcance, perigo */
+  --strike-soft: rgba(240, 97, 109, 0.14);
+  --move: #3ecf8e;       /* movimento */
+  --move-soft: rgba(62, 207, 142, 0.14);
+  --arcane: #a78bfa;     /* magia e reação */
+  --arcane-soft: rgba(167, 139, 250, 0.15);
+  --supply: #f5a524;     /* itens */
+  --supply-soft: rgba(245, 165, 36, 0.15);
+  --ward: #5ccbff;       /* defesa, escudo */
+  --ward-soft: rgba(92, 203, 255, 0.15);
+
+  --ok: #3ecf8e;
+  --warn: #f5a524;
+  --danger: #f0616d;
+
+  /* Acento ativo (muda com o modo) */
+  --accent: var(--brass-400);
+  --accent-strong: var(--brass-500);
+  --accent-soft: rgba(230, 185, 95, 0.14);
+  --accent-ink: #1a1305;
+
+  /* Espaço (base 4) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+
+  /* Raio */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* Elevação */
+  --shadow-float: 0 8px 28px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  --shadow-pop: 0 14px 40px rgba(0, 0, 0, 0.55);
+  --ring: 0 0 0 2px var(--ink-950), 0 0 0 4px var(--accent);
+
+  /* Movimento */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+
+  /* Layout */
+  --header-h: 56px;
+  --sidebar-l: 320px;
+  --sidebar-r: 372px;
+}
+
+body.mode-combat {
+  --accent: var(--ice-400);
+  --accent-strong: var(--ice-500);
+  --accent-soft: rgba(92, 203, 255, 0.14);
+  --accent-ink: #03141d;
+}
+
+@media (max-width: 1180px) {
+  :root { --sidebar-l: 288px; --sidebar-r: 332px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur: 0ms; }
+}
