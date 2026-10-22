@@ -6,6 +6,8 @@ function initApp() {
   window.addEventListener('resize', resizeCanvas);
   initTouchpadXY();
   initCanvasEvents();
+  appendExtraTokenOptions(document.getElementById('inspTokenSelect'));
+  appendExtraTokenOptions(document.getElementById('newPieceSculpt'));
   renderPieceGallery();
   populateDemoBattle();
   resetCamera();

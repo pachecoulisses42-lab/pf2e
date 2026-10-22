@@ -298,6 +298,11 @@ function syncInspectorUI() {
   document.getElementById('inspSculptPreview').innerHTML = getTokenPreviewHTML(u.sculpt, u.customTokenDataUrl, customTokenOptions(u));
   document.getElementById('inspNameInput').value = u.name;
   document.getElementById('inspTokenSelect').value = u.sculpt;
+  if (document.getElementById('tokenPickerDetails').open) {
+    if (u.id !== syncInspectorUI.lastUnitId) syncTokenPickerTab(u.sculpt);
+    renderTokenPicker();
+  }
+  syncInspectorUI.lastUnitId = u.id;
   const hasCustom = !!u.customTokenDataUrl;
   document.getElementById('btnRemoveToken').classList.toggle('hidden', !hasCustom);
   document.getElementById('tokenFrameField').classList.toggle('hidden', !hasCustom);

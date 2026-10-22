@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadTemplates } from './helpers/load-rules.mjs';
@@ -113,4 +113,24 @@ test('os seletores de token da interface listam todos os tokens', () => {
     const select = html.match(new RegExp(`<select id="${id}"[^>]*>([\\s\\S]*?)</select>`))[1];
     for (const key of chibiKeys) assert.ok(select.includes(`value="${key}"`), `${id} sem "${key}"`);
   }
+});
+
+test('tokens extras: manifesto válido, arquivos existem e chaves não colidem com as do app', () => {
+  const dir = join(root, 'src/tokens-extra');
+  const manifest = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'));
+  const seen = new Set(chibiKeys);
+  let total = 0;
+  for (const g of manifest.groups) {
+    assert.ok(['topo', 'retrato'].includes(g.kind), `${g.id}: kind inválido`);
+    assert.ok(['hero', 'villain'].includes(g.faction), `${g.id}: facção inválida`);
+    for (const it of g.items) {
+      assert.match(it.key, /^[a-z][a-z0-9_]*$/, it.key);
+      assert.ok(!seen.has(it.key), `chave repetida: ${it.key}`);
+      seen.add(it.key);
+      assert.ok(it.name && it.name.trim(), `${it.key} sem nome`);
+      assert.ok(existsSync(join(dir, it.file)), `${it.key}: arquivo ${it.file} não existe`);
+      total++;
+    }
+  }
+  assert.equal(total, 90);
 });

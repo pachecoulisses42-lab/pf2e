@@ -473,6 +473,15 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .option-card .card-cost { position: absolute; right: var(--s-3); top: 50%; transform: translateY(-50%); }
 .cost-badge { min-width: 24px; height: 24px; display: inline-grid; place-items: center; border-radius: 50%; background: var(--ink-700); color: var(--text); font-size: var(--text-xs); font-weight: 700; }
 
+/* Galeria de tokens (aba Base): miniaturas clicáveis em abas */
+.token-picker { display: flex; flex-direction: column; gap: var(--s-2); }
+.token-pick-label { font-size: var(--text-2xs); color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-top: var(--s-1); }
+.token-pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; max-height: 260px; overflow-y: auto; padding: 2px; }
+.token-pick { aspect-ratio: 1; padding: 3px; border: 0; border-radius: var(--r-md); background: var(--ink-900); box-shadow: inset 0 0 0 1px var(--line); cursor: pointer; display: grid; place-items: center; }
+.token-pick:hover { box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.token-pick.active { box-shadow: inset 0 0 0 2.5px var(--accent); background: var(--accent-soft); }
+.token-pick svg, .token-pick img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
+
 /* --- layout.css --- */
 /* ==========================================================================
    Brigandine DS — Layout do app (shell, painéis, HUD)

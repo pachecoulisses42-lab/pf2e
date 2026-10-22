@@ -45,6 +45,7 @@ src/
     00e…00h-chibi-*.js    22 personagens chibi (heróis e vilões)
     00i-topdown-kit.js    Kit da vista de cima (corpo, cabeça, armas, grão, sombra)
     00j-topdown-tokens.js 22 personagens vistos de cima
+    00x-extra-tokens.js   Tokens extras pintados (registro, listas e galeria visual)
     00y-token-styles.js   Estilos de token (chibi, vista de cima) e seleção do ativo
     00z-token-loader.js   Cache de imagens, token com imagem do usuário, pré-visualização (ids de SVG únicos)
     01-catalog.js         Catálogo de magias e itens
@@ -63,7 +64,9 @@ src/
     12-board-and-persistence.js Galeria, câmera, registro, salvar/carregar/exportar
     13-ui-shell.js        Menus, gaveta de registro, painéis responsivos
     14-unit-tip.js        Tooltip do alvo: defesas e prévia do ataque
-scripts/build.mjs         Monta dist/
+scripts/build.mjs         Monta dist/ (embute src/tokens-extra/*.webp)
+scripts/recortar-tokens-extras.py  Recorta folhas de tokens em imagens individuais
+src/tokens-extra/         Imagens dos tokens extras + manifest.json
 tests/                    rules.test.mjs (unidade) e e2e.smoke.mjs (navegador)
 docs/design-system.src.html
 dist/                     Saída versionada: app, CSS do design system, documentação
@@ -84,6 +87,7 @@ dist/                     Saída versionada: app, CSS do design system, document
 - **Importar vários tokens de uma vez**: Peças → *Importar imagens como modelos* cria um modelo por imagem (nome do arquivo), herdando a ficha do modelo selecionado.
 - **22 peças equipadas por classe** (novo): além dos 12 originais, entram Druida, Monge, Alquimista, Bruxa e Espadachim (heróis) e Esqueleto, Orc, Cultista, Zumbi e Kobold (vilões). Cada peça traz ficha, armas com tipo de dano (e runas quando cabe), magias, itens e escudo coerentes com a classe; mortos-vivos têm imunidades, resistências e fraqueza a vital.
 - **Tokens** (novo): 22 personagens chibi de corpo inteiro (estilo padrão: cabeça grande, contorno marrom, cores chapadas, base oval na cor da classe); em Peças → Estilo dos tokens há a **vista de cima**, que substituiu o medalhão: personagens vistos do alto, com volumes pintados, grão de tinta e sombra projetada, sem moldura, cada um equipado conforme a classe (prévia em `docs/token-preview/`).
+- **Tokens extras pintados** (novo): 90 imagens recortadas das folhas enviadas — 45 vistas de cima (24 classes e 21 vilões: goblins, lobos e ladrões) e 45 retratos com aro. Escolha na aba Base → *Galeria de tokens* (abas Do app, Vista de cima, Retratos) ou na lista *Ilustração*, também ao salvar um modelo. Valem em qualquer estilo; os vistos de cima giram com a direção da peça e os retratos usam o aro da facção. As imagens ficam em `src/tokens-extra/` e o build as embute no app (o arquivo passa de ~0,4 MB para ~2,4 MB).
 - **Direção das peças** (novo): a peça selecionada (montagem) ou a peça da vez (combate) mostra uma alça redonda na borda do token, apontando para onde ela está virada. Arraste a alça para girar (passos de 45° no quadriculado e 30° no hexágono; Shift gira livre); um toque/clique na alça gira um passo no sentido horário; Q e E também giram. No estilo vista de cima a arte gira junto; no chibi e em imagens próprias aparece uma seta na borda. Mover, atacar e lançar magia viram a peça para o alvo automaticamente. Heróis começam virados para o leste e vilões para o oeste; a direção vai no salvamento e na exportação.
 - Salvar no navegador, exportar e importar JSON. Arquivos antigos (v4) são aceitos; armas e magias são normalizadas ao importar.
 

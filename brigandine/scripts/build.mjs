@@ -19,7 +19,14 @@ const CSS_ORDER = ['tokens', 'base', 'components', 'layout', 'theme-parchment'];
 const css = CSS_ORDER.map((n) => `/* --- ${n}.css --- */\n${read('src/styles', `${n}.css`)}`).join('\n');
 
 const jsFiles = readdirSync(join(root, 'src/js')).filter((f) => f.endsWith('.js')).sort();
-const js = jsFiles.map((f) => `/* ===== ${f} ===== */\n${read('src/js', f)}`).join('\n');
+// tokens extras (src/tokens-extra): imagens embutidas como data URL antes dos módulos
+const extraManifest = JSON.parse(read('src/tokens-extra/manifest.json'));
+const extraGroups = extraManifest.groups.map((g) => ({
+  ...g,
+  items: g.items.map(({ file, ...it }) => ({ ...it, src: `data:image/webp;base64,${readFileSync(join(root, 'src/tokens-extra', file)).toString('base64')}` }))
+}));
+const extraJs = `/* ===== tokens-extra (gerado no build) ===== */\nconst EXTRA_TOKEN_GROUPS = ${JSON.stringify(extraGroups)};\n`;
+const js = extraJs + jsFiles.map((f) => `/* ===== ${f} ===== */\n${read('src/js', f)}`).join('\n');
 
 const icons = read('src/icons.svg');
 

@@ -11,9 +11,11 @@ function facingStep() {
   return STATE.grid.type === 'square' ? 45 : 30;
 }
 
-/** A arte do token gira junto? Só a vista de cima; chibi e imagens próprias ganham uma seta na borda. */
+/** A arte do token gira junto? Só a vista de cima (do app ou extra); chibi, retratos e imagens próprias ganham uma seta na borda. */
 function tokenArtRotates(unit) {
-  return activeTokenStyle === 'topo' && !unit.customTokenDataUrl;
+  if (unit.customTokenDataUrl) return false;
+  if (isExtraToken(unit.sculpt)) return EXTRA_TOKENS[unit.sculpt].kind === 'topo';
+  return activeTokenStyle === 'topo';
 }
 
 /** Vetor unitário de tela para onde a peça aponta (0° = sul). */

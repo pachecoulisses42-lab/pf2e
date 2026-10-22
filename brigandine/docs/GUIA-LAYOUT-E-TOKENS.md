@@ -432,6 +432,24 @@ figura em outra direção. Regras puras em `01b-rules.js` (`normalizeFacing`, `s
 `facingLabel`); a alça de giro e a seta da borda ficam em `07b-facing.js`.
 ---
 
+### 7.6 Tokens extras (imagens)
+
+Além dos estilos desenhados em código, o app traz tokens pintados em imagem, em `src/tokens-extra/`
+(WebP 256×256, fundo transparente) descritos em `manifest.json` por grupos:
+
+```json
+{ "id": "topo_viloes", "label": "Vista de cima · Vilões", "kind": "topo", "faction": "villain",
+  "items": [{ "key": "vt_lobo_alfa", "name": "Lobo Alfa", "file": "vt_lobo_alfa.webp" }] }
+```
+
+- `kind: "topo"` = figura vista de cima, virada para o sul, sem moldura (gira com a direção da peça).
+- `kind: "retrato"` = imagem quadrada que o app recorta em círculo dentro do aro da facção.
+- As chaves (`ct_`, `vt_`, `cr_`, `vr_`) não podem repetir as dos estilos do app; um teste confere.
+
+Para acrescentar uma folha nova: recorte com `scripts/recortar-tokens-extras.py` (ou exporte cada token
+em PNG/WebP 256×256 transparente), copie para `src/tokens-extra/`, acrescente as entradas no manifesto e rode
+`npm run check`. Os extras aparecem sozinhos na galeria, nas listas e no salvamento.
+
 ## 8. Como adicionar um token novo
 
 Exemplo completo pronto para colar em `docs/exemplo-token-druida.js`. Para gerar um novo com IA, use

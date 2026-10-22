@@ -1,0 +1,487 @@
+{
+ "note": "Tokens extras recortados das folhas do usuário com scripts/recortar-tokens-extras.py. O build embute as imagens no app (EXTRA_TOKEN_GROUPS).",
+ "groups": [
+  {
+   "id": "topo_herois",
+   "label": "Vista de cima · Classes",
+   "kind": "topo",
+   "faction": "hero",
+   "items": [
+    {
+     "key": "ct_barbaro",
+     "name": "Bárbaro",
+     "file": "ct_barbaro.webp"
+    },
+    {
+     "key": "ct_bardo",
+     "name": "Bardo",
+     "file": "ct_bardo.webp"
+    },
+    {
+     "key": "ct_clerigo",
+     "name": "Clérigo",
+     "file": "ct_clerigo.webp"
+    },
+    {
+     "key": "ct_druida",
+     "name": "Druida",
+     "file": "ct_druida.webp"
+    },
+    {
+     "key": "ct_guerreiro",
+     "name": "Guerreiro",
+     "file": "ct_guerreiro.webp"
+    },
+    {
+     "key": "ct_explorador",
+     "name": "Explorador",
+     "file": "ct_explorador.webp"
+    },
+    {
+     "key": "ct_ladino",
+     "name": "Ladino",
+     "file": "ct_ladino.webp"
+    },
+    {
+     "key": "ct_mago",
+     "name": "Mago",
+     "file": "ct_mago.webp"
+    },
+    {
+     "key": "ct_feiticeiro",
+     "name": "Feiticeiro",
+     "file": "ct_feiticeiro.webp"
+    },
+    {
+     "key": "ct_arqueiro",
+     "name": "Arqueiro",
+     "file": "ct_arqueiro.webp"
+    },
+    {
+     "key": "ct_cavaleiro",
+     "name": "Cavaleiro",
+     "file": "ct_cavaleiro.webp"
+    },
+    {
+     "key": "ct_cavaleiro_liberdade",
+     "name": "Cavaleiro da Liberdade",
+     "file": "ct_cavaleiro_liberdade.webp"
+    },
+    {
+     "key": "ct_monge",
+     "name": "Monge",
+     "file": "ct_monge.webp"
+    },
+    {
+     "key": "ct_ninja",
+     "name": "Ninja",
+     "file": "ct_ninja.webp"
+    },
+    {
+     "key": "ct_paladino",
+     "name": "Paladino",
+     "file": "ct_paladino.webp"
+    },
+    {
+     "key": "ct_pistoleiro",
+     "name": "Pistoleiro",
+     "file": "ct_pistoleiro.webp"
+    },
+    {
+     "key": "ct_ranger_batalha",
+     "name": "Ranger de Batalha",
+     "file": "ct_ranger_batalha.webp"
+    },
+    {
+     "key": "ct_invocador",
+     "name": "Invocador",
+     "file": "ct_invocador.webp"
+    },
+    {
+     "key": "ct_bruxo",
+     "name": "Bruxo",
+     "file": "ct_bruxo.webp"
+    },
+    {
+     "key": "ct_kitsune",
+     "name": "Kitsune",
+     "file": "ct_kitsune.webp"
+    },
+    {
+     "key": "ct_kappa",
+     "name": "Kappa",
+     "file": "ct_kappa.webp"
+    },
+    {
+     "key": "ct_tengu",
+     "name": "Tengu",
+     "file": "ct_tengu.webp"
+    },
+    {
+     "key": "ct_ryu",
+     "name": "Ryu",
+     "file": "ct_ryu.webp"
+    },
+    {
+     "key": "ct_samurai",
+     "name": "Samurai",
+     "file": "ct_samurai.webp"
+    }
+   ]
+  },
+  {
+   "id": "topo_viloes",
+   "label": "Vista de cima · Vilões",
+   "kind": "topo",
+   "faction": "villain",
+   "items": [
+    {
+     "key": "vt_goblin_comum",
+     "name": "Goblin Comum",
+     "file": "vt_goblin_comum.webp"
+    },
+    {
+     "key": "vt_goblin_atirador",
+     "name": "Goblin Atirador",
+     "file": "vt_goblin_atirador.webp"
+    },
+    {
+     "key": "vt_goblin_lancador",
+     "name": "Goblin Lançador",
+     "file": "vt_goblin_lancador.webp"
+    },
+    {
+     "key": "vt_goblin_xama",
+     "name": "Goblin Xamã",
+     "file": "vt_goblin_xama.webp"
+    },
+    {
+     "key": "vt_goblin_chefe",
+     "name": "Goblin Chefe",
+     "file": "vt_goblin_chefe.webp"
+    },
+    {
+     "key": "vt_goblin_arqueiro",
+     "name": "Goblin Arqueiro",
+     "file": "vt_goblin_arqueiro.webp"
+    },
+    {
+     "key": "vt_goblin_escudo",
+     "name": "Goblin com Escudo",
+     "file": "vt_goblin_escudo.webp"
+    },
+    {
+     "key": "vt_lobo_comum",
+     "name": "Lobo Comum",
+     "file": "vt_lobo_comum.webp"
+    },
+    {
+     "key": "vt_lobo_alfa",
+     "name": "Lobo Alfa",
+     "file": "vt_lobo_alfa.webp"
+    },
+    {
+     "key": "vt_lobo_feroz",
+     "name": "Lobo Feroz",
+     "file": "vt_lobo_feroz.webp"
+    },
+    {
+     "key": "vt_lobo_sombrio",
+     "name": "Lobo Sombrio",
+     "file": "vt_lobo_sombrio.webp"
+    },
+    {
+     "key": "vt_lobo_matilha",
+     "name": "Lobo da Matilha",
+     "file": "vt_lobo_matilha.webp"
+    },
+    {
+     "key": "vt_lobo_espectral",
+     "name": "Lobo Espectral",
+     "file": "vt_lobo_espectral.webp"
+    },
+    {
+     "key": "vt_lobo_guerra",
+     "name": "Lobo de Guerra",
+     "file": "vt_lobo_guerra.webp"
+    },
+    {
+     "key": "vt_ladrao_comum",
+     "name": "Ladrão Comum",
+     "file": "vt_ladrao_comum.webp"
+    },
+    {
+     "key": "vt_ladrao_arco",
+     "name": "Ladrão com Arco",
+     "file": "vt_ladrao_arco.webp"
+    },
+    {
+     "key": "vt_ladrao_adaga",
+     "name": "Ladrão com Adaga",
+     "file": "vt_ladrao_adaga.webp"
+    },
+    {
+     "key": "vt_ladra",
+     "name": "Ladrona",
+     "file": "vt_ladra.webp"
+    },
+    {
+     "key": "vt_lider_ladroes",
+     "name": "Líder de Ladrões",
+     "file": "vt_lider_ladroes.webp"
+    },
+    {
+     "key": "vt_ladra_sombria",
+     "name": "Ladra Sombria",
+     "file": "vt_ladra_sombria.webp"
+    },
+    {
+     "key": "vt_assassino",
+     "name": "Assassino",
+     "file": "vt_assassino.webp"
+    }
+   ]
+  },
+  {
+   "id": "retrato_herois",
+   "label": "Retratos · Classes",
+   "kind": "retrato",
+   "faction": "hero",
+   "items": [
+    {
+     "key": "cr_barbaro",
+     "name": "Bárbaro",
+     "file": "cr_barbaro.webp"
+    },
+    {
+     "key": "cr_bardo",
+     "name": "Bardo",
+     "file": "cr_bardo.webp"
+    },
+    {
+     "key": "cr_clerigo",
+     "name": "Clérigo",
+     "file": "cr_clerigo.webp"
+    },
+    {
+     "key": "cr_druida",
+     "name": "Druida",
+     "file": "cr_druida.webp"
+    },
+    {
+     "key": "cr_guerreiro",
+     "name": "Guerreiro",
+     "file": "cr_guerreiro.webp"
+    },
+    {
+     "key": "cr_explorador",
+     "name": "Explorador",
+     "file": "cr_explorador.webp"
+    },
+    {
+     "key": "cr_ladino",
+     "name": "Ladino",
+     "file": "cr_ladino.webp"
+    },
+    {
+     "key": "cr_mago",
+     "name": "Mago",
+     "file": "cr_mago.webp"
+    },
+    {
+     "key": "cr_feiticeiro",
+     "name": "Feiticeiro",
+     "file": "cr_feiticeiro.webp"
+    },
+    {
+     "key": "cr_arqueiro",
+     "name": "Arqueiro",
+     "file": "cr_arqueiro.webp"
+    },
+    {
+     "key": "cr_cavaleiro",
+     "name": "Cavaleiro",
+     "file": "cr_cavaleiro.webp"
+    },
+    {
+     "key": "cr_cavaleiro_liberdade",
+     "name": "Cavaleiro da Liberdade",
+     "file": "cr_cavaleiro_liberdade.webp"
+    },
+    {
+     "key": "cr_monge",
+     "name": "Monge",
+     "file": "cr_monge.webp"
+    },
+    {
+     "key": "cr_ninja",
+     "name": "Ninja",
+     "file": "cr_ninja.webp"
+    },
+    {
+     "key": "cr_paladino",
+     "name": "Paladino",
+     "file": "cr_paladino.webp"
+    },
+    {
+     "key": "cr_pistoleiro",
+     "name": "Pistoleiro",
+     "file": "cr_pistoleiro.webp"
+    },
+    {
+     "key": "cr_ranger_batalha",
+     "name": "Ranger de Batalha",
+     "file": "cr_ranger_batalha.webp"
+    },
+    {
+     "key": "cr_invocador",
+     "name": "Invocador",
+     "file": "cr_invocador.webp"
+    },
+    {
+     "key": "cr_bruxo",
+     "name": "Bruxo",
+     "file": "cr_bruxo.webp"
+    },
+    {
+     "key": "cr_kitsune",
+     "name": "Kitsune",
+     "file": "cr_kitsune.webp"
+    },
+    {
+     "key": "cr_kappa",
+     "name": "Kappa",
+     "file": "cr_kappa.webp"
+    },
+    {
+     "key": "cr_tengu",
+     "name": "Tengu",
+     "file": "cr_tengu.webp"
+    },
+    {
+     "key": "cr_ryu",
+     "name": "Ryu",
+     "file": "cr_ryu.webp"
+    },
+    {
+     "key": "cr_samurai",
+     "name": "Samurai",
+     "file": "cr_samurai.webp"
+    }
+   ]
+  },
+  {
+   "id": "retrato_viloes",
+   "label": "Retratos · Vilões",
+   "kind": "retrato",
+   "faction": "villain",
+   "items": [
+    {
+     "key": "vr_goblin_comum",
+     "name": "Goblin Comum",
+     "file": "vr_goblin_comum.webp"
+    },
+    {
+     "key": "vr_goblin_atirador",
+     "name": "Goblin Atirador",
+     "file": "vr_goblin_atirador.webp"
+    },
+    {
+     "key": "vr_goblin_lancador",
+     "name": "Goblin Lançador",
+     "file": "vr_goblin_lancador.webp"
+    },
+    {
+     "key": "vr_goblin_xama",
+     "name": "Goblin Xamã",
+     "file": "vr_goblin_xama.webp"
+    },
+    {
+     "key": "vr_goblin_chefe",
+     "name": "Goblin Chefe",
+     "file": "vr_goblin_chefe.webp"
+    },
+    {
+     "key": "vr_goblin_arqueiro",
+     "name": "Goblin Arqueiro",
+     "file": "vr_goblin_arqueiro.webp"
+    },
+    {
+     "key": "vr_goblin_escudo",
+     "name": "Goblin com Escudo",
+     "file": "vr_goblin_escudo.webp"
+    },
+    {
+     "key": "vr_lobo_comum",
+     "name": "Lobo Comum",
+     "file": "vr_lobo_comum.webp"
+    },
+    {
+     "key": "vr_lobo_alfa",
+     "name": "Lobo Alfa",
+     "file": "vr_lobo_alfa.webp"
+    },
+    {
+     "key": "vr_lobo_feroz",
+     "name": "Lobo Feroz",
+     "file": "vr_lobo_feroz.webp"
+    },
+    {
+     "key": "vr_lobo_sombrio",
+     "name": "Lobo Sombrio",
+     "file": "vr_lobo_sombrio.webp"
+    },
+    {
+     "key": "vr_lobo_matilha",
+     "name": "Lobo da Matilha",
+     "file": "vr_lobo_matilha.webp"
+    },
+    {
+     "key": "vr_lobo_espectral",
+     "name": "Lobo Espectral",
+     "file": "vr_lobo_espectral.webp"
+    },
+    {
+     "key": "vr_lobo_guerra",
+     "name": "Lobo de Guerra",
+     "file": "vr_lobo_guerra.webp"
+    },
+    {
+     "key": "vr_ladrao_comum",
+     "name": "Ladrão Comum",
+     "file": "vr_ladrao_comum.webp"
+    },
+    {
+     "key": "vr_ladrao_arco",
+     "name": "Ladrão com Arco",
+     "file": "vr_ladrao_arco.webp"
+    },
+    {
+     "key": "vr_ladrao_adaga",
+     "name": "Ladrão com Adaga",
+     "file": "vr_ladrao_adaga.webp"
+    },
+    {
+     "key": "vr_ladra",
+     "name": "Ladrona",
+     "file": "vr_ladra.webp"
+    },
+    {
+     "key": "vr_lider_ladroes",
+     "name": "Líder de Ladrões",
+     "file": "vr_lider_ladroes.webp"
+    },
+    {
+     "key": "vr_ladra_sombria",
+     "name": "Ladra Sombria",
+     "file": "vr_ladra_sombria.webp"
+    },
+    {
+     "key": "vr_assassino",
+     "name": "Assassino",
+     "file": "vr_assassino.webp"
+    }
+   ]
+  }
+ ]
+}

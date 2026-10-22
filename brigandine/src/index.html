@@ -399,7 +399,7 @@
             </div>
 
             <div class="field">
-              <div class="field-label"><span>Ilustração padrão</span></div>
+              <div class="field-label"><span>Ilustração</span></div>
               <select id="inspTokenSelect" onchange="changeSelectedUnitToken(this.value)">
                 <option value="guerreiro">Guerreiro</option>
                 <option value="barbaro">Bárbaro</option>
@@ -414,6 +414,10 @@
                 <option value="lobo">Lobo atroz</option>
                 <option value="bandido">Bandido</option><option value="druida">Druida</option><option value="monge">Monge</option><option value="alquimista">Alquimista</option><option value="bruxa">Bruxa</option><option value="espadachim">Espadachim</option><option value="esqueleto">Esqueleto</option><option value="orc">Orc</option><option value="cultista">Cultista</option><option value="zumbi">Zumbi</option><option value="kobold">Kobold</option>
               </select>
+              <details id="tokenPickerDetails" class="more" ontoggle="if (this.open) renderTokenPicker()">
+                <summary><svg class="icon"><use href="#i-image"/></svg>Galeria de tokens<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+                <div class="more-body"><div id="tokenPicker" class="token-picker"></div></div>
+              </details>
             </div>
 
             <div class="field">

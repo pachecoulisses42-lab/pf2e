@@ -345,6 +345,33 @@ await check('girar a peça pela alça no tabuleiro: arrastar, tocar, mover e sal
   await page.evaluate(() => { setAppMode('setup'); setGridType('hex'); });
 });
 
+await check('tokens extras: galeria troca o token da peça, desenha no tabuleiro e sobrevive ao salvar', async () => {
+  const r = await page.evaluate(async () => {
+    setAppMode('setup');
+    const u = STATE.units[0];
+    STATE.selectedUnitId = u.id; syncInspectorUI();
+    const det = document.getElementById('tokenPickerDetails');
+    det.open = true; setTokenPickerTab('retrato'); renderTokenPicker();
+    const btn = Array.from(document.querySelectorAll('#tokenPicker .token-pick')).find(b => b.title === 'Samurai');
+    btn.click();
+    const afterClick = u.sculpt;
+    const active = document.querySelector('#tokenPicker .token-pick.active')?.title;
+    const selectVal = document.getElementById('inspTokenSelect').value;
+    // vista de cima: a arte gira; retrato não
+    const rotRetrato = tokenArtRotates(u);
+    changeSelectedUnitToken('vt_lobo_alfa');
+    const rotTopo = tokenArtRotates(u);
+    const img = getUnitTokenImage(u.sculpt, null, customTokenOptions(u));
+    await new Promise(res => (img.complete && img.naturalWidth) ? res() : (img.onload = res, img.onerror = res));
+    const payload = JSON.parse(JSON.stringify({ grid: STATE.grid, terrainMap: STATE.terrainMap, units: STATE.units, templates: UNIT_TEMPLATES, round: 1 }));
+    applyLoadedPayload(payload);
+    return { afterClick, active, selectVal, rotRetrato, rotTopo, w: img.naturalWidth, kept: STATE.units[0].sculpt,
+      groups: document.querySelectorAll('#inspTokenSelect optgroup').length, extras: Object.keys(EXTRA_TOKENS).length };
+  });
+  assert.deepEqual(r, { afterClick: 'cr_samurai', active: 'Samurai', selectVal: 'cr_samurai', rotRetrato: false, rotTopo: true, w: 256, kept: 'vt_lobo_alfa', groups: 5, extras: 90 });
+  await page.evaluate(() => { changeSelectedUnitToken('guerreiro'); document.getElementById('tokenPickerDetails').open = false; });
+});
+
 await check('sem erros de JavaScript durante o fluxo', async () => {
   assert.deepEqual(errors, []);
 });
