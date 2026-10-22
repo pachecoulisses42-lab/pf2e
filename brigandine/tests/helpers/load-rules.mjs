@@ -48,7 +48,7 @@ export function loadTemplates() {
   const tokenFiles = readdirSync(join(root, 'src/js')).filter((f) => /^00[a-y]/.test(f)).sort();
   for (const f of [...tokenFiles, ...files]) vm.runInContext(readFileSync(join(root, 'src/js', f), 'utf8'), ctx, { filename: f });
   return vm.runInContext(`({
-    UNIT_TEMPLATES, SPELL_CATALOG, ITEM_CATALOG, CHIBI_SVGS, MEDALLION_SVGS, VILLAIN_SCULPTS, DAMAGE_TYPES,
+    UNIT_TEMPLATES, SPELL_CATALOG, ITEM_CATALOG, CHIBI_SVGS, TOPDOWN_SVGS, TOKEN_STYLES, setTokenStyle, activeStyle: () => activeTokenStyle, VILLAIN_SCULPTS, DAMAGE_TYPES,
     isValidDice, normalizeWeapon, normalizeSpell, normalizeDefenses, recalculateUnitFromSheet
   })`, ctx);
 }

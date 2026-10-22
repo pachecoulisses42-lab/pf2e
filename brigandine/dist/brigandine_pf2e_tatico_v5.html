@@ -1178,7 +1178,7 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
             <div class="field-label"><span>Estilo dos tokens</span></div>
             <div class="seg">
               <button id="styleChibi" class="seg-btn active" onclick="chooseTokenStyle('chibi')">Chibi</button>
-              <button id="styleMedalhao" class="seg-btn" onclick="chooseTokenStyle('medalhao')">Medalhão</button>
+              <button id="styleTopo" class="seg-btn" onclick="chooseTokenStyle('topo')">Vista de cima</button>
             </div>
           </div>
 
@@ -1600,10 +1600,10 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
 <script>
 /* ===== 00a-token-kit.js ===== */
 /* ============================================================================
-   1. TOKENS — KIT DE ILUSTRAÇÃO SVG (medalhões de retrato 256×256)
-   Cada token é um medalhão: aro metálico (herói = ouro, vilão = ferro),
-   campo pintado com raios e vinheta, busto do personagem recortado no campo e
-   armas/adereços que ultrapassam o aro para dar profundidade.
+   1. TOKENS — KIT DE ILUSTRAÇÃO SVG (256×256)
+   Utilitários de cor e gradiente (mix, lighten, darken, lin, rad) usados pelo kit
+   da vista de cima (00i). As peças de retrato (face, pauldron, frame) vêm do
+   antigo estilo medalhão e seguem disponíveis para artes novas.
    ============================================================================ */
 const TK = (() => {
   const attr = (a) => (a === undefined ? '' : ` stop-opacity="${a}"`);
@@ -1848,559 +1848,6 @@ const TK = (() => {
   return { lin, rad, mix, lighten, darken, cloth, skinDefs, face, pauldron, frame, gl, TORSO };
 })();
 
-/** Estilo "medalhão" (retrato em aro). O estilo ativo é escolhido em 00y-token-styles.js. */
-const MEDALLION_SVGS = {};
-
-/* ===== 00b-tokens-heroes.js ===== */
-/* ============================================================================
-   1a. TOKENS — HERÓIS
-   ============================================================================ */
-const T = TK;
-
-MEDALLION_SVGS.guerreiro = () => T.frame('guerreiro', {
-  faction: 'hero', accent: '#4fa3e0', bg: ['#2b4a68', '#0d1a28'],
-  art: (id) => {
-    const f = T.face(id, { skin: '#e3b48c', eye: '#3f78a8', brow: '#3a2615', smile: 0.2, h: 36, chin: 0.5, tilt: 0.45, stubble: true, browW: 1.25 });
-    return {
-      defs: `${T.skinDefs(id, '#e3b48c')}${T.cloth(id, 'tabard', '#5da3dc', '#1c4468')}${T.cloth(id, 'cape', '#2f6a9c', '#0e2539')}${T.cloth(id, 'plume', '#e5483d', '#7f1612')}`,
-      back: `<path d="M44 256 C40 196 66 164 104 156 L152 156 C190 164 216 196 212 256Z" fill="url(#cape_${id})" stroke="#0a1622" stroke-width="3"/>
-             <path d="M70 256 C70 214 84 190 104 176 M186 256 C186 214 172 190 152 176" stroke="#000" stroke-width="2" opacity="0.25" fill="none"/>`,
-      body: `
-        ${f.neck}
-        <path d="${T.TORSO}" fill="url(#steel_${id})" stroke="#101722" stroke-width="3"/>
-        <path d="M100 182 L156 182 L164 256 L92 256Z" fill="url(#tabard_${id})" stroke="#0a1622" stroke-width="2.5"/>
-        <path d="M128 186 L128 256" stroke="#fff3b8" stroke-width="2.5" opacity="0.8"/>
-        <path d="M112 206 L128 196 L144 206 L144 226 Q128 238 112 226Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.2" stroke-linejoin="round"/>
-        <path d="M128 202 L128 228 M118 213 L138 213" stroke="#5a3f0e" stroke-width="3" stroke-linecap="round"/>
-        <path d="M104 172 Q128 190 152 172 L150 190 Q128 202 106 190Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="2.5" stroke-linejoin="round"/>
-        ${T.pauldron(id, -1)}${T.pauldron(id, 1)}
-        ${f.head}
-        <!-- elmo aberto com nasal e crista -->
-        <path d="M128 42 C150 42 166 58 165 92 L158 96 C152 80 104 80 98 96 L91 92 C90 58 106 42 128 42Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M93 86 Q128 66 163 86 L163 96 Q128 78 93 96Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2"/>
-        <path d="M124 80 L132 80 L131 108 Q128 111 125 108Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="2"/>
-        <path d="M91 96 L97 128 L110 120 L108 94Z M165 96 L159 128 L146 120 L148 94Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="2.4" stroke-linejoin="round"/>
-        <path d="M102 62 Q116 50 134 49" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
-        ${T.gl(110, 58, 1.1, 20)}${T.gl(68, 190, 0.9, 0)}`,
-      over: `
-        <path d="M128 46 C112 22 140 6 172 16 C162 28 156 40 146 50Z" fill="url(#plume_${id})" stroke="#4a0c09" stroke-width="2.4"/>
-        <g>
-          <path d="M219 22 L227 44 L226 178 L212 178 L211 44Z" fill="url(#steelv_${id})" stroke="#101722" stroke-width="2.6" stroke-linejoin="round"/>
-          <path d="M219 40 L219 176" stroke="#5b6b82" stroke-width="2.4"/>
-          <path d="M196 178 Q219 170 242 178 L242 188 Q219 182 196 188Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.4" stroke-linejoin="round"/>
-          <rect x="213.5" y="188" width="11" height="26" rx="3" fill="url(#leather_${id})" stroke="#1a0e06" stroke-width="2"/>
-          <path d="M214 194 H224 M214 200 H224 M214 206 H224" stroke="#1a0e06" stroke-width="1.5" opacity="0.7"/>
-          <circle cx="219" cy="220" r="8" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.2"/>
-          ${T.gl(219, 52, 1.5, 0)}${T.gl(217, 120, 0.9, 0)}
-        </g>
-        <g>
-          <circle cx="62" cy="206" r="38" fill="url(#steel_${id})" stroke="#101722" stroke-width="3.5"/>
-          <circle cx="62" cy="206" r="31" fill="url(#tabard_${id})" stroke="#0a1622" stroke-width="2.5"/>
-          <path d="M62 178 L62 234 M34 206 L90 206" stroke="#fff3b8" stroke-width="5" opacity="0.9"/>
-          <circle cx="62" cy="206" r="9" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.4"/>
-          <path d="M38 190 Q50 178 66 176" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.6"/>
-        </g>`
-    };
-  }
-});
-
-MEDALLION_SVGS.paladino = () => T.frame('paladino', {
-  faction: 'hero', accent: '#f4d36a', bg: ['#6b5a2a', '#1c1608'],
-  art: (id) => {
-    const f = T.face(id, { skin: '#efc7a2', eye: '#5aa0d8', brow: '#b58a3a', smile: 0.7, h: 36, chin: 0.3, tilt: -0.05, lashes: true });
-    return {
-      defs: `${T.skinDefs(id, '#efc7a2')}${T.cloth(id, 'tabard', '#ffffff', '#cfc7b0')}${T.cloth(id, 'hair', '#ffe48a', '#b3822a')}${T.cloth(id, 'cape', '#fff6d6', '#b9a66a')}${T.rad(`halo_${id}`, [[0.55, '#ffe9a0', 0.9], [0.8, '#ffd45a', 0.35], [1, '#ffd45a', 0]], [0.5, 0.5, 0.5])}`,
-      glow: `<circle cx="128" cy="96" r="78" fill="url(#halo_${id})"/>
-             <circle cx="128" cy="96" r="54" fill="none" stroke="url(#gold_${id})" stroke-width="3" opacity="0.9"/>`,
-      back: `<path d="M44 256 C40 196 66 164 104 156 L152 156 C190 164 216 196 212 256Z" fill="url(#cape_${id})" stroke="#6b5a2a" stroke-width="3"/>
-             <path d="M88 82 C74 124 80 172 98 196 L158 196 C176 172 182 124 168 82 C150 54 106 54 88 82Z" fill="url(#hair_${id})" stroke="#7a5518" stroke-width="2.4"/>`,
-      body: `
-        ${f.neck}
-        <path d="${T.TORSO}" fill="url(#steel_${id})" stroke="#101722" stroke-width="3"/>
-        <path d="M100 182 L156 182 L164 256 L92 256Z" fill="url(#tabard_${id})" stroke="#8a7a45" stroke-width="2.5"/>
-        <circle cx="128" cy="216" r="20" fill="none" stroke="url(#gold_${id})" stroke-width="3"/>
-        <circle cx="128" cy="216" r="9" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2"/>
-        <path d="M128 190 V198 M128 234 V242 M102 216 H110 M146 216 H154 M110 198 L116 204 M146 198 L140 204 M110 234 L116 228 M146 234 L140 228" stroke="url(#gold_${id})" stroke-width="3" stroke-linecap="round"/>
-        <path d="M104 172 Q128 190 152 172 L150 190 Q128 202 106 190Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.5" stroke-linejoin="round"/>
-        ${T.pauldron(id, -1, { fill: `url(#gold_${id})`, trim: `url(#steel_${id})`, plates: 2 })}${T.pauldron(id, 1, { fill: `url(#gold_${id})`, trim: `url(#steel_${id})`, plates: 2 })}
-        ${f.head}
-        <path d="M92 90 C92 62 110 52 128 52 C146 52 164 62 164 90 C152 74 140 70 128 70 C116 70 104 74 92 90Z" fill="url(#hair_${id})" stroke="#7a5518" stroke-width="2.4" stroke-linejoin="round"/>
-        <path d="M94 86 Q128 62 162 86" fill="none" stroke="url(#gold_${id})" stroke-width="6" stroke-linecap="round"/>
-        <path d="M94 86 Q128 62 162 86" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity="0.7"/>
-        <path d="M95 84 L62 64 L72 82 L56 88 L82 98Z M161 84 L194 64 L184 82 L200 88 L174 98Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M128 66 L134 76 L128 86 L122 76Z" fill="#7fd3ff" stroke="#fff" stroke-width="1.5"/>
-        ${T.gl(128, 74, 1.1, 0)}${T.gl(104, 70, 0.8, 0)}${T.gl(160, 70, 0.8, 0)}`,
-      over: `
-        <g>
-          <path d="M37 18 L45 40 L44 176 L30 176 L29 40Z" fill="url(#steelv_${id})" stroke="#101722" stroke-width="2.6" stroke-linejoin="round"/>
-          <path d="M37 34 L37 174" stroke="#ffe9a0" stroke-width="3" opacity="0.9"/>
-          <path d="M37 18 L45 40 L44 176 L30 176 L29 40Z" fill="#ffe9a0" opacity="0.25"/>
-          <path d="M14 178 Q37 168 60 178 L60 190 Q37 183 14 190Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.4" stroke-linejoin="round"/>
-          <rect x="31.500" y="190" width="11" height="26" rx="3" fill="url(#leather_${id})" stroke="#1a0e06" stroke-width="2"/>
-          <circle cx="37" cy="222" r="8" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.2"/>
-          <path d="M37 6 V18 M20 14 L28 26 M54 14 L46 26" stroke="#ffe9a0" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
-          ${T.gl(37, 16, 1.7, 0)}${T.gl(37, 110, 1, 0)}
-        </g>
-        <g>
-          <path d="M184 168 H252 V214 C252 236 224 246 218 250 C212 246 184 236 184 214Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="3.5" stroke-linejoin="round"/>
-          <path d="M191 175 H245 V213 C245 230 226 238 218 242 C210 238 191 230 191 213Z" fill="url(#tabard_${id})" stroke="#8a7a45" stroke-width="2"/>
-          <path d="M218 178 V240 M191 202 H245" stroke="url(#gold_${id})" stroke-width="5"/>
-          <circle cx="218" cy="202" r="9" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.2"/>
-        </g>`
-    };
-  }
-});
-
-MEDALLION_SVGS.barbaro = () => T.frame('barbaro', {
-  faction: 'hero', accent: '#e0703a', bg: ['#6a3a22', '#1a0d07'],
-  art: (id) => {
-    const skin = '#86a066';
-    const f = T.face(id, { skin, eye: '#e3a73c', brow: '#1c1a10', smile: 0.9, squint: 0.6, browW: 1.7, tilt: 0.85, w: 36, h: 38, chin: 0.62, teeth: 'snarl', ears: 'pointed', nose: 1.4 });
-    return {
-      defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'fur', '#d9bc8a', '#6b4a28')}${T.cloth(id, 'mohawk', '#e5522a', '#6e1608')}`,
-      body: `
-        ${f.neck}
-        <path d="M34 256 C38 214 62 192 100 180 L156 180 C194 192 218 214 222 256Z" fill="url(#skin_${id})" stroke="#2a3418" stroke-width="3"/>
-        <path d="M112 196 Q128 204 144 196 M104 214 Q128 226 152 214 M128 204 V240" fill="none" stroke="#2a3418" stroke-width="2.4" opacity="0.5" stroke-linecap="round"/>
-        <path d="M70 222 q8 -10 16 0 M174 224 q8 -10 16 0 M96 240 l10 -8 l10 8" fill="none" stroke="#7a1d12" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
-        <!-- colar de presas -->
-        <path d="M98 178 Q128 214 158 178" fill="none" stroke="url(#leather_${id})" stroke-width="4"/>
-        ${[0, 1, 2, 3, 4].map(i => { const x = 108 + i * 10; const yy = 192 + Math.sin(i / 4 * Math.PI) * 12; return `<path d="M${x - 4} ${yy} L${x + 4} ${yy} L${x} ${yy + 14}Z" fill="url(#bone_${id})" stroke="#6b5a3c" stroke-width="1.5" stroke-linejoin="round"/>`; }).join('')}
-        <!-- manto de pele -->
-        <path d="M30 236 C26 196 46 170 90 172 L100 200 C84 196 70 204 64 222 C56 214 42 218 30 236Z" fill="url(#fur_${id})" stroke="#2b1a0c" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M226 236 C230 196 210 170 166 172 L156 200 C172 196 186 204 192 222 C200 214 214 218 226 236Z" fill="url(#fur_${id})" stroke="#2b1a0c" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M44 214 l6 12 M58 204 l4 14 M214 212 l-6 12 M198 204 l-4 14 M72 190 l2 12 M184 190 l-2 12" stroke="#2b1a0c" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
-        ${f.head}
-        <!-- pintura de guerra e cicatriz -->
-        <path d="M100 112 L116 108 M101 120 L117 116 M156 112 L140 108 M155 120 L139 116" stroke="#c4301e" stroke-width="3.4" stroke-linecap="round"/>
-        <path d="M150 78 L164 124" stroke="#4b2a22" stroke-width="2.6" stroke-linecap="round"/>
-        <path d="M153 90 l6 -1 M156 100 l6 -1 M159 110 l6 -1" stroke="#e8b0a0" stroke-width="1.6" stroke-linecap="round"/>
-        <!-- presas -->
-        <path d="M112 128 Q108 114 114 104 Q118 114 118 128Z M144 128 Q148 114 142 104 Q138 114 138 128Z" fill="url(#bone_${id})" stroke="#6b5a3c" stroke-width="1.6" stroke-linejoin="round"/>
-        <path d="M108 60 C112 40 124 34 128 34 C132 34 144 40 148 60 C140 52 116 52 108 60Z" fill="url(#mohawk_${id})" stroke="#3a0b04" stroke-width="2.4"/>`,
-      over: `
-        <path d="M110 66 C106 38 118 14 128 10 C138 14 150 38 146 66 C140 54 116 54 110 66Z" fill="url(#mohawk_${id})" stroke="#3a0b04" stroke-width="2.6" stroke-linejoin="round"/>
-        <path d="M128 12 V60" stroke="#ffb27a" stroke-width="2.4" opacity="0.6"/>
-        <g>
-          <rect x="213" y="36" width="12" height="210" rx="5" fill="url(#wood_${id})" stroke="#1d1006" stroke-width="2.6"/>
-          <path d="M213 190 H225 M213 198 H225 M213 206 H225" stroke="#1d1006" stroke-width="2" opacity="0.7"/>
-          <path d="M219 52 C192 38 176 66 184 100 C198 90 210 88 219 92Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M219 52 C246 38 254 66 250 100 C238 90 228 88 219 92Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M190 66 C192 80 196 88 206 92" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
-          ${T.gl(196, 70, 1.2, 0)}${T.gl(240, 74, 1, 0)}
-          <path d="M219 48 L219 30" stroke="url(#steel_${id})" stroke-width="7" stroke-linecap="round"/>
-          <circle cx="219" cy="214" r="13" fill="url(#skin_${id})" stroke="#2a3418" stroke-width="2.6"/>
-        </g>`
-    };
-  }
-});
-
-MEDALLION_SVGS.clerigo = () => T.frame('clerigo', {
-  faction: 'hero', accent: '#f0c64a', bg: ['#6a5a30', '#17120a'],
-  art: (id) => {
-    const skin = '#dc9f7a';
-    const f = T.face(id, { skin, eye: '#4a6f8a', brow: '#9a4f20', browW: 1.8, smile: 0.35, w: 35, h: 36, chin: 0.5, tilt: 0.1, nose: 1.5 });
-    const braid = (x, y0) => [0, 1, 2, 3].map(i => `<ellipse cx="${x}" cy="${y0 + i * 9}" rx="5" ry="5.5" fill="url(#beard_${id})" stroke="#5a2a0c" stroke-width="1.6"/>`).join('') + `<circle cx="${x}" cy="${y0 + 38}" r="3.4" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="1.2"/>`;
-    return {
-      defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'beard', '#d9782f', '#7a3512')}${T.cloth(id, 'robe', '#fff4cc', '#c9a85a')}${T.cloth(id, 'mail', '#9aa7b8', '#3b4656')}`,
-      back: `<path d="M44 256 C40 198 66 166 104 158 L152 158 C190 166 216 198 212 256Z" fill="url(#robe_${id})" stroke="#6b5a2a" stroke-width="3"/>`,
-      body: `
-        ${f.neck}
-        <path d="${T.TORSO}" fill="url(#mail_${id})" stroke="#101722" stroke-width="3"/>
-        <path d="M46 214 Q70 206 100 204 M56 232 Q78 224 104 222 M210 214 Q186 206 156 204 M200 232 Q178 224 152 222" stroke="#101722" stroke-width="1.6" stroke-dasharray="3 4" opacity="0.5" fill="none"/>
-        <path d="M96 182 L160 182 L168 256 L88 256Z" fill="url(#robe_${id})" stroke="#8a7a45" stroke-width="2.5"/>
-        <path d="M128 184 V256" stroke="url(#gold_${id})" stroke-width="5"/>
-        <circle cx="128" cy="222" r="18" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.6"/>
-        <path d="M128 200 V206 M128 238 V244 M106 222 H112 M144 222 H150 M113 207 L117 211 M143 207 L139 211 M113 237 L117 233 M143 237 L139 233" stroke="url(#gold_${id})" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="128" cy="222" r="8" fill="#fff4cc" stroke="#5a3f0e" stroke-width="1.8"/>
-        ${T.pauldron(id, -1, { fill: `url(#mail_${id})`, trim: `url(#gold_${id})`, plates: 2 })}${T.pauldron(id, 1, { fill: `url(#mail_${id})`, trim: `url(#gold_${id})`, plates: 2 })}
-        ${f.head}
-        <!-- elmo de calota com sol -->
-        <path d="M91 92 C90 52 108 40 128 40 C148 40 166 52 165 92 C154 72 102 72 91 92Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M92 82 Q128 62 164 82 L164 90 Q128 70 92 90Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2"/>
-        <circle cx="128" cy="62" r="9" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2"/>
-        <path d="M128 50 V54 M128 70 V74 M116 62 H120 M136 62 H140 M120 54 L122 56 M136 54 L134 56" stroke="#fff4cc" stroke-width="2.2" stroke-linecap="round"/>
-        <path d="M100 56 Q112 46 128 45" stroke="#fff" stroke-width="3.2" fill="none" stroke-linecap="round" opacity="0.6"/>
-        <!-- barba trançada e bigode -->
-        <path d="M91 108 C88 150 106 188 128 196 C150 188 168 150 165 108 C154 126 142 132 128 132 C114 132 102 126 91 108Z" fill="url(#beard_${id})" stroke="#5a2a0c" stroke-width="2.6" stroke-linejoin="round"/>
-        <path d="M104 124 Q116 112 128 124 Q140 112 152 124 Q140 134 128 130 Q116 134 104 124Z" fill="url(#beard_${id})" stroke="#5a2a0c" stroke-width="2.2" stroke-linejoin="round"/>
-        <path d="M108 142 Q128 154 148 142 M112 158 Q128 168 144 158" stroke="#5a2a0c" stroke-width="1.8" fill="none" opacity="0.55" stroke-linecap="round"/>
-        ${braid(112, 146)}${braid(144, 146)}`,
-      over: `
-        <g>
-          <rect x="31" y="70" width="12" height="150" rx="5" fill="url(#wood_${id})" stroke="#1d1006" stroke-width="2.6"/>
-          <circle cx="37" cy="58" r="24" fill="url(#steel_${id})" stroke="#101722" stroke-width="3"/>
-          <circle cx="37" cy="58" r="15" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.4"/>
-          ${[0, 45, 90, 135, 180, 225, 270, 315].map(a => `<path d="M37 ${58 - 24} l-4 -8 l8 0z" transform="rotate(${a} 37 58)" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="1.6"/>`).join('')}
-          <circle cx="37" cy="58" r="6" fill="#fff4cc" stroke="#5a3f0e" stroke-width="1.6"/>
-          <path d="M20 46 Q26 38 36 36" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.65"/>
-          ${T.gl(26, 44, 1.2, 0)}
-          <circle cx="37" cy="226" r="12" fill="url(#skin_${id})" stroke="#5a2a0c" stroke-width="2.6"/>
-        </g>`
-    };
-  }
-});
-
-MEDALLION_SVGS.bardo = () => T.frame('bardo', {
-  faction: 'hero', accent: '#d85fb0', bg: ['#5a2a56', '#140a16'],
-  art: (id) => {
-    const skin = '#eab793';
-    const f = T.face(id, { skin, eye: '#5e9a4a', brow: '#2a1810', smile: 1, lashes: true, h: 36, w: 32, chin: 0.28, tilt: -0.3, teeth: 'grin', wink: true });
-    return {
-      defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'coat', '#b9418e', '#47123a')}${T.cloth(id, 'hat', '#8a2f78', '#36103a')}${T.cloth(id, 'feather', '#ffffff', '#d4c5e6')}${T.cloth(id, 'hair', '#6b3a22', '#241008')}`,
-      back: `<path d="M84 90 C70 124 78 156 92 176 L164 176 C178 156 186 124 172 90Z" fill="url(#hair_${id})" stroke="#1c0c06" stroke-width="2.4"/>`,
-      body: `
-        ${f.neck}
-        <path d="${T.TORSO}" fill="url(#coat_${id})" stroke="#1c0a18" stroke-width="3"/>
-        <path d="M100 180 L128 256 M156 180 L128 256" stroke="#1c0a18" stroke-width="2.4" opacity="0.5"/>
-        <path d="M62 256 L196 188" stroke="url(#leather_${id})" stroke-width="9"/>
-        <rect x="124" y="212" width="12" height="14" rx="2" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="1.8" transform="rotate(-30 130 219)"/>
-        ${[0, 1, 2].map(i => `<circle cx="${112 + i * 3}" cy="${204 + i * 17}" r="4.2" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="1.3"/>`).join('')}
-        <path d="M70 196 q10 -10 22 -4 M164 192 q12 -6 22 4" stroke="url(#gold_${id})" stroke-width="3" fill="none" stroke-linecap="round"/>
-        <!-- gola de babados -->
-        <path d="M96 176 Q104 164 112 176 Q120 164 128 176 Q136 164 144 176 Q152 164 160 176 Q156 196 128 200 Q100 196 96 176Z" fill="#fff" stroke="#b8a8cc" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M108 182 Q128 192 148 182" stroke="#b8a8cc" stroke-width="1.6" fill="none"/>
-        ${f.head}
-        <!-- bigode e cavanhaque -->
-        <path d="M110 124 Q120 118 128 124 Q136 118 146 124 Q136 128 128 126 Q120 128 110 124Z" fill="#241008"/>
-        <path d="M122 138 Q128 152 134 138 Q128 142 122 138Z" fill="#241008"/>
-        <!-- cabelo e chapéu -->
-        <path d="M94 84 C94 60 110 54 128 54 C148 54 162 62 162 84 C152 72 138 66 126 68 C112 70 102 76 94 84Z" fill="url(#hair_${id})" stroke="#1c0c06" stroke-width="2.2"/>
-        <ellipse cx="124" cy="68" rx="56" ry="13" transform="rotate(-9 124 68)" fill="url(#hat_${id})" stroke="#1c0a18" stroke-width="3"/>
-        <path d="M92 66 C94 34 120 24 142 30 C158 36 164 50 160 64 C140 56 112 58 92 66Z" fill="url(#hat_${id})" stroke="#1c0a18" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M94 62 Q126 52 160 62" stroke="url(#gold_${id})" stroke-width="5" fill="none" stroke-linecap="round"/>
-        <circle cx="158" cy="60" r="6" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="1.8"/>`,
-      over: `
-        <path d="M156 50 C190 20 226 24 232 46 C214 40 196 48 182 66 C176 56 166 52 156 50Z" fill="url(#feather_${id})" stroke="#8a76a6" stroke-width="2.4" stroke-linejoin="round"/>
-        <path d="M160 52 C186 36 210 34 226 44" stroke="#8a76a6" stroke-width="1.6" fill="none"/>
-        <g transform="rotate(-24 62 200)">
-          <rect x="52" y="82" width="14" height="86" rx="4" fill="url(#wood_${id})" stroke="#1d1006" stroke-width="2.4"/>
-          <path d="M52 74 H66 L70 88 H48Z" fill="url(#wood_${id})" stroke="#1d1006" stroke-width="2.4"/>
-          <circle cx="50" cy="78" r="3.2" fill="url(#gold_${id})"/><circle cx="68" cy="78" r="3.2" fill="url(#gold_${id})"/>
-          <ellipse cx="59" cy="206" rx="40" ry="46" fill="url(#wood_${id})" stroke="#1d1006" stroke-width="3"/>
-          <ellipse cx="59" cy="206" rx="31" ry="37" fill="none" stroke="#e6c27a" stroke-width="2" opacity="0.7"/>
-          <circle cx="59" cy="200" r="10" fill="#1d0e04" stroke="#e6c27a" stroke-width="3"/>
-          <path d="M54 166 V240 M59 166 V240 M64 166 V240" stroke="#f3ead2" stroke-width="1.2" opacity="0.9"/>
-          <rect x="44" y="230" width="30" height="5" rx="2" fill="#2b1608"/>
-        </g>
-        <path d="M206 120 l4 -10 l4 10 l10 4 l-10 4 l-4 10 l-4 -10 l-10 -4z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="1.4"/>
-        <path d="M222 150 l2.500 -6 l2.500 6 l6 2.500 l-6 2.500 l-2.500 6 l-2.500 -6 l-6 -2.500z" fill="#ffe9a0" opacity="0.9"/>`
-    };
-  }
-});
-
-MEDALLION_SVGS.feiticeiro = () => T.frame('feiticeiro', {
-  faction: 'hero', accent: '#f0587f', bg: ['#6a1f3c', '#180610'],
-  art: (id) => {
-    const skin = '#eebfa8';
-    const f = T.face(id, { skin, eye: '#ffb07a', brow: '#6a1a10', smile: 0.7, eyeGlow: true, lashes: true, h: 36, w: 31, squint: 0.3, tilt: 0.35, chin: 0.26 });
-    return {
-      defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'coat', '#c9406a', '#3e0f26')}${T.cloth(id, 'flame', '#ffd25a', '#d8261e')}${T.rad(`aura_${id}`, [[0, '#ff7aa8', 0.55], [1, '#ff7aa8', 0]], [0.5, 0.5, 0.5])}${T.lin(`crystal_${id}`, [[0, '#ffe6f1'], [0.5, '#ff8fbc'], [1, '#a31650']], [0, 0, 1, 1])}`,
-      glow: `<circle cx="128" cy="108" r="96" fill="url(#aura_${id})"/>`,
-      back: `<path d="M82 100 C60 60 86 28 110 4 C108 34 122 40 128 14 C134 40 148 34 146 4 C170 28 196 60 174 100 C166 118 158 130 156 150 L100 150 C98 130 90 118 82 100Z" fill="url(#flame_${id})" stroke="#5a0f0a" stroke-width="2.4" stroke-linejoin="round"/>`,
-      body: `
-        ${f.neck}
-        <path d="${T.TORSO}" fill="url(#coat_${id})" stroke="#1c0610" stroke-width="3"/>
-        <path d="M100 180 L128 256 L156 180" fill="#12040a" stroke="#1c0610" stroke-width="2.4" opacity="0.8"/>
-        <path d="M92 176 L82 148 L106 168Z M164 176 L174 148 L150 168Z" fill="url(#coat_${id})" stroke="#1c0610" stroke-width="2.6" stroke-linejoin="round"/>
-        <path d="M84 150 L100 182 M172 150 L156 182" stroke="url(#gold_${id})" stroke-width="3.5" stroke-linecap="round"/>
-        <path d="M70 226 H110 M146 226 H186 M84 242 H112 M144 242 H172" stroke="url(#gold_${id})" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
-        <path d="M128 192 V256 M118 204 L128 214 L138 204" stroke="#ff9fbf" stroke-width="2.2" fill="none" stroke-linecap="round" opacity="0.85"/>
-        ${f.head}
-        <!-- marcas arcanas -->
-        <path d="M110 84 Q114 96 108 108 M146 84 Q142 96 148 108" stroke="#ff6a8e" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-        <path d="M112 112 l3 6 M144 112 l-3 6" stroke="#ff6a8e" stroke-width="2" stroke-linecap="round"/>
-        <path d="M90 82 C92 54 108 44 128 44 C148 44 164 54 166 82 C158 66 148 60 138 62 C146 74 132 84 120 74 C112 66 100 70 90 82Z" fill="url(#flame_${id})" stroke="#5a0f0a" stroke-width="2.4" stroke-linejoin="round"/>
-        <path d="M110 52 Q122 44 136 46" stroke="#fff6c8" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.8"/>`,
-      over: `
-        <g>
-          <circle cx="212" cy="86" r="30" fill="url(#aura_${id})"/>
-          <path d="M212 54 L232 78 L224 118 L200 118 L192 78Z" fill="url(#crystal_${id})" stroke="#4a0c28" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M212 54 L212 118 M192 78 L232 78 M200 118 L212 78 L224 118" stroke="#fff" stroke-width="1.5" opacity="0.55" fill="none"/>
-          <path d="M200 66 L210 60" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
-          ${T.gl(203, 66, 1.3, 0)}${T.gl(226, 108, 0.8, 0)}
-        </g>
-        <g>
-          <path d="M54 170 C28 176 26 214 46 232 C40 214 56 206 58 190 C66 200 72 212 64 232 C84 218 84 184 54 170Z" fill="url(#flame_${id})" stroke="#5a0f0a" stroke-width="2.6" stroke-linejoin="round"/>
-          <path d="M54 192 C46 200 46 214 54 220 C60 212 60 202 54 192Z" fill="#fff6c8" opacity="0.9"/>
-        </g>`
-    };
-  }
-});
-
-MEDALLION_SVGS.mago = () => T.frame('mago', {
-  faction: 'hero', accent: '#8d76e8', bg: ['#2f2a66', '#0b0a20'],
-  art: (id) => {
-    const skin = '#e6c2a0';
-    const f = T.face(id, { skin, eye: '#58a0e0', brow: '#d8dce6', browW: 1.7, smile: 0.4, w: 31, h: 35, chin: 0.3, tilt: -0.2, nose: 1.4 });
-    const stars = [[76, 232], [92, 214], [112, 244], [150, 238], [168, 214], [184, 236], [64, 208], [196, 210]]
-      .map(([x, y]) => `<path d="M${x} ${y - 5} l1.6 3.4 l3.6 .6 l-2.6 2.6 l.6 3.6 l-3.2 -1.8 l-3.2 1.8 l.6 -3.6 l-2.6 -2.6 l3.6 -.6z" fill="#ffe9a0" opacity="0.9"/>`).join('');
-    return {
-      defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'robe', '#8d76e8', '#231a56')}${T.cloth(id, 'hat', '#7a64d8', '#1c1446')}${T.cloth(id, 'beard', '#ffffff', '#b4b8c8')}${T.rad(`orb_${id}`, [[0, '#ffffff'], [0.4, '#a6f3ff'], [1, '#3aa0d8']], [0.4, 0.35, 0.7])}${T.rad(`aura_${id}`, [[0, '#9ae9ff', 0.6], [1, '#9ae9ff', 0]], [0.5, 0.5, 0.5])}`,
-      body: `
-        ${f.neck}
-        <path d="${T.TORSO}" fill="url(#robe_${id})" stroke="#0e0a28" stroke-width="3"/>
-        <path d="M100 180 L128 256 L156 180" fill="#0e0a28" opacity="0.35"/>
-        ${stars}
-        <path d="M44 232 Q70 214 100 214 M212 232 Q186 214 156 214" stroke="url(#gold_${id})" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-        <path d="M70 196 Q100 180 128 200 Q156 180 186 196 L180 214 Q156 200 128 218 Q100 200 76 214Z" fill="url(#robe_${id})" stroke="#0e0a28" stroke-width="2.6" stroke-linejoin="round" opacity="0.95"/>
-        <circle cx="128" cy="204" r="9" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2"/>
-        <circle cx="128" cy="204" r="4" fill="url(#orb_${id})"/>
-        ${f.head}
-        <!-- óculos -->
-        <circle cx="113.500" cy="105" r="11" fill="#9ae9ff" fill-opacity="0.15" stroke="url(#gold_${id})" stroke-width="2.4"/>
-        <circle cx="142.500" cy="105" r="11" fill="#9ae9ff" fill-opacity="0.15" stroke="url(#gold_${id})" stroke-width="2.4"/>
-        <path d="M124.500 104 Q128 101 131.500 104" stroke="url(#gold_${id})" stroke-width="2.2" fill="none"/>
-        <!-- barba e bigode -->
-        <path d="M94 110 C90 158 106 206 128 224 C150 206 166 158 162 110 C152 130 142 134 128 134 C114 134 104 130 94 110Z" fill="url(#beard_${id})" stroke="#8a90a8" stroke-width="2.6" stroke-linejoin="round"/>
-        <path d="M102 128 Q116 114 128 126 Q140 114 154 128 Q140 138 128 132 Q116 138 102 128Z" fill="url(#beard_${id})" stroke="#8a90a8" stroke-width="2"/>
-        <path d="M108 150 Q128 168 148 150 M112 172 Q128 188 144 172 M118 194 Q128 204 138 194" stroke="#8a90a8" stroke-width="1.8" fill="none" opacity="0.6" stroke-linecap="round"/>
-        <!-- aba do chapéu -->
-        <ellipse cx="128" cy="70" rx="64" ry="14" fill="url(#hat_${id})" stroke="#0e0a28" stroke-width="3"/>
-        <path d="M80 68 Q128 82 176 68" stroke="url(#gold_${id})" stroke-width="4.500" fill="none" stroke-linecap="round"/>`,
-      over: `
-        <path d="M92 66 C96 38 112 14 150 -2 C146 20 154 36 164 66 C140 58 116 58 92 66Z" fill="url(#hat_${id})" stroke="#0e0a28" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M94 62 Q128 52 162 62 L162 68 Q128 58 94 68Z" fill="#ffe9a0" stroke="#5a3f0e" stroke-width="1.6"/>
-        <rect x="120" y="55" width="16" height="12" rx="2" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="1.8"/>
-        <path d="M126 28 l2 4 l4.400 .6 l-3.200 3 l.8 4.400 l-4 -2.200 l-4 2.200 l.8 -4.400 l-3.200 -3 l4.400 -.6z" fill="#ffe9a0"/>
-        <g>
-          <circle cx="219" cy="66" r="34" fill="url(#aura_${id})"/>
-          <path d="M219 38 L238 58 L228 90 L210 90 L200 58Z" fill="url(#orb_${id})" stroke="#173a5a" stroke-width="2.8" stroke-linejoin="round" transform="rotate(8 219 64)"/>
-          <path d="M214 46 L206 58" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
-          ${T.gl(212, 50, 1.3, 0)}
-          <path d="M221 88 C212 120 224 180 216 250" fill="none" stroke="url(#wood_${id})" stroke-width="10" stroke-linecap="round"/>
-          <path d="M221 88 C212 120 224 180 216 250" fill="none" stroke="#1d1006" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="2 12"/>
-          <path d="M206 100 Q219 108 232 100" stroke="url(#gold_${id})" stroke-width="4" fill="none" stroke-linecap="round"/>
-        </g>`
-    };
-  }
-});
-
-MEDALLION_SVGS.ranger = () => T.frame('ranger', {
-  faction: 'hero', accent: '#6fc45a', bg: ['#25472c', '#07140a'],
-  art: (id) => {
-    const skin = '#d4a47c';
-    const f = T.face(id, { skin, eye: '#8fd86a', brow: '#2a1a10', smile: 0, squint: 0.5, eyeGlow: true, h: 35, w: 31, chin: 0.36, tilt: 0.4, stubble: true });
-    return {
-      defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'hood', '#5f9a4a', '#143018')}${T.cloth(id, 'cloak', '#4c8240', '#10271a')}${T.lin(`shade_${id}`, [[0, '#000', 0.65], [0.55, '#000', 0.1], [1, '#000', 0]], [0, 0, 0, 1])}`,
-      back: `<g>
-          <rect x="164" y="104" width="22" height="86" rx="5" transform="rotate(14 175 150)" fill="url(#leather_${id})" stroke="#1a0e06" stroke-width="2.4"/>
-          ${[0, 1, 2].map(i => `<g transform="rotate(${14 + (i - 1) * 6} 175 150)"><path d="M${168 + i * 7} 104 V70" stroke="#e8dcc0" stroke-width="2.6"/><path d="M${168 + i * 7} 70 l-4 10 h8z" fill="#c43a2a" stroke="#4a0e08" stroke-width="1.2"/></g>`).join('')}
-        </g>
-        <path d="M44 256 C40 196 66 164 104 156 L152 156 C190 164 216 196 212 256Z" fill="url(#cloak_${id})" stroke="#07140a" stroke-width="3"/>`,
-      body: `
-        ${f.neck}
-        <path d="${T.TORSO}" fill="url(#cloak_${id})" stroke="#07140a" stroke-width="3"/>
-        <path d="M96 184 L160 184 L168 256 L88 256Z" fill="url(#leather_${id})" stroke="#1a0e06" stroke-width="2.4"/>
-        <path d="M70 240 L186 190" stroke="#1a0e06" stroke-width="7"/><path d="M70 240 L186 190" stroke="url(#leather_${id})" stroke-width="4.5"/>
-        <rect x="120" y="206" width="14" height="14" rx="2" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="1.8" transform="rotate(-23 127 213)"/>
-        <path d="M96 176 Q128 198 160 176" fill="none" stroke="#10271a" stroke-width="5"/>
-        <path d="M118 188 C112 200 120 208 128 206 C136 208 144 200 138 188 C134 196 122 196 118 188Z" fill="url(#gold_${id})" stroke="#2d5a1c" stroke-width="2"/>
-        ${f.head}
-        <path d="M104 106 L118 112 M152 106 L138 112" stroke="#4aa83a" stroke-width="3.6" stroke-linecap="round"/>
-        <!-- capuz -->
-        <path d="M128 28 C88 34 70 70 78 120 C80 138 88 152 98 160 L100 124 C94 96 100 72 114 62 C120 58 136 58 142 62 C156 72 162 96 156 124 L158 160 C168 152 176 138 178 120 C186 70 168 34 128 28Z" fill="url(#hood_${id})" stroke="#07140a" stroke-width="3.2" stroke-linejoin="round"/>
-        <path d="M100 124 C94 96 100 72 114 62 C120 58 136 58 142 62 C156 72 162 96 156 124 C146 100 110 100 100 124Z" fill="url(#shade_${id})"/>
-        <path d="M100 124 C94 96 100 72 114 62 C120 58 136 58 142 62 C156 72 162 96 156 124 C146 100 110 100 100 124Z" fill="url(#hatch_${id})" opacity="0.4"/>
-        <path d="M96 60 Q108 40 128 36" stroke="#d6ffb8" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.5"/>`,
-      over: `
-        <g>
-          <path d="M20 34 C-2 100 -2 160 20 226" fill="none" stroke="#1d1006" stroke-width="13" stroke-linecap="round"/>
-          <path d="M20 34 C-2 100 -2 160 20 226" fill="none" stroke="url(#wood_${id})" stroke-width="9" stroke-linecap="round"/>
-          <path d="M18 56 C6 104 6 152 18 204" fill="none" stroke="#e8c27a" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
-          <path d="M20 34 L36 130 L20 226" fill="none" stroke="#f1f5f9" stroke-width="2"/>
-          <rect x="12" y="116" width="20" height="28" rx="4" fill="url(#leather_${id})" stroke="#1a0e06" stroke-width="2.4"/>
-          <path d="M36 130 H92" stroke="#e8dcc0" stroke-width="3.2"/><path d="M92 130 l-9 -6 v12z" fill="#c9d4e4" stroke="#101722" stroke-width="1.6" stroke-linejoin="round"/>
-        </g>`
-    };
-  }
-});
-
-MEDALLION_SVGS.rogue = () => T.frame('rogue', {
-  faction: 'hero', accent: '#5fd0b4', bg: ['#1f3c3a', '#060f10'],
-  art: (id) => {
-    const skin = '#c9a384';
-    const f = T.face(id, { skin, eye: '#d8fff0', brow: '#1a1210', smile: 0, squint: 0.75, eyeGlow: true, h: 34, w: 30, chin: 0.3, tilt: 0.55 });
-    return {
-      defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'hood', '#3b5a58', '#0a1616')}${T.cloth(id, 'leatherd', '#3a4a48', '#0c1514')}${T.lin(`shade_${id}`, [[0, '#000', 0.7], [0.5, '#000', 0.15], [1, '#000', 0]], [0, 0, 0, 1])}`,
-      back: `<path d="M44 256 C40 196 66 164 104 156 L152 156 C190 164 216 196 212 256Z" fill="url(#hood_${id})" stroke="#050c0c" stroke-width="3"/>`,
-      body: `
-        ${f.neck}
-        <path d="${T.TORSO}" fill="url(#leatherd_${id})" stroke="#050c0c" stroke-width="3"/>
-        <path d="M64 256 L172 184 M192 256 L84 184" stroke="#050c0c" stroke-width="8"/>
-        <path d="M64 256 L172 184 M192 256 L84 184" stroke="url(#leather_${id})" stroke-width="5" opacity="0.9"/>
-        ${[0, 1, 2, 3].map(i => `<g transform="translate(${96 + i * 14} ${204 + i * 4}) rotate(-34)"><path d="M0 0 L3 -12 L6 0Z" fill="url(#steel_${id})" stroke="#050c0c" stroke-width="1.2"/><rect x="0" y="0" width="6" height="7" fill="url(#leather_${id})" stroke="#050c0c" stroke-width="1"/></g>`).join('')}
-        <rect x="122" y="210" width="12" height="14" rx="2" fill="url(#steel_${id})" stroke="#050c0c" stroke-width="1.6"/>
-        <path d="M96 126 L160 126 L170 184 Q128 200 86 184Z" fill="url(#hood_${id})" stroke="#050c0c" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M100 150 Q128 160 156 150 M98 166 Q128 178 158 166" stroke="#6fa09a" stroke-width="1.6" fill="none" opacity="0.4"/>
-        ${f.head}
-        <!-- máscara cobrindo o rosto -->
-        <path d="M94 114 C100 108 156 108 162 114 L160 136 C150 152 106 152 96 136Z" fill="url(#hood_${id})" stroke="#050c0c" stroke-width="2.6" stroke-linejoin="round"/>
-        <path d="M100 124 Q128 118 156 124" stroke="#6fa09a" stroke-width="1.6" fill="none" opacity="0.5"/>
-        <!-- capuz profundo -->
-        <path d="M128 26 C84 30 66 68 74 122 C76 142 86 158 98 166 L100 118 C94 94 102 74 116 66 C122 62 134 62 140 66 C154 74 162 94 156 118 L158 166 C170 158 180 142 182 122 C190 68 172 30 128 26Z" fill="url(#hood_${id})" stroke="#050c0c" stroke-width="3.2" stroke-linejoin="round"/>
-        <path d="M102 100 C96 82 104 70 118 64 C124 62 132 62 138 64 C152 70 160 82 154 100 C146 90 110 90 102 100Z" fill="url(#shade_${id})"/>
-        <path d="M102 100 C96 82 104 70 118 64 C124 62 132 62 138 64 C152 70 160 82 154 100 C146 90 110 90 102 100Z" fill="url(#hatch_${id})" opacity="0.5"/>
-        <path d="M94 56 Q106 40 128 34" stroke="#9fe8d6" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.45"/>`,
-      over: `
-        <g>
-          <path d="M28 244 L62 168 L74 178 L52 250Z" fill="url(#steel_${id})" stroke="#050c0c" stroke-width="2.8" stroke-linejoin="round"/>
-          <path d="M62 170 L72 178" stroke="#fff" stroke-width="2.6"/>
-          <path d="M48 238 L84 232 L82 244 L46 250Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.2" stroke-linejoin="round"/>
-        </g>
-        <g>
-          <path d="M228 244 L194 168 L182 178 L204 250Z" fill="url(#steel_${id})" stroke="#050c0c" stroke-width="2.8" stroke-linejoin="round"/>
-          <path d="M194 170 L184 178" stroke="#fff" stroke-width="2.6"/>
-          <path d="M208 238 L172 232 L174 244 L210 250Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.2" stroke-linejoin="round"/>
-        </g>`
-    };
-  }
-});
-
-/* ===== 00c-tokens-villains.js ===== */
-/* ============================================================================
-   1b. TOKENS — VILÕES
-   ============================================================================ */
-MEDALLION_SVGS.goblin = () => T.frame('goblin', {
-  faction: 'villain', accent: '#e24b3a', bg: ['#4a2a1c', '#0e0806'],
-  art: (id) => {
-    const skin = '#7fae4c';
-    const f = T.face(id, { skin, eye: '#ffd23a', brow: '#1d2a0e', browW: 1.5, smile: 1, squint: 0.45, tilt: 0.7, ears: 'pointed', nose: 1.9, w: 34, h: 36, chin: 0.3, eyeGlow: true });
-    return {
-      defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'rag', '#8a5a3a', '#2e1a10')}${T.cloth(id, 'rust', '#c98a5a', '#5a2e18')}`,
-      body: `
-        ${f.neck}
-        <path d="${T.TORSO}" fill="url(#rag_${id})" stroke="#140a06" stroke-width="3"/>
-        <path d="M60 256 L100 190 M196 256 L152 190 M92 218 L128 204 L164 218" stroke="#140a06" stroke-width="2.6" fill="none" opacity="0.6"/>
-        <path d="M96 182 L160 182 L150 206 L128 214 L106 206Z" fill="url(#leather_${id})" stroke="#140a06" stroke-width="2.6" stroke-linejoin="round"/>
-        <path d="M112 196 l5 6 l5 -6 M134 196 l5 6 l5 -6" stroke="#fffaf0" stroke-width="2" fill="none" stroke-linecap="round"/>
-        <path d="M50 214 L74 168 L96 198 L82 232Z" fill="url(#rust_${id})" stroke="#140a06" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M74 168 L70 140 L84 172Z" fill="url(#steel_${id})" stroke="#140a06" stroke-width="2"/>
-        <circle cx="76" cy="206" r="3" fill="#2e1a10"/><circle cx="62" cy="214" r="2.600" fill="#2e1a10"/>
-        ${f.head}
-        <!-- nariz verrugoso, dentes irregulares -->
-        <circle cx="122" cy="118" r="2" fill="#4a6a2a" opacity="0.6"/><circle cx="136" cy="112" r="1.800" fill="#4a6a2a" opacity="0.6"/>
-        <path d="M108 124 Q128 154 148 124 Q128 136 108 124Z" fill="#2a0e0e" stroke="#1d2a0e" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M112 126 l4 8 l4 -7 l4 9 l4 -8 l4 9 l4 -8 l4 8 l4 -7" fill="#fffaf0" stroke="#7a6a3a" stroke-width="1.2" stroke-linejoin="round"/>
-        <path d="M130 100 l-2 8 M142 98 l8 10" stroke="#4a6a2a" stroke-width="1.600" stroke-linecap="round" opacity="0.6"/>
-        <!-- capacete de panela enferrujado -->
-        <path d="M92 82 C90 46 108 34 128 34 C148 34 166 46 164 82 C150 64 106 64 92 82Z" fill="url(#rust_${id})" stroke="#140a06" stroke-width="3.2" stroke-linejoin="round"/>
-        <path d="M94 74 Q128 56 162 74" stroke="#140a06" stroke-width="3" fill="none"/>
-        <circle cx="106" cy="60" r="3.400" fill="#3a1e10" stroke="#140a06" stroke-width="1.200"/><circle cx="150" cy="60" r="3.400" fill="#3a1e10" stroke="#140a06" stroke-width="1.200"/>
-        <path d="M106 80 L116 66 L132 70" stroke="#3a1e10" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-        <path d="M104 46 Q118 38 134 38" stroke="#ffd9b0" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.5"/>
-        <path d="M128 34 L128 14 L140 22 L128 26" fill="url(#rust_${id})" stroke="#140a06" stroke-width="2.4" stroke-linejoin="round"/>`,
-      over: `
-        <g>
-          <path d="M200 244 C176 220 168 176 188 128 C192 118 204 112 214 118 C224 126 212 140 210 150 C204 178 214 210 232 232Z" fill="url(#steel_${id})" stroke="#140a06" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M200 140 C190 170 196 206 216 232" fill="none" stroke="#8a4a22" stroke-width="3" opacity="0.7" stroke-linecap="round"/>
-          <path d="M196 140 C202 130 210 126 214 126" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity="0.8"/>
-          <rect x="196" y="232" width="34" height="9" rx="3" transform="rotate(-25 213 236)" fill="url(#leather_${id})" stroke="#140a06" stroke-width="2"/>
-          <circle cx="226" cy="246" r="11" fill="url(#skin_${id})" stroke="#1d2a0e" stroke-width="2.4"/>
-        </g>`
-    };
-  }
-});
-
-MEDALLION_SVGS.lobo = () => T.frame('lobo', {
-  faction: 'villain', accent: '#f0a020', bg: ['#3a3f4a', '#0a0c10'],
-  art: (id) => ({
-    defs: `${T.cloth(id, 'fur', '#aeb6c4', '#3a4252')}${T.cloth(id, 'furl', '#eef1f6', '#9aa4b4')}${T.cloth(id, 'furd', '#5a6272', '#1c212c')}${T.rad(`eye_${id}`, [[0, '#fff3a0'], [0.5, '#ffb81c'], [1, '#c25a08']], [0.4, 0.4, 0.7])}`,
-    back: `<path d="M26 256 C22 196 54 158 98 150 L158 150 C202 158 234 196 230 256Z" fill="url(#furd_${id})" stroke="#0a0c10" stroke-width="3"/>
-           <path d="M36 220 l12 -22 l8 20 l10 -24 l8 22 l12 -22 M220 220 l-12 -22 l-8 20 l-10 -24 l-8 22 l-12 -22" fill="none" stroke="#0a0c10" stroke-width="2.4" stroke-linejoin="round" opacity="0.6"/>`,
-    body: `
-      <!-- orelhas -->
-      <path d="M88 80 L72 18 L122 52Z" fill="url(#fur_${id})" stroke="#0a0c10" stroke-width="3" stroke-linejoin="round"/>
-      <path d="M168 80 L184 18 L134 52Z" fill="url(#fur_${id})" stroke="#0a0c10" stroke-width="3" stroke-linejoin="round"/>
-      <path d="M90 66 L80 34 L110 54Z M166 66 L176 34 L146 54Z" fill="#3a1e24" opacity="0.9"/>
-      <!-- cabeça -->
-      <path d="M84 84 C80 56 100 44 128 44 C156 44 176 56 172 84 C182 104 178 128 164 146 C156 160 146 170 128 176 C110 170 100 160 92 146 C78 128 74 104 84 84Z" fill="url(#fur_${id})" stroke="#0a0c10" stroke-width="3.200" stroke-linejoin="round"/>
-      <path d="M84 100 l-14 6 l10 6 l-12 8 l14 4 M172 100 l14 6 l-10 6 l12 8 l-14 4" fill="url(#fur_${id})" stroke="#0a0c10" stroke-width="2.600" stroke-linejoin="round"/>
-      <path d="M100 60 L108 80 M156 60 L148 80 M118 52 L122 72 M138 52 L134 72" stroke="#3a4252" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
-      <!-- focinho -->
-      <path d="M104 110 C104 92 152 92 152 110 L158 140 C152 166 104 166 98 140Z" fill="url(#furl_${id})" stroke="#0a0c10" stroke-width="2.800" stroke-linejoin="round"/>
-      <path d="M116 100 L114 124 M140 100 L142 124" stroke="#9aa4b4" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
-      <path d="M116 106 Q128 100 140 106 Q138 120 128 124 Q118 120 116 106Z" fill="#0a0c10" stroke="#0a0c10" stroke-width="2" stroke-linejoin="round"/>
-      <path d="M121 108 Q126 105 131 107" stroke="#fff" stroke-width="2.600" fill="none" stroke-linecap="round" opacity="0.6"/>
-      <!-- boca aberta -->
-      <path d="M108 136 Q128 160 148 136 Q128 148 108 136Z" fill="#5a1018" stroke="#0a0c10" stroke-width="2.200" stroke-linejoin="round"/>
-      <path d="M112 136 Q128 154 144 136" fill="#8a1e28" opacity="0.9"/>
-      <path d="M110 136 L114 150 L120 138Z M146 136 L142 150 L136 138Z M122 144 L125 152 L128 144Z M134 144 L131 152 L128 144Z" fill="#fffaf0" stroke="#6a5a4a" stroke-width="1.400" stroke-linejoin="round"/>
-      <!-- olhos -->
-      <path d="M92 84 L120 94 L116 106 Q104 108 94 98Z" fill="#0a0c10" stroke="#0a0c10" stroke-width="2.200" stroke-linejoin="round"/>
-      <path d="M164 84 L136 94 L140 106 Q152 108 162 98Z" fill="#0a0c10" stroke="#0a0c10" stroke-width="2.200" stroke-linejoin="round"/>
-      <path d="M97 90 L116 96 Q112 104 104 104 Q98 100 97 90Z" fill="url(#eye_${id})"/>
-      <path d="M159 90 L140 96 Q144 104 152 104 Q158 100 159 90Z" fill="url(#eye_${id})"/>
-      <path d="M105 94 L109 102 M151 94 L147 102" stroke="#0a0c10" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="102" cy="94" r="1.800" fill="#fff"/><circle cx="154" cy="94" r="1.800" fill="#fff"/>
-      <path d="M90 74 L124 90 M166 74 L132 90" stroke="#1c212c" stroke-width="5" stroke-linecap="round"/>
-      <!-- cicatrizes -->
-      <path d="M150 60 L164 112" stroke="#c9707a" stroke-width="2.800" stroke-linecap="round"/>
-      <path d="M153 72 l6 -1 M156 84 l6 -1 M159 96 l6 -1" stroke="#f0c0c0" stroke-width="1.600" stroke-linecap="round"/>
-      <!-- coleira de espinhos -->
-      <path d="M84 176 Q128 206 172 176 L174 196 Q128 226 82 196Z" fill="url(#leather_${id})" stroke="#0a0c10" stroke-width="3" stroke-linejoin="round"/>
-      ${[0, 1, 2, 3, 4, 5, 6].map(i => { const t = i / 6; const x = 90 + t * 76; const y = 186 + Math.sin(t * Math.PI) * 18; return `<path d="M${(x - 5).toFixed(1)} ${y.toFixed(1)} L${(x + 5).toFixed(1)} ${y.toFixed(1)} L${x.toFixed(1)} ${(y - 14).toFixed(1)}Z" fill="url(#steel_${id})" stroke="#0a0c10" stroke-width="1.600" stroke-linejoin="round"/>`; }).join('')}`,
-    over: `
-      <path d="M14 96 L40 170 M26 90 L52 164 M38 84 L62 158" stroke="#fffaf0" stroke-width="5.500" stroke-linecap="round"/>
-      <path d="M14 96 L40 170 M26 90 L52 164 M38 84 L62 158" stroke="#c9b89a" stroke-width="1.600" stroke-linecap="round"/>
-      <path d="M242 96 L216 170 M230 90 L204 164 M218 84 L194 158" stroke="#fffaf0" stroke-width="5.500" stroke-linecap="round"/>
-      <path d="M242 96 L216 170 M230 90 L204 164 M218 84 L194 158" stroke="#c9b89a" stroke-width="1.600" stroke-linecap="round"/>`
-  })
-});
-
-MEDALLION_SVGS.bandido = () => T.frame('bandido', {
-  faction: 'villain', accent: '#d8283e', bg: ['#4a1620', '#0d0507'],
-  art: (id) => {
-    const skin = '#c79a74';
-    const f = T.face(id, { skin, eye: '#e0b060', brow: '#120a06', browW: 1.4, smile: 0.3, squint: 0.75, tilt: 0.6, h: 35, w: 31, chin: 0.5 });
-    return {
-      defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'hood', '#5a1a24', '#12070a')}${T.cloth(id, 'mask', '#e23a4a', '#7a1020')}${T.cloth(id, 'vest', '#4a3a34', '#150e0c')}${T.lin(`shade_${id}`, [[0, '#000', 0.65], [0.6, '#000', 0.1], [1, '#000', 0]], [0, 0, 0, 1])}`,
-      back: `<path d="M44 256 C40 196 66 164 104 156 L152 156 C190 164 216 196 212 256Z" fill="url(#hood_${id})" stroke="#0a0406" stroke-width="3"/>`,
-      body: `
-        ${f.neck}
-        <path d="${T.TORSO}" fill="url(#vest_${id})" stroke="#0a0406" stroke-width="3"/>
-        <path d="M96 184 L128 256 L160 184" fill="#1c0e0c" stroke="#0a0406" stroke-width="2.4"/>
-        <path d="M58 256 L180 188" stroke="#0a0406" stroke-width="9"/><path d="M58 256 L180 188" stroke="url(#leather_${id})" stroke-width="6"/>
-        <path d="M198 256 L76 188" stroke="#0a0406" stroke-width="9"/><path d="M198 256 L76 188" stroke="url(#leather_${id})" stroke-width="6"/>
-        <rect x="118" y="214" width="20" height="18" rx="3" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2"/>
-        <rect x="124" y="219" width="8" height="8" rx="1.500" fill="#1c0e0c"/>
-        <path d="M60 206 l8 -8 l8 8 l-8 8z M180 206 l8 -8 l8 8 l-8 8z" fill="url(#steel_${id})" stroke="#0a0406" stroke-width="2"/>
-        <path d="M96 128 L160 128 L168 186 Q128 202 88 186Z" fill="url(#mask_${id})" stroke="#3a0810" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M100 150 Q128 160 156 150" stroke="#ff8a96" stroke-width="1.8" fill="none" opacity="0.5"/>
-        ${f.head}
-        <!-- cicatriz sobre o olho -->
-        <path d="M110 80 L124 122" stroke="#7a2a30" stroke-width="3" stroke-linecap="round"/>
-        <path d="M112 88 l6 -2 M115 98 l6 -2 M118 108 l6 -2" stroke="#e8b8b0" stroke-width="1.500" stroke-linecap="round"/>
-        <!-- bandana de máscara -->
-        <path d="M94 116 C108 108 148 108 162 116 L160 140 C150 158 106 158 96 140Z" fill="url(#mask_${id})" stroke="#3a0810" stroke-width="2.800" stroke-linejoin="round"/>
-        <path d="M100 122 Q128 114 156 122" stroke="#ff8a96" stroke-width="2" fill="none" opacity="0.7"/>
-        <path d="M100 134 Q128 146 156 134" stroke="#3a0810" stroke-width="2" fill="none" opacity="0.45"/>
-        <path d="M94 124 L74 140 L90 138 L72 154 L96 140Z" fill="url(#mask_${id})" stroke="#3a0810" stroke-width="2.400" stroke-linejoin="round"/>
-        <circle cx="94" cy="118" r="4" fill="none" stroke="url(#gold_${id})" stroke-width="2.600"/>
-        <!-- capuz -->
-        <path d="M128 28 C86 32 68 70 76 124 C78 142 88 156 98 164 L100 120 C94 96 102 74 116 66 C122 62 134 62 140 66 C154 74 162 96 156 120 L158 164 C168 156 178 142 180 124 C188 70 170 32 128 28Z" fill="url(#hood_${id})" stroke="#0a0406" stroke-width="3.200" stroke-linejoin="round"/>
-        <path d="M102 100 C96 82 104 70 118 64 C124 62 132 62 138 64 C152 70 160 82 154 100 C146 90 110 90 102 100Z" fill="url(#shade_${id})"/>
-        <path d="M102 100 C96 82 104 70 118 64 C124 62 132 62 138 64 C152 70 160 82 154 100 C146 90 110 90 102 100Z" fill="url(#hatch_${id})" opacity="0.5"/>
-        <path d="M94 58 Q106 42 128 36" stroke="#ff8a96" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.4"/>`,
-      over: `
-        <g>
-          <path d="M224 18 L236 36 L206 176 L192 170Z" fill="url(#steel_${id})" stroke="#0a0406" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M226 28 L202 168" stroke="#fff" stroke-width="2.200" opacity="0.7"/>
-          <path d="M172 176 L218 186 L214 198 L170 188Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.400" stroke-linejoin="round"/>
-          <path d="M190 192 L200 198 C204 208 198 222 188 228 C190 216 186 204 182 196Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2"/>
-          <rect x="190" y="190" width="12" height="30" rx="3" transform="rotate(-16 196 205)" fill="url(#leather_${id})" stroke="#0a0406" stroke-width="2"/>
-          <circle cx="192" cy="226" r="7" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2"/>
-        </g>
-        <g>
-          <path d="M14 214 L70 200 L74 214 L22 238Z" fill="url(#wood_${id})" stroke="#0a0406" stroke-width="3" stroke-linejoin="round"/>
-          <path d="M16 206 C14 190 40 182 66 192" fill="none" stroke="url(#steel_${id})" stroke-width="5" stroke-linecap="round"/>
-          <path d="M16 206 C14 190 40 182 66 192" fill="none" stroke="#0a0406" stroke-width="1.200"/>
-          <path d="M20 200 L70 202" stroke="#e8dcc0" stroke-width="1.800"/>
-          <path d="M20 200 L4 198 l8 -5z" fill="#c9d4e4" stroke="#0a0406" stroke-width="1.600" stroke-linejoin="round"/>
-        </g>`
-    };
-  }
-});
 
 /* ===== 00d-chibi-kit.js ===== */
 /* ============================================================================
@@ -3092,39 +2539,620 @@ CHIBI_SVGS.kobold = () => CB.frame('c_kobold', {
   }
 });
 
+/* ===== 00i-topdown-kit.js ===== */
+/* ============================================================================
+   1j. TOKENS VISTOS DE CIMA — kit de desenho (estilo "Zênite")
+   Figura vista do alto, virada para o sul (para baixo da tela), luz sempre de
+   cima-esquerda, volumes pintados com gradiente, grão de tinta e sombra
+   projetada macia. Sem moldura: a sombra é o único chão.
+   ============================================================================ */
+const TDK = (() => {
+  const OUT = 'rgba(22, 14, 9, 0.62)';           // contorno pintado (não é linha de cartum)
+  const r1 = (n) => Math.round(n * 10) / 10;
+  const P = (pt) => `${r1(pt[0])} ${r1(pt[1])}`;
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
+  const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
+  const mul = (a, k) => [a[0] * k, a[1] * k];
+  const norm = (v) => { const l = Math.hypot(v[0], v[1]) || 1; return [v[0] / l, v[1] / l]; };
+  const perp = (v) => [-v[1], v[0]];
+  const { lighten, darken } = TK;
+
+  /**
+   * Pintor por token: registra gradientes sob demanda (um por cor) e devolve url(#...).
+   * Luz de cima-esquerda: claro no foco, cor base no meio, escuro na borda.
+   */
+  function painter(id) {
+    const defs = [];
+    const cache = {};
+    let n = 0;
+    const paint = (color, { hi = 0.32, lo = 0.42, fx = 0.34, fy = 0.28 } = {}) => {
+      const key = `${color}|${hi}|${lo}|${fx}|${fy}`;
+      if (cache[key]) return cache[key];
+      const gid = `${id}_p${n++}`;
+      defs.push(`<radialGradient id="${gid}" cx="${fx}" cy="${fy}" r="0.85"><stop offset="0" stop-color="${lighten(color, hi)}"/><stop offset="0.5" stop-color="${color}"/><stop offset="1" stop-color="${darken(color, lo)}"/></radialGradient>`);
+      cache[key] = `url(#${gid})`;
+      return cache[key];
+    };
+    /** Gradiente linear ao longo de uma peça (lâminas, cabos), claro no lado iluminado. */
+    const metal = (color, angle = 0) => {
+      const key = `m${color}|${angle}`;
+      if (cache[key]) return cache[key];
+      const gid = `${id}_m${n++}`;
+      const a = (angle * Math.PI) / 180;
+      const x = Math.cos(a) * 0.5, y = Math.sin(a) * 0.5;
+      defs.push(`<linearGradient id="${gid}" x1="${r1(0.5 - x)}" y1="${r1(0.5 - y)}" x2="${r1(0.5 + x)}" y2="${r1(0.5 + y)}"><stop offset="0" stop-color="${lighten(color, 0.55)}"/><stop offset="0.45" stop-color="${color}"/><stop offset="1" stop-color="${darken(color, 0.45)}"/></linearGradient>`);
+      cache[key] = `url(#${gid})`;
+      return cache[key];
+    };
+    const raw = (s) => defs.push(s);
+    return { paint, metal, raw, defs: () => defs.join(''), id };
+  }
+
+  const shape = (d, fill, sw = 1.6) => `<path d="${d}" fill="${fill}" stroke="${OUT}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const ellipse = (cx, cy, rx, ry, fill, rot = 0, sw = 1.6) => `<ellipse cx="${r1(cx)}" cy="${r1(cy)}" rx="${r1(rx)}" ry="${r1(ry)}" fill="${fill}" stroke="${OUT}" stroke-width="${sw}"${rot ? ` transform="rotate(${r1(rot)} ${r1(cx)} ${r1(cy)})"` : ''}/>`;
+  const line = (a, b, w, color, cap = 'round') => `<path d="M${P(a)} L${P(b)}" stroke="${color}" stroke-width="${w}" stroke-linecap="${cap}" fill="none"/>`;
+  /** Cápsula pintada: contorno + preenchimento + filete de luz. */
+  const rod = (a, b, w, color, light = true) => line(a, b, w + 2.6, OUT) + line(a, b, w, color) +
+    (light ? line(add(a, mul(perp(norm(sub(b, a))), -w * 0.22)), add(b, mul(perp(norm(sub(b, a))), -w * 0.22)), Math.max(1, w * 0.28), 'rgba(255,255,255,0.28)') : '');
+
+  /* ---------------- Corpo ---------------- */
+
+  /** Capa que escorre para trás (norte). sway desloca a ponta para os lados. */
+  function cape(p, color, { len = 92, sway = -10, width = 60 } = {}) {
+    const tip = 128 + sway;
+    const y0 = 116, yT = y0 - len;
+    return shape(`M${128 - width} ${y0} C${128 - width - 8} ${y0 - len * 0.45} ${tip - width * 0.7} ${yT + 10} ${tip - 6} ${yT} C${tip + width * 0.35} ${yT - 4} ${128 + width + 6} ${y0 - len * 0.5} ${128 + width} ${y0} Q128 ${y0 + 16} ${128 - width} ${y0}Z`, p.paint(color, { fx: 0.3, fy: 0.55 })) +
+      `<path d="M${128 - width * 0.45} ${y0 - 6} Q${tip - width * 0.4} ${y0 - len * 0.5} ${tip - width * 0.2} ${yT + 18} M${128 + width * 0.2} ${y0 - 4} Q${tip + width * 0.1} ${y0 - len * 0.55} ${tip + width * 0.05} ${yT + 12} M${128 + width * 0.62} ${y0 - 8} Q${tip + width * 0.5} ${y0 - len * 0.45} ${tip + width * 0.3} ${yT + 26}" stroke="${darken(color, 0.35)}" stroke-width="2.2" fill="none" stroke-linecap="round" opacity="0.7"/>`;
+  }
+
+  /** Pernas e botas aparecendo à frente (sul). stride > 0 = passo largo. */
+  function feet(p, { pants = '#4a4038', boot = '#3a2a20', stride = 8, spread = 16 } = {}) {
+    const L = [128 - spread, 162 + stride * 0.6], R = [128 + spread, 162 - stride * 0.6];
+    return rod([128 - spread * 0.8, 140], L, 16, p.paint(pants)) + rod([128 + spread * 0.8, 140], R, 16, p.paint(pants)) +
+      ellipse(L[0] - 1, L[1] + 5, 10, 12, p.paint(boot)) + ellipse(R[0] + 1, R[1] + 5, 10, 12, p.paint(boot));
+  }
+
+  /** Ombros e costas vistos de cima. */
+  function torso(p, color, { rx = 50, ry = 30, cy = 126 } = {}) {
+    return ellipse(128, cy, rx, ry, p.paint(color, { fy: 0.2 }));
+  }
+
+  /** Ombreiras (armadura). */
+  function pauldrons(p, color, { rx = 22, ry = 17, y = 120, dx = 40 } = {}) {
+    return ellipse(128 - dx, y, rx, ry, p.paint(color), -18) + ellipse(128 + dx, y, rx, ry, p.paint(color), 18) +
+      `<path d="M${128 - dx - 14} ${y - 6} Q${128 - dx} ${y - 14} ${128 - dx + 12} ${y - 8} M${128 + dx - 12} ${y - 8} Q${128 + dx} ${y - 14} ${128 + dx + 14} ${y - 6}" stroke="rgba(255,255,255,0.45)" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  }
+
+  /** Gola de pelo irregular em volta do pescoço. */
+  function fur(p, color, { r = 40, cy = 118 } = {}) {
+    let d = '';
+    const n = 22;
+    for (let i = 0; i <= n; i++) {
+      const a = Math.PI + (i / n) * Math.PI * 2;
+      const rr = r + (i % 2 ? 7 : -1);
+      d += `${i ? 'L' : 'M'}${P([128 + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.72])} `;
+    }
+    return shape(d + 'Z', p.paint(color, { hi: 0.4 }));
+  }
+
+  /** Braço: do ombro (lado -1 esquerdo, +1 direito) até a mão. */
+  function arm(p, side, hand, sleeve, skin, { w = 15, shoulder } = {}) {
+    const s = shoulder || [128 + side * 42, 124];
+    const elbow = add(mul(add(s, hand), 0.5), [side * 5, 2]);
+    return rod(s, elbow, w, p.paint(sleeve)) + rod(elbow, hand, w - 2, p.paint(sleeve)) + ellipse(hand[0], hand[1], 7.5, 7.5, p.paint(skin));
+  }
+
+  /* ---------------- Cabeça ---------------- */
+
+  /**
+   * Cabeça vista do alto, testa e nariz à frente (sul).
+   * style: short | long | bald | hood | helmet | wide-hat | pointed-hat | horned | skull | bun | mohawk
+   */
+  function head(p, o = {}) {
+    const {
+      skin = '#e2b490', hair = '#4a3020', style = 'short', cx = 128, cy = 112, r = 29,
+      helm = '#9aa4b0', hat = '#3a3a5a', trim = '#c9a24a', plume = null, beard = null, ears = 'round'
+    } = o;
+    const id = p.id;
+    const clip = `${id}_hc`;
+    p.raw(`<clipPath id="${clip}"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath>`);
+    let out = '';
+    // orelhas
+    if (ears === 'round') out += ellipse(cx - r + 1, cy + 4, 5, 8, p.paint(skin)) + ellipse(cx + r - 1, cy + 4, 5, 8, p.paint(skin));
+    if (ears === 'pointed') out += shape(`M${cx - r + 3} ${cy - 2} L${cx - r - 16} ${cy - 10} L${cx - r + 4} ${cy + 10}Z M${cx + r - 3} ${cy - 2} L${cx + r + 16} ${cy - 10} L${cx + r - 4} ${cy + 10}Z`, p.paint(skin));
+    // cabelo comprido / barba escorrendo
+    if (style === 'long') out += shape(`M${cx - r + 2} ${cy - 4} C${cx - r - 6} ${cy - 40} ${cx - 10} ${cy - 66} ${cx + 4} ${cy - 70} C${cx + 22} ${cy - 62} ${cx + r + 8} ${cy - 38} ${cx + r - 2} ${cy - 4}Z`, p.paint(hair, { fy: 0.6 }));
+    if (beard) out += shape(`M${cx - 18} ${cy + 18} Q${cx} ${cy + r + 30} ${cx + 18} ${cy + 18} Q${cx} ${cy + 24} ${cx - 18} ${cy + 18}Z`, p.paint(beard));
+    // crânio (pele) + nariz
+    out += ellipse(cx, cy, r, r, p.paint(skin, { fy: 0.25 }));
+    out += ellipse(cx, cy + r - 1, 4.6, 6, p.paint(skin, { hi: 0.4 }), 0, 1.2);
+    out += `<path d="M${cx - 13} ${cy + r - 12} Q${cx - 6} ${cy + r - 16} ${cx - 1} ${cy + r - 12} M${cx + 1} ${cy + r - 12} Q${cx + 6} ${cy + r - 16} ${cx + 13} ${cy + r - 12}" stroke="${darken(skin, 0.5)}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+
+    const cap = (color, shift = 0.34, opt = {}) => `<g clip-path="url(#${clip})"><circle cx="${cx}" cy="${cy - r * shift}" r="${r}" fill="${p.paint(color, opt)}"/></g><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${OUT}" stroke-width="1.6"/>`;
+    const strands = (color) => `<path d="M${cx - 14} ${cy - 20} Q${cx - 4} ${cy - 8} ${cx - 8} ${cy + 4} M${cx + 2} ${cy - 24} Q${cx + 10} ${cy - 10} ${cx + 6} ${cy + 2} M${cx + 14} ${cy - 18} Q${cx + 20} ${cy - 6} ${cx + 18} ${cy + 4}" stroke="${lighten(color, 0.35)}" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.7"/>`;
+
+    if (style === 'short' || style === 'long' || style === 'bun' || style === 'mohawk') {
+      if (style !== 'mohawk') out += cap(hair) + strands(hair);
+      if (style === 'bun') out += ellipse(cx, cy - r + 4, 10, 9, p.paint(hair));
+      if (style === 'mohawk') out += shape(`M${cx - 6} ${cy + r - 22} L${cx - 7} ${cy - r - 4} Q${cx} ${cy - r - 14} ${cx + 7} ${cy - r - 4} L${cx + 6} ${cy + r - 22}Z`, p.paint(hair));
+    }
+    if (style === 'hood') {
+      out += `<g clip-path="url(#${clip})"><circle cx="${cx}" cy="${cy - r * 0.2}" r="${r}" fill="${p.paint(hair, { fy: 0.2 })}"/></g>` +
+        shape(`M${cx - r - 4} ${cy + 6} C${cx - r - 8} ${cy - r - 24} ${cx + r + 8} ${cy - r - 24} ${cx + r + 4} ${cy + 6} Q${cx + r - 2} ${cy + r - 2} ${cx} ${cy + r + 4} Q${cx - r + 2} ${cy + r - 2} ${cx - r - 4} ${cy + 6}Z M${cx - r + 8} ${cy + 8} Q${cx} ${cy + r - 2} ${cx + r - 8} ${cy + 8} Q${cx} ${cy + 18} ${cx - r + 8} ${cy + 8}Z`, p.paint(hair, { fy: 0.2 })) +
+        `<path d="M${cx} ${cy - r - 14} L${cx} ${cy - 2}" stroke="${darken(hair, 0.35)}" stroke-width="2" opacity="0.7"/>`;
+    }
+    if (style === 'helmet' || style === 'horned') {
+      out += cap(helm, 0.22) +
+        `<path d="M${cx} ${cy - r} L${cx} ${cy + r - 6}" stroke="${darken(helm, 0.3)}" stroke-width="5" stroke-linecap="round"/><path d="M${cx - 2} ${cy - r + 2} L${cx - 2} ${cy + r - 8}" stroke="rgba(255,255,255,0.5)" stroke-width="1.6"/>` +
+        `<path d="M${cx - r + 3} ${cy + 6} Q${cx} ${cy + 16} ${cx + r - 3} ${cy + 6}" stroke="${darken(helm, 0.35)}" stroke-width="3" fill="none"/>` +
+        line([cx, cy + 6], [cx, cy + r + 3], 4, darken(helm, 0.2));
+      if (style === 'horned') out += shape(`M${cx - r + 4} ${cy - 2} C${cx - r - 18} ${cy - 4} ${cx - r - 26} ${cy - 22} ${cx - r - 20} ${cy - 34} C${cx - r - 14} ${cy - 22} ${cx - r - 6} ${cy - 14} ${cx - r + 6} ${cy - 12}Z M${cx + r - 4} ${cy - 2} C${cx + r + 18} ${cy - 4} ${cx + r + 26} ${cy - 22} ${cx + r + 20} ${cy - 34} C${cx + r + 14} ${cy - 22} ${cx + r + 6} ${cy - 14} ${cx + r - 6} ${cy - 12}Z`, p.paint('#e8dcc0'));
+      if (plume) out += shape(`M${cx - 4} ${cy - r + 2} C${cx - 10} ${cy - r - 30} ${cx + 8} ${cy - r - 44} ${cx + 4} ${cy - r - 58} C${cx + 16} ${cy - r - 38} ${cx + 8} ${cy - r - 16} ${cx + 5} ${cy - r + 2}Z`, p.paint(plume));
+    }
+    if (style === 'wide-hat') {
+      out += ellipse(cx, cy - 2, r + 22, r + 18, p.paint(hat, { fy: 0.3 })) + ellipse(cx, cy - 6, r - 4, r - 6, p.paint(hat, { hi: 0.45 })) +
+        `<ellipse cx="${cx}" cy="${cy - 6}" rx="${r - 3}" ry="${r - 5}" fill="none" stroke="${trim}" stroke-width="3.4"/>`;
+      if (plume) out += shape(`M${cx + 10} ${cy - 10} C${cx + 30} ${cy - 30} ${cx + 52} ${cy - 30} ${cx + 66} ${cy - 46} C${cx + 54} ${cy - 22} ${cx + 32} ${cy - 10} ${cx + 12} ${cy - 2}Z`, p.paint(plume, { hi: 0.5 }));
+    }
+    if (style === 'pointed-hat') {
+      out += ellipse(cx, cy - 2, r + 24, r + 20, p.paint(hat, { fy: 0.3 })) +
+        `<ellipse cx="${cx}" cy="${cy - 4}" rx="${r + 4}" ry="${r + 2}" fill="none" stroke="${trim}" stroke-width="4"/>` +
+        shape(`M${cx - r - 2} ${cy} Q${cx - 12} ${cy - r - 10} ${cx + 4} ${cy - r - 34} Q${cx + 6} ${cy - r - 14} ${cx + r + 2} ${cy} Q${cx} ${cy + 10} ${cx - r - 2} ${cy}Z`, p.paint(hat, { hi: 0.42, fx: 0.4, fy: 0.25 }));
+    }
+    if (style === 'skull') {
+      out += ellipse(cx, cy, r, r, p.paint('#e6dcc2', { hi: 0.3 })) +
+        ellipse(cx - 10, cy + 12, 7, 6, '#1a1210', 0, 1) + ellipse(cx + 10, cy + 12, 7, 6, '#1a1210', 0, 1) +
+        `<circle cx="${cx - 10}" cy="${cy + 13}" r="2.2" fill="#ff5a3a"/><circle cx="${cx + 10}" cy="${cy + 13}" r="2.2" fill="#ff5a3a"/>` +
+        `<path d="M${cx - 18} ${cy - 10} L${cx - 6} ${cy - 2} M${cx + 8} ${cy - 18} L${cx + 14} ${cy - 6}" stroke="${OUT}" stroke-width="1.6"/>`;
+    }
+    return out;
+  }
+
+  /* ---------------- Armas e objetos ---------------- */
+
+  /** Espada: punho em `hilt`, ponta em `tip`. */
+  function sword(p, hilt, tip, { blade = '#c4ccd6', guard = '#b8913a', grip = '#5a3a22', w = 4.2, glow = null } = {}) {
+    const d = norm(sub(tip, hilt)), q = perp(d);
+    const b0 = add(hilt, mul(d, 7)), t0 = sub(tip, mul(d, 12));
+    let s = '';
+    if (glow) s += line(b0, tip, w * 4, glow) .replace('stroke=', 'opacity="0.35" stroke=');
+    s += shape(`M${P(add(b0, mul(q, w)))} L${P(add(t0, mul(q, w * 0.85)))} L${P(tip)} L${P(sub(t0, mul(q, w * 0.85)))} L${P(sub(b0, mul(q, w)))}Z`, p.metal(blade, Math.atan2(q[1], q[0]) * 180 / Math.PI), 1.4);
+    s += line(add(b0, mul(d, 4)), sub(t0, mul(d, 2)), 1.2, 'rgba(255,255,255,0.6)');
+    s += rod(sub(hilt, mul(d, 12)), hilt, 4.5, p.paint(grip), false) + ellipse(...sub(hilt, mul(d, 14)), 4, 4, p.paint(guard));
+    s += rod(add(b0, mul(q, 12)), sub(b0, mul(q, 12)), 4, p.paint(guard), false);
+    return s;
+  }
+
+  /** Machado: cabo de `grip` até `head`; double = lâmina dos dois lados. */
+  function axe(p, grip, headPt, { blade = '#b0b8c2', haft = '#6a4a2a', double = false, size = 1 } = {}) {
+    const d = norm(sub(headPt, grip)), q = perp(d);
+    const c = sub(headPt, mul(d, 6 * size));
+    const half = (k) => shape(`M${P(add(sub(c, mul(d, 13 * size)), mul(q, k * 4)))} Q${P(add(c, mul(q, k * 34 * size)))} ${P(add(add(c, mul(d, 13 * size)), mul(q, k * 4)))}Z`, p.metal(blade, Math.atan2(q[1] * k, q[0] * k) * 180 / Math.PI), 1.4);
+    return rod(grip, add(headPt, mul(d, 4)), 5.5, p.paint(haft)) + half(1) + (double ? half(-1) : '') + ellipse(c[0], c[1], 5, 5, p.paint('#7a828c'));
+  }
+
+  /** Lança/azagaia: haste de `butt` até `tip`. */
+  function spear(p, butt, tip, { haft = '#7a5a36', head: hd = '#c4ccd6', w = 4 } = {}) {
+    const d = norm(sub(tip, butt)), q = perp(d);
+    const base = sub(tip, mul(d, 22));
+    return rod(butt, base, w, p.paint(haft)) +
+      shape(`M${P(tip)} L${P(add(add(base, mul(d, 8)), mul(q, 6)))} L${P(base)} L${P(sub(add(base, mul(d, 8)), mul(q, 6)))}Z`, p.metal(hd, Math.atan2(q[1], q[0]) * 180 / Math.PI), 1.3) +
+      rod(add(base, mul(q, 1)), sub(base, mul(d, 6)), 6, p.paint('#4a3020'), false);
+  }
+
+  /** Cajado com ornamento: orb | crook | leaves | crystal | sun | moon. */
+  function staff(p, butt, top, { wood = '#7a5432', ornament = 'orb', color = '#8fd8ff' } = {}) {
+    const d = norm(sub(top, butt)), q = perp(d);
+    let s = rod(butt, top, 5, p.paint(wood));
+    if (ornament === 'orb' || ornament === 'crystal') {
+      s += `<circle cx="${r1(top[0])}" cy="${r1(top[1])}" r="18" fill="${color}" opacity="0.22"/>`;
+      s += ornament === 'orb' ? ellipse(top[0], top[1], 9, 9, p.paint(color, { hi: 0.6 })) :
+        shape(`M${P(add(top, mul(d, 14)))} L${P(add(top, mul(q, 7)))} L${P(sub(top, mul(d, 8)))} L${P(sub(top, mul(q, 7)))}Z`, p.paint(color, { hi: 0.6 }));
+    }
+    if (ornament === 'crook') s += `<path d="M${P(top)} Q${P(add(add(top, mul(d, 18)), mul(q, 4)))} ${P(add(add(top, mul(d, 8)), mul(q, 16)))}" stroke="${OUT}" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M${P(top)} Q${P(add(add(top, mul(d, 18)), mul(q, 4)))} ${P(add(add(top, mul(d, 8)), mul(q, 16)))}" stroke="${p.paint(wood)}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+    if (ornament === 'leaves') s += [-1, 0, 1].map(k => ellipse(...add(add(top, mul(d, 8)), mul(q, k * 9)), 6, 10, p.paint('#6aa84a'), Math.atan2(d[1], d[0]) * 180 / Math.PI + 90 + k * 30)).join('');
+    if (ornament === 'sun') s += ellipse(top[0], top[1], 11, 11, p.paint('#e8c04a', { hi: 0.5 })) + [0, 1, 2, 3, 4, 5, 6, 7].map(i => { const a = i * Math.PI / 4; return line([top[0] + Math.cos(a) * 13, top[1] + Math.sin(a) * 13], [top[0] + Math.cos(a) * 19, top[1] + Math.sin(a) * 19], 3, '#c9a03a'); }).join('');
+    if (ornament === 'moon') s += shape(`M${P(add(top, mul(q, -9)))} A11 11 0 1 0 ${P(add(top, mul(q, 9)))} A8 8 0 1 1 ${P(add(top, mul(q, -9)))}Z`, p.paint('#efe6b8', { hi: 0.4 }));
+    return s;
+  }
+
+  /** Arco de lado, empunhado em `hand`, mirando na direção `aim` (vetor). drawHand puxa a corda. */
+  function bow(p, hand, aim, { len = 46, wood = '#7a4a24', drawHand = null, arrow = true } = {}) {
+    const d = norm(aim), q = perp(d);
+    const t1 = add(hand, mul(q, len)), t2 = sub(hand, mul(q, len));
+    const belly = add(hand, mul(d, 18));
+    const nock = drawHand || sub(hand, mul(d, 4));
+    let s = `<path d="M${P(t1)} Q${P(add(belly, mul(q, len * 0.9)))} ${P(belly)} Q${P(sub(belly, mul(q, len * 0.9)))} ${P(t2)}" stroke="${OUT}" stroke-width="8" fill="none" stroke-linecap="round"/>` +
+      `<path d="M${P(t1)} Q${P(add(belly, mul(q, len * 0.9)))} ${P(belly)} Q${P(sub(belly, mul(q, len * 0.9)))} ${P(t2)}" stroke="${p.paint(wood)}" stroke-width="5" fill="none" stroke-linecap="round"/>` +
+      `<path d="M${P(t1)} L${P(nock)} L${P(t2)}" stroke="#efe6d0" stroke-width="1.3" fill="none"/>`;
+    if (arrow) {
+      const tip = add(belly, mul(d, 20));
+      s += line(nock, tip, 2.4, '#d8c49a') + shape(`M${P(add(tip, mul(d, 7)))} L${P(add(tip, mul(q, 3.5)))} L${P(sub(tip, mul(q, 3.5)))}Z`, '#c4ccd6', 1) +
+        shape(`M${P(nock)} L${P(add(add(nock, mul(d, 9)), mul(q, 4)))} L${P(add(nock, mul(d, 12)))} L${P(sub(add(nock, mul(d, 9)), mul(q, 4)))}Z`, '#c84a3a', 1);
+    }
+    return s;
+  }
+
+  /**
+   * Escudo redondo visto de frente (de cima, deitado no braço).
+   * pattern: plain | quarters | swirl | cross | sun | rings
+   */
+  function shield(p, cx, cy, r, { wood = '#7a5232', c1 = '#b8382e', c2 = '#e8d8b0', rim = '#8a929c', pattern = 'quarters' } = {}) {
+    const id = `${p.id}_sh${Math.round(cx)}${Math.round(cy)}`;
+    p.raw(`<clipPath id="${id}"><circle cx="${cx}" cy="${cy}" r="${r - 3}"/></clipPath>`);
+    let face = `<circle cx="${cx}" cy="${cy}" r="${r - 3}" fill="${p.paint(wood)}"/>`;
+    for (let i = -3; i <= 3; i++) face += `<path d="M${cx - r} ${cy + i * r * 0.28} L${cx + r} ${cy + i * r * 0.28 + 6}" stroke="${darken(wood, 0.35)}" stroke-width="1.2" opacity="0.6"/>`;
+    if (pattern === 'quarters') face += `<path d="M${cx} ${cy} L${cx} ${cy - r} A${r} ${r} 0 0 1 ${cx + r} ${cy}Z M${cx} ${cy} L${cx} ${cy + r} A${r} ${r} 0 0 1 ${cx - r} ${cy}Z" fill="${c1}" opacity="0.9"/>`;
+    if (pattern === 'swirl') face += [0, 120, 240].map(a => `<path d="M${cx} ${cy} C${cx + r * 0.2} ${cy - r * 0.6} ${cx + r * 0.9} ${cy - r * 0.5} ${cx + r * 0.7} ${cy - r * 0.05} C${cx + r * 0.5} ${cy - r * 0.35} ${cx + r * 0.25} ${cy - r * 0.3} ${cx} ${cy}Z" fill="${c1}" transform="rotate(${a} ${cx} ${cy})"/>`).join('');
+    if (pattern === 'cross') face += `<path d="M${cx - 5} ${cy - r} h10 v${r - 5} h${r - 5} v10 h-${r - 5} v${r - 5} h-10 v-${r - 5} h-${r - 5} v-10 h${r - 5}Z" fill="${c1}"/>`;
+    if (pattern === 'sun') face += `<circle cx="${cx}" cy="${cy}" r="${r * 0.55}" fill="${c1}"/>` + [0, 1, 2, 3, 4, 5, 6, 7].map(i => `<path d="M${cx} ${cy - r * 0.6} L${cx - 4} ${cy - r * 0.95} L${cx + 4} ${cy - r * 0.95}Z" fill="${c1}" transform="rotate(${i * 45} ${cx} ${cy})"/>`).join('');
+    if (pattern === 'rings') face += `<circle cx="${cx}" cy="${cy}" r="${r * 0.72}" fill="none" stroke="${c1}" stroke-width="${r * 0.22}"/>`;
+    if (c2 && pattern !== 'plain') face += `<circle cx="${cx}" cy="${cy}" r="${r * 0.32}" fill="${c2}" opacity="0.9"/>`;
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${p.metal(rim, 225)}" stroke="${OUT}" stroke-width="1.6"/>` +
+      `<g clip-path="url(#${id})">${face}<circle cx="${cx}" cy="${cy}" r="${r}" fill="${p.paint('#000000', { hi: 0, lo: 0 })}" opacity="0"/></g>` +
+      `<circle cx="${cx}" cy="${cy}" r="${r - 3}" fill="none" stroke="rgba(0,0,0,0.25)" stroke-width="2"/>` +
+      ellipse(cx, cy, r * 0.22, r * 0.22, p.paint(rim, { hi: 0.55 })) +
+      `<path d="M${cx - r * 0.7} ${cy - r * 0.55} A${r * 0.9} ${r * 0.9} 0 0 1 ${cx - r * 0.1} ${cy - r * 0.88}" stroke="rgba(255,255,255,0.4)" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+  }
+
+  /** Escudo de cavaleiro (heráldico), apontando para o sul. */
+  function kite(p, cx, cy, s, { face = '#e8e2d0', c1 = '#2a5a9a', rim = '#c9a24a' } = {}) {
+    const d = `M${cx - 22 * s} ${cy - 26 * s} L${cx + 22 * s} ${cy - 26 * s} L${cx + 22 * s} ${cy + 2 * s} Q${cx + 18 * s} ${cy + 26 * s} ${cx} ${cy + 36 * s} Q${cx - 18 * s} ${cy + 26 * s} ${cx - 22 * s} ${cy + 2 * s}Z`;
+    return shape(d, p.metal(rim, 225), 1.6) +
+      shape(`M${cx - 18 * s} ${cy - 22 * s} L${cx + 18 * s} ${cy - 22 * s} L${cx + 18 * s} ${cy + 1 * s} Q${cx + 15 * s} ${cy + 22 * s} ${cx} ${cy + 31 * s} Q${cx - 15 * s} ${cy + 22 * s} ${cx - 18 * s} ${cy + 1 * s}Z`, p.paint(face), 1) +
+      `<path d="M${cx - 4 * s} ${cy - 20 * s} h${8 * s} v${14 * s} h${12 * s} v${8 * s} h-${12 * s} v${22 * s} h-${8 * s} v-${22 * s} h-${12 * s} v-${8 * s} h${12 * s}Z" fill="${c1}"/>`;
+  }
+
+  const orb = (p, c, color, r = 10) => `<circle cx="${r1(c[0])}" cy="${r1(c[1])}" r="${r * 2.1}" fill="${color}" opacity="0.2"/><circle cx="${r1(c[0])}" cy="${r1(c[1])}" r="${r * 1.45}" fill="${color}" opacity="0.25"/>` + ellipse(c[0], c[1], r, r, p.paint(color, { hi: 0.65 }), 0, 1.2);
+  function flame(p, c, color, s = 1) {
+    const [x, y] = c;
+    return `<circle cx="${x}" cy="${y}" r="${22 * s}" fill="${color}" opacity="0.18"/>` +
+      shape(`M${x} ${y + 12 * s} C${x - 14 * s} ${y + 8 * s} ${x - 12 * s} ${y - 10 * s} ${x - 2 * s} ${y - 20 * s} C${x} ${y - 10 * s} ${x + 6 * s} ${y - 12 * s} ${x + 6 * s} ${y - 22 * s} C${x + 18 * s} ${y - 8 * s} ${x + 14 * s} ${y + 8 * s} ${x} ${y + 12 * s}Z`, p.paint(color, { hi: 0.6 }), 1.2) +
+      shape(`M${x} ${y + 8 * s} C${x - 6 * s} ${y + 4 * s} ${x - 4 * s} ${y - 6 * s} ${x + 1 * s} ${y - 10 * s} C${x + 6 * s} ${y - 4 * s} ${x + 6 * s} ${y + 4 * s} ${x} ${y + 8 * s}Z`, '#fff4c8', 0);
+  }
+  function dagger(p, hilt, tip, opts = {}) { return sword(p, hilt, tip, { w: 2.8, guard: '#8a7a5a', ...opts }); }
+  function mace(p, grip, headPt, { head: hd = '#9aa2ac', haft = '#6a4a2a' } = {}) {
+    const d = norm(sub(headPt, grip));
+    return rod(grip, headPt, 5, p.paint(haft)) + ellipse(headPt[0], headPt[1], 10, 10, p.paint(hd)) +
+      [0, 1, 2, 3, 4, 5].map(i => { const a = i * Math.PI / 3; return ellipse(headPt[0] + Math.cos(a) * 9, headPt[1] + Math.sin(a) * 9, 3.6, 3.6, p.paint(hd)); }).join('') + (d ? '' : '');
+  }
+  function flask(p, c, liquid) {
+    const [x, y] = c;
+    return ellipse(x, y, 9, 9, p.paint(liquid, { hi: 0.55 })) + `<circle cx="${x}" cy="${y}" r="16" fill="${liquid}" opacity="0.18"/>` + ellipse(x, y - 9, 3.4, 3.4, p.paint('#a87a4a'));
+  }
+  function book(p, c, color = '#6a2a2a', rot = 0) {
+    const [x, y] = c;
+    return `<g transform="rotate(${rot} ${x} ${y})">${shape(`M${x - 16} ${y - 11} L${x} ${y - 8} L${x + 16} ${y - 11} L${x + 16} ${y + 11} L${x} ${y + 14} L${x - 16} ${y + 11}Z`, p.paint(color))}${shape(`M${x - 13} ${y - 8} L${x - 1} ${y - 6} L${x - 1} ${y + 11} L${x - 13} ${y + 8}Z M${x + 13} ${y - 8} L${x + 1} ${y - 6} L${x + 1} ${y + 11} L${x + 13} ${y + 8}Z`, '#efe4c8', 1)}</g>`;
+  }
+  function lute(p, neckEnd, body) {
+    return rod(neckEnd, body, 5, p.paint('#6a4224')) + ellipse(body[0], body[1], 17, 21, p.paint('#b07838'), Math.atan2(body[1] - neckEnd[1], body[0] - neckEnd[0]) * 180 / Math.PI + 90) + ellipse(body[0], body[1], 5, 5, '#2a1a10', 0, 1);
+  }
+  /** Mochila/aljava nas costas (vista de cima). */
+  const pack = (p, color, { cx = 128, cy = 96, w = 34, h = 26 } = {}) => shape(`M${cx - w / 2} ${cy - h / 2 + 6} Q${cx - w / 2} ${cy - h / 2} ${cx - w / 2 + 6} ${cy - h / 2} L${cx + w / 2 - 6} ${cy - h / 2} Q${cx + w / 2} ${cy - h / 2} ${cx + w / 2} ${cy - h / 2 + 6} L${cx + w / 2} ${cy + h / 2} L${cx - w / 2} ${cy + h / 2}Z`, p.paint(color));
+  function quiver(p, a, b) {
+    const d = norm(sub(b, a)), q = perp(d);
+    return rod(a, b, 11, p.paint('#6a4224')) + [-3, 0, 3].map(k => shape(`M${P(add(add(b, mul(q, k)), mul(d, 2)))} L${P(add(add(b, mul(q, k + 3)), mul(d, 10)))} L${P(add(add(b, mul(q, k - 3)), mul(d, 10)))}Z`, '#e8e0cc', 1)).join('');
+  }
+
+  /**
+   * Composição final. art(p) devolve as camadas já na ordem (de trás para a frente).
+   * O filtro aplica grão de tinta e projeta a sombra macia para baixo-direita.
+   */
+  function frame(id, art) {
+    const p = painter(id);
+    const body = art(p);
+    return `<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="${id}_f" filterUnits="userSpaceOnUse" x="-20" y="-20" width="296" height="296" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="11" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0.9 0.9 0.9 0 -0.85" result="g"/>
+      <feComposite in="g" in2="SourceAlpha" operator="in" result="gm"/>
+      <feBlend in="SourceGraphic" in2="gm" mode="overlay" result="tex"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4.2" result="b"/>
+      <feOffset in="b" dx="8" dy="10" result="ob"/>
+      <feFlood flood-color="#1c140e" flood-opacity="0.5"/>
+      <feComposite in2="ob" operator="in" result="shadow"/>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="tex"/></feMerge>
+    </filter>
+    ${p.defs()}
+  </defs>
+  <g filter="url(#${id}_f)">${body}</g>
+</svg>`;
+  }
+
+  return { painter, frame, head, torso, pauldrons, fur, arm, feet, cape, sword, axe, spear, staff, bow, shield, kite, orb, flame, dagger, mace, flask, book, lute, pack, quiver, rod, shape, ellipse, line, OUT, add, sub, mul, norm, perp };
+})();
+
+/** Estilo "vista de cima": uma função por personagem, mesmas chaves dos outros estilos. */
+const TOPDOWN_SVGS = {};
+
+/* ===== 00j-topdown-tokens.js ===== */
+/* ============================================================================
+   1k. TOKENS VISTOS DE CIMA — os 22 personagens
+   Ordem das camadas em cada arte: capa/costas → pernas → arma atrás → tronco
+   → ombros → braços e armas → cabeça.
+   ============================================================================ */
+(() => {
+  const T = TDK;
+  const SK = '#e2b490', SK2 = '#c98e64', SK3 = '#8a5a3c';
+  const art = (key, fn) => { TOPDOWN_SVGS[key] = () => T.frame(`t_${key}`, fn); };
+
+  /* ------------------------------ HERÓIS ------------------------------ */
+
+  art('guerreiro', (p) =>
+    T.cape(p, '#2f4f86', { sway: -12 }) +
+    T.feet(p, { pants: '#4a4a52', boot: '#3a2a20', stride: 10 }) +
+    T.torso(p, '#8a929e') +
+    T.pauldrons(p, '#a4adb8') +
+    T.sword(p, [176, 168], [204, 232]) +
+    T.arm(p, 1, [176, 166], '#7a828e', SK) +
+    T.arm(p, -1, [90, 156], '#7a828e', SK) +
+    T.shield(p, 80, 156, 32, { c1: '#b8382e', c2: '#e8d8b0', pattern: 'quarters' }) +
+    T.head(p, { skin: SK, style: 'helmet', helm: '#a8b0ba', plume: '#c23a2e' }));
+
+  art('paladino', (p) =>
+    T.cape(p, '#e8e2d2', { sway: 10, width: 62 }) +
+    T.feet(p, { pants: '#6a6a72', boot: '#5a4632', stride: 6 }) +
+    T.torso(p, '#c8ccd2') +
+    T.pauldrons(p, '#d8c27a') +
+    T.mace(p, [178, 168], [196, 214]) +
+    T.arm(p, 1, [178, 166], '#b8bcc4', SK) +
+    T.arm(p, -1, [92, 158], '#b8bcc4', SK) +
+    T.kite(p, 84, 158, 1.05, { face: '#f2ecdc', c1: '#c9a24a', rim: '#c9a24a' }) +
+    T.head(p, { skin: SK, style: 'helmet', helm: '#d8dce2', plume: '#f2ecdc' }));
+
+  art('barbaro', (p) =>
+    T.feet(p, { pants: '#6a4a30', boot: '#4a3020', stride: 12, spread: 18 }) +
+    T.axe(p, [92, 172], [190, 206], { double: true, size: 1.15 }) +
+    T.torso(p, SK2, { rx: 54, ry: 32 }) +
+    T.fur(p, '#8a6a48', { r: 38 }) +
+    T.arm(p, -1, [96, 170], SK2, SK2, { w: 16 }) +
+    T.arm(p, 1, [150, 182], SK2, SK2, { w: 16 }) +
+    T.head(p, { skin: SK2, style: 'long', hair: '#b8452a', beard: '#b8452a' }));
+
+  art('clerigo', (p) =>
+    T.cape(p, '#e8dcb8', { sway: -6, width: 58 }) +
+    T.feet(p, { pants: '#d8ccaa', boot: '#6a4a30', stride: 4 }) +
+    T.staff(p, [60, 214], [184, 64], { ornament: 'sun' }) +
+    T.torso(p, '#f0e6c8') +
+    `<path d="M108 106 L148 106 L144 150 L112 150Z" fill="#c9a24a" opacity="0.85"/>` +
+    T.arm(p, 1, [154, 96], '#e8dcb8', SK) +
+    T.arm(p, -1, [96, 162], '#e8dcb8', SK) +
+    T.mace(p, [96, 162], [104, 204], { head: '#c9a24a' }) +
+    T.head(p, { skin: SK, style: 'hood', hair: '#efe4c4' }));
+
+  art('bardo', (p) =>
+    T.cape(p, '#9a2a3a', { sway: 14, len: 84 }) +
+    T.feet(p, { pants: '#3a3a5a', boot: '#5a3a22', stride: -8 }) +
+    T.torso(p, '#4a6a9a') +
+    `<path d="M100 120 Q128 132 156 120" stroke="#e8c04a" stroke-width="3" fill="none"/>` +
+    T.lute(p, [196, 132], [150, 178]) +
+    T.arm(p, 1, [190, 136], '#4a6a9a', SK) +
+    T.arm(p, -1, [140, 176], '#4a6a9a', SK) +
+    T.head(p, { skin: SK, style: 'wide-hat', hat: '#7a2a3a', trim: '#e8c04a', plume: '#f2ecdc' }));
+
+  art('feiticeiro', (p) =>
+    T.cape(p, '#7a2a1e', { sway: -8, len: 100, width: 58 }) +
+    T.feet(p, { pants: '#4a2a22', boot: '#3a2018', stride: 6 }) +
+    T.torso(p, '#b84a2a') +
+    `<path d="M128 100 L128 154" stroke="#e8a040" stroke-width="3.4"/>` +
+    T.arm(p, -1, [78, 174], '#b84a2a', SK) +
+    T.arm(p, 1, [180, 172], '#b84a2a', SK) +
+    T.flame(p, [74, 182], '#ff8a2a', 1.05) +
+    T.flame(p, [184, 180], '#ff8a2a', 0.9) +
+    T.head(p, { skin: SK, style: 'short', hair: '#e0e0e8' }));
+
+  art('mago', (p) =>
+    T.cape(p, '#2a3a7a', { sway: 8, len: 104, width: 60 }) +
+    T.feet(p, { pants: '#2a3a6a', boot: '#3a2a22', stride: 4 }) +
+    T.staff(p, [190, 214], [174, 56], { ornament: 'orb', color: '#7fd8ff' }) +
+    T.torso(p, '#34489a') +
+    T.arm(p, 1, [178, 140], '#34489a', SK) +
+    T.arm(p, -1, [96, 168], '#34489a', SK) +
+    T.book(p, [92, 180], '#6a2a2a', -12) +
+    T.head(p, { skin: SK, style: 'pointed-hat', hat: '#2e3e8a', trim: '#e8c04a', beard: '#e8e4dc' }));
+
+  art('ranger', (p) =>
+    T.cape(p, '#3e5a32', { sway: -14, len: 90 }) +
+    T.quiver(p, [150, 76], [170, 40]) +
+    T.feet(p, { pants: '#5a4a32', boot: '#4a3220', stride: 14, spread: 18 }) +
+    T.torso(p, '#5a7a3e') +
+    T.bow(p, [92, 186], [0, 1], { drawHand: [100, 140] }) +
+    T.arm(p, -1, [92, 186], '#4a6a32', SK) +
+    T.arm(p, 1, [100, 140], '#4a6a32', SK, { shoulder: [166, 124] }) +
+    T.head(p, { skin: SK, style: 'hood', hair: '#3e5a32' }));
+
+  art('rogue', (p) =>
+    T.cape(p, '#2a2a32', { sway: 12, len: 80, width: 54 }) +
+    T.feet(p, { pants: '#2a2a30', boot: '#1e1a18', stride: 12, spread: 20 }) +
+    T.torso(p, '#3a3a44') +
+    `<path d="M88 140 Q128 152 168 140" stroke="#6a4a2a" stroke-width="5" fill="none"/>` +
+    T.dagger(p, [80, 168], [62, 206]) +
+    T.dagger(p, [178, 166], [198, 204]) +
+    T.arm(p, -1, [80, 166], '#3a3a44', SK) +
+    T.arm(p, 1, [178, 164], '#3a3a44', SK) +
+    T.head(p, { skin: SK, style: 'hood', hair: '#26262e' }));
+
+  art('druida', (p) =>
+    T.cape(p, '#3f6a3a', { sway: -10, len: 96 }) +
+    T.feet(p, { pants: '#5a4a32', boot: '#4a3426', stride: 6 }) +
+    T.staff(p, [70, 214], [80, 58], { ornament: 'leaves', wood: '#6a4a2a' }) +
+    T.torso(p, '#5f8e4a') +
+    T.fur(p, '#8a7050', { r: 34 }) +
+    T.arm(p, -1, [80, 120], '#5f8e4a', SK) +
+    T.arm(p, 1, [178, 170], '#5f8e4a', SK) +
+    T.orb(p, [184, 178], '#8fe07a', 8) +
+    T.head(p, { skin: SK, style: 'long', hair: '#8a5a2a', ears: 'pointed' }) +
+    T.shape('M108 96 L94 70 L112 88Z M148 96 L162 70 L144 88Z', '#c9a86a'));
+
+  art('monge', (p) =>
+    T.feet(p, { pants: '#d88a2a', boot: '#8a5a32', stride: 14, spread: 20 }) +
+    T.staff(p, [54, 194], [204, 160], { ornament: 'none', wood: '#8a6038' }) +
+    T.torso(p, '#e09a2a', { rx: 46 }) +
+    `<path d="M104 104 Q118 128 116 152" stroke="#b8502a" stroke-width="7" fill="none" stroke-linecap="round"/>` +
+    T.arm(p, -1, [82, 182], '#e09a2a', SK2) +
+    T.arm(p, 1, [176, 164], '#e09a2a', SK2) +
+    T.head(p, { skin: SK2, style: 'bald' }) +
+    `<circle cx="128" cy="96" r="3" fill="#8a3a2a"/><circle cx="120" cy="100" r="3" fill="#8a3a2a"/><circle cx="136" cy="100" r="3" fill="#8a3a2a"/>`);
+
+  art('alquimista', (p) =>
+    T.pack(p, '#7a5232', { cy: 92, w: 48, h: 30 }) +
+    T.flask(p, [104, 84], '#6ad0a0') + T.flask(p, [150, 84], '#e05a8a') +
+    T.feet(p, { pants: '#5a4a3a', boot: '#3a2a20', stride: 8 }) +
+    T.torso(p, '#8a6a4a') +
+    `<path d="M92 132 Q128 146 164 132" stroke="#5a3a22" stroke-width="6" fill="none"/>` +
+    T.flask(p, [104, 140], '#e8c040') + T.flask(p, [128, 144], '#7ab8e8') + T.flask(p, [152, 140], '#e8603a') +
+    T.arm(p, -1, [80, 170], '#9a7a5a', SK) +
+    T.arm(p, 1, [178, 170], '#9a7a5a', SK) +
+    T.flask(p, [80, 178], '#8ae05a') + T.flask(p, [180, 178], '#e05a3a') +
+    T.head(p, { skin: SK, style: 'short', hair: '#c8a040' }) +
+    `<path d="M101 116 Q128 108 155 116" stroke="#4a3022" stroke-width="5" fill="none"/>` +
+    T.ellipse(114, 118, 7, 6, '#9ad8e0', 0, 1.6) + T.ellipse(142, 118, 7, 6, '#9ad8e0', 0, 1.6));
+
+  art('bruxa', (p) =>
+    T.cape(p, '#3a2a4a', { sway: 16, len: 100, width: 60 }) +
+    T.feet(p, { pants: '#2a2230', boot: '#1e1a20', stride: 6 }) +
+    T.staff(p, [190, 212], [180, 62], { ornament: 'moon', wood: '#4a3a2a' }) +
+    T.torso(p, '#4a3a5a') +
+    T.arm(p, 1, [182, 142], '#4a3a5a', '#d8c4a8') +
+    T.arm(p, -1, [86, 172], '#4a3a5a', '#d8c4a8') +
+    T.flask(p, [84, 180], '#7ae05a') +
+    T.head(p, { skin: '#d8c4a8', style: 'pointed-hat', hat: '#2a2236', trim: '#7a5aa8' }));
+
+  art('espadachim', (p) =>
+    T.cape(p, '#a82a2a', { sway: -18, len: 72, width: 46 }) +
+    T.feet(p, { pants: '#2a2a3a', boot: '#3a2418', stride: 18, spread: 16 }) +
+    T.torso(p, '#e8e2d2', { rx: 46 }) +
+    `<path d="M112 104 L144 104 L142 152 L114 152Z" fill="#2a2a3a"/>` +
+    T.sword(p, [186, 158], [228, 214], { w: 2.4, guard: '#c9a24a', blade: '#d8dee6' }) +
+    T.arm(p, 1, [186, 156], '#e8e2d2', SK) +
+    T.dagger(p, [84, 150], [70, 120]) +
+    T.arm(p, -1, [84, 150], '#e8e2d2', SK) +
+    T.head(p, { skin: SK, style: 'wide-hat', hat: '#2a2a3a', trim: '#c9a24a', plume: '#c23a3a' }));
+
+  /* ------------------------------ VILÕES ------------------------------ */
+
+  const GOB = '#7aa04a';
+  art('goblin', (p) =>
+    T.feet(p, { pants: '#5a4a30', boot: '#3a2a1a', stride: 10, spread: 14 }) +
+    T.torso(p, '#6a5a3a', { rx: 40, ry: 26, cy: 128 }) +
+    T.dagger(p, [168, 160], [188, 196], { blade: '#a0a49a' }) +
+    T.arm(p, 1, [168, 158], '#6a5a3a', GOB, { w: 11, shoulder: [160, 126] }) +
+    T.arm(p, -1, [94, 154], '#6a5a3a', GOB, { w: 11, shoulder: [96, 126] }) +
+    T.shield(p, 88, 156, 22, { wood: '#6a4a2a', c1: '#5a2a1e', c2: null, rim: '#6a6258', pattern: 'cross' }) +
+    T.head(p, { skin: GOB, style: 'bald', r: 26, cy: 114, ears: 'pointed' }) +
+    `<path d="M112 128 Q120 134 126 130 M130 130 Q136 134 144 128" stroke="#2a2a14" stroke-width="2" fill="none"/>`);
+
+  art('lobo', (p) => {
+    const fur = '#6a6670', dark = '#3a363e', belly = '#a8a2a8';
+    return T.shape('M120 80 C104 62 100 40 112 18 C118 30 130 26 132 16 C144 36 142 60 136 80Z', p.paint(fur, { fy: 0.6 }), 1.6) + `<path d="M114 26 Q120 22 126 26" stroke="#d8d2d8" stroke-width="5" stroke-linecap="round" fill="none"/>` +
+      T.ellipse(104, 186, 10, 16, p.paint(dark), 14) + T.ellipse(152, 186, 10, 16, p.paint(dark), -14) +
+      T.ellipse(100, 82, 10, 15, p.paint(dark), -20) + T.ellipse(156, 82, 10, 15, p.paint(dark), 20) +
+      T.ellipse(128, 128, 38, 64, p.paint(fur, { fy: 0.3 })) +
+      `<path d="M128 70 L128 180" stroke="${dark}" stroke-width="10" opacity="0.45" stroke-linecap="round"/>` +
+      `<path d="M104 104 Q116 110 112 124 M152 104 Q140 110 144 124 M102 140 Q114 146 110 160 M154 140 Q142 146 146 160" stroke="${belly}" stroke-width="2" fill="none" opacity="0.6"/>` +
+      T.ellipse(128, 190, 28, 26, p.paint(fur, { fy: 0.25 })) +
+      T.shape('M106 176 L98 154 L116 170Z M150 176 L158 154 L140 170Z', p.paint(dark)) +
+      T.shape('M114 200 Q128 236 142 200 Q128 208 114 200Z', p.paint(belly)) +
+      T.ellipse(128, 216, 5, 4, '#1a1414', 0, 1) +
+      `<path d="M114 196 L120 200 M142 196 L136 200" stroke="#ffd04a" stroke-width="3.2" stroke-linecap="round"/>`;
+  });
+
+  art('bandido', (p) =>
+    T.cape(p, '#5a4632', { sway: -10, len: 70, width: 50 }) +
+    T.feet(p, { pants: '#4a3a2a', boot: '#2a1e16', stride: 10 }) +
+    T.torso(p, '#6a5238') +
+    `<path d="M88 116 L168 146" stroke="#3a2a1e" stroke-width="7"/>` +
+    T.axe(p, [178, 166], [194, 214], { size: 0.9 }) +
+    T.arm(p, 1, [178, 164], '#6a5238', SK) +
+    T.dagger(p, [82, 166], [70, 200]) +
+    T.arm(p, -1, [82, 164], '#6a5238', SK) +
+    T.head(p, { skin: SK, style: 'hood', hair: '#4a3a2a' }) +
+    T.shape('M108 126 Q128 140 148 126 L146 136 Q128 148 110 136Z', '#7a2a22', 1.2));
+
+  art('esqueleto', (p) => {
+    const bone = '#e2d8be';
+    return T.feet(p, { pants: '#c8bea4', boot: '#a89e84', stride: 8, spread: 14 }) +
+      T.torso(p, '#5a5248', { rx: 44, ry: 26 }) +
+      [-14, -5, 5, 14].map(y => `<path d="M104 ${126 + y} Q128 ${134 + y} 152 ${126 + y}" stroke="${bone}" stroke-width="4" fill="none" stroke-linecap="round"/>`).join('') +
+      T.sword(p, [176, 164], [200, 222], { blade: '#9a8a6a', guard: '#6a5a3a' }) +
+      T.arm(p, 1, [176, 162], bone, bone, { w: 7 }) +
+      T.arm(p, -1, [90, 156], bone, bone, { w: 7 }) +
+      T.shield(p, 84, 158, 26, { wood: '#5a4232', c1: '#4a3a2a', c2: null, rim: '#7a5a3a', pattern: 'rings' }) +
+      T.head(p, { skin: bone, style: 'skull', ears: 'none' });
+  });
+
+  const ORC = '#6a8a4a';
+  art('orc', (p) =>
+    T.cape(p, '#4a3a2a', { sway: 8, len: 76, width: 60 }) +
+    T.feet(p, { pants: '#4a3a2a', boot: '#2a2018', stride: 12, spread: 20 }) +
+    T.torso(p, '#5a4a3a', { rx: 58, ry: 34 }) +
+    T.pauldrons(p, '#6a6a6a', { rx: 24, dx: 46 }) +
+    T.axe(p, [184, 170], [206, 224], { size: 1.25, blade: '#8a8e90' }) +
+    T.arm(p, 1, [184, 168], ORC, ORC, { w: 18, shoulder: [174, 124] }) +
+    T.arm(p, -1, [80, 172], ORC, ORC, { w: 18, shoulder: [82, 124] }) +
+    T.head(p, { skin: ORC, style: 'mohawk', hair: '#2a2218', r: 31 }) +
+    T.shape('M114 140 L111 128 L118 136Z M142 140 L145 128 L138 136Z', '#f0e8d0', 1.2));
+
+  art('cultista', (p) =>
+    T.cape(p, '#6a1a1e', { sway: 6, len: 104, width: 62 }) +
+    T.feet(p, { pants: '#3a1a1e', boot: '#1a1214', stride: 4 }) +
+    T.torso(p, '#7a1e22') +
+    `<path d="M128 100 L128 156 M116 122 L140 122" stroke="#d8b04a" stroke-width="3"/>` +
+    T.dagger(p, [176, 166], [190, 200], { blade: '#b0a090', guard: '#3a2a2a' }) +
+    T.arm(p, 1, [176, 164], '#7a1e22', '#c8b8a8') +
+    T.arm(p, -1, [80, 170], '#7a1e22', '#c8b8a8') +
+    T.flame(p, [76, 178], '#b04ae0', 0.95) +
+    T.head(p, { skin: '#c8b8a8', style: 'hood', hair: '#5a1418' }));
+
+  const ZB = '#9aaa82';
+  art('zumbi', (p) =>
+    T.feet(p, { pants: '#4a4a5a', boot: '#3a3430', stride: -14, spread: 14 }) +
+    T.torso(p, '#6a6a5a', { rx: 46 }) +
+    T.shape('M100 140 L108 150 L114 140 L120 152 L128 142 L134 152 L142 140 L150 150 L156 138 L156 130 L100 132Z', '#6a6a5a', 1) +
+    T.arm(p, -1, [102, 210], '#6a6a5a', ZB, { w: 13 }) +
+    T.arm(p, 1, [156, 214], '#6a6a5a', ZB, { w: 13 }) +
+    T.head(p, { skin: ZB, style: 'short', hair: '#3a3a2a', cx: 124, cy: 114 }) +
+    `<path d="M108 98 L120 106 M138 92 L130 104" stroke="#7a2a22" stroke-width="2.4"/>`);
+
+  art('kobold', (p) => {
+    const sc = '#c2602e';
+    return T.shape('M120 112 C112 80 96 54 82 30 C106 44 124 68 138 108Z', p.paint(sc, { fy: 0.6 }), 1.6) +
+      T.feet(p, { pants: '#6a4a2a', boot: '#7a3a1e', stride: 10, spread: 14 }) +
+      T.spear(p, [168, 74], [178, 226]) +
+      T.torso(p, '#7a5a3a', { rx: 38, ry: 24, cy: 126 }) +
+      T.arm(p, 1, [170, 158], sc, sc, { w: 10, shoulder: [158, 124] }) +
+      T.arm(p, -1, [96, 156], sc, sc, { w: 10, shoulder: [98, 124] }) +
+      T.shape('M98 110 L84 84 L110 100Z M158 110 L172 84 L146 100Z', p.paint('#e8dcc0')) +
+      T.ellipse(128, 110, 24, 24, p.paint(sc, { fy: 0.25 })) +
+      T.ellipse(128, 138, 13, 17, p.paint(sc, { hi: 0.4 })) +
+      `<circle cx="123" cy="150" r="1.8" fill="#2a1410"/><circle cx="133" cy="150" r="1.8" fill="#2a1410"/>` +
+      `<path d="M114 122 L120 126 M142 122 L136 126" stroke="#ffd84a" stroke-width="3" stroke-linecap="round"/>`;
+  });
+})();
+
 /* ===== 00y-token-styles.js ===== */
 /* ============================================================================
    1g. TOKENS — estilos disponíveis e seleção do estilo ativo
    ============================================================================ */
 const TOKEN_STYLES = {
   chibi: { label: 'Chibi', svgs: CHIBI_SVGS },
-  medalhao: { label: 'Medalhão', svgs: MEDALLION_SVGS }
+  topo: { label: 'Vista de cima', svgs: TOPDOWN_SVGS }
 };
+/** Estilos que deixaram de existir e o estilo que os substitui (preferências salvas). */
+const RETIRED_TOKEN_STYLES = { medalhao: 'topo' };
 const DEFAULT_TOKEN_STYLE = 'chibi';
 
-/** Personagens vilões (define a moldura do medalhão e o selo na documentação). */
+/** Personagens vilões (moldura de imagem importada e selo na documentação). */
 const VILLAIN_SCULPTS = new Set(['goblin', 'lobo', 'bandido', 'esqueleto', 'orc', 'cultista', 'zumbi', 'kobold']);
-
-/**
- * Personagens que só existem em chibi ganham um medalhão automático: o chibi recortado
- * em círculo dentro do aro (ouro para heróis, ferro para vilões).
- */
-function chibiAsMedallion(key) {
-  return () => buildCustomTokenSVG(
-    'data:image/svg+xml;utf8,' + encodeURIComponent(CHIBI_SVGS[key]()),
-    { faction: VILLAIN_SCULPTS.has(key) ? 'villain' : 'hero', framed: true, zoom: 1.4, focusY: 118 }
-  );
-}
-for (const key of Object.keys(CHIBI_SVGS)) {
-  if (!MEDALLION_SVGS[key]) MEDALLION_SVGS[key] = chibiAsMedallion(key);
-}
 
 /** Mapa ativo usado por todo o app: key de personagem -> função que devolve o SVG. */
 const SCULPT_SVGS = {};
 let activeTokenStyle = DEFAULT_TOKEN_STYLE;
 
 function setTokenStyle(style) {
-  const key = TOKEN_STYLES[style] ? style : DEFAULT_TOKEN_STYLE;
+  const wanted = RETIRED_TOKEN_STYLES[style] || style;
+  const key = TOKEN_STYLES[wanted] ? wanted : DEFAULT_TOKEN_STYLE;
   activeTokenStyle = key;
   for (const k of Object.keys(SCULPT_SVGS)) delete SCULPT_SVGS[k];
   Object.assign(SCULPT_SVGS, TOKEN_STYLES[key].svgs);
@@ -6924,11 +6952,11 @@ function toggleTheme() {
   setTheme(document.body.classList.contains('theme-parchment') ? 'modern' : 'parchment');
 }
 
-/** Troca o estilo dos tokens (chibi/medalhão) e redesenha tudo. */
+/** Troca o estilo dos tokens (chibi/vista de cima) e redesenha tudo. */
 function chooseTokenStyle(style) {
   setTokenStyle(style);
   document.getElementById('styleChibi').classList.toggle('active', activeTokenStyle === 'chibi');
-  document.getElementById('styleMedalhao').classList.toggle('active', activeTokenStyle === 'medalhao');
+  document.getElementById('styleTopo').classList.toggle('active', activeTokenStyle === 'topo');
   savePrefs({ tokenStyle: activeTokenStyle });
   renderPieceGallery();
   syncInspectorUI();
@@ -6939,7 +6967,7 @@ function chooseTokenStyle(style) {
 function applyPrefs() {
   const prefs = readPrefs();
   setTheme(prefs.theme || 'parchment');
-  if (prefs.tokenStyle && TOKEN_STYLES[prefs.tokenStyle]) chooseTokenStyle(prefs.tokenStyle);
+  if (prefs.tokenStyle && (TOKEN_STYLES[prefs.tokenStyle] || RETIRED_TOKEN_STYLES[prefs.tokenStyle])) chooseTokenStyle(prefs.tokenStyle);
 }
 
 /* ===== 14-unit-tip.js ===== */

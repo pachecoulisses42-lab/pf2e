@@ -31,7 +31,7 @@ const html = read('src/index.html')
 mkdirSync(join(root, 'dist'), { recursive: true });
 writeFileSync(join(root, 'dist/brigandine_pf2e_tatico_v5.html'), html);
 writeFileSync(join(root, 'dist/brigandine-ds.css'), css);
-// --- página do design system (renderiza os 12 tokens em tempo de build) ---
+// --- página do design system (renderiza os tokens dos dois estilos em tempo de build) ---
 const tokenCtx = vm.createContext({});
 for (const f of jsFiles.filter((n) => /^00[a-z]/.test(n))) vm.runInContext(read('src/js', f), tokenCtx, { filename: f });
 const NAMES = {
@@ -44,11 +44,11 @@ const gallery = (style) => vm.runInContext(`Object.keys(TOKEN_STYLES['${style}']
   .map(([k, svg]) => `<div class="tok">${svg}<b>${NAMES[k] ?? k}</b><span>${vm.runInContext(`VILLAIN_SCULPTS.has('${k}')`, tokenCtx) ? 'vilão' : 'herói'}</span></div>`)
   .join('');
 const tokens = gallery('chibi');
-const tokensMedallion = gallery('medalhao');
+const tokensTopdown = gallery('topo');
 const docHtml = read('docs/design-system.src.html')
   .replace('/*@css*/', () => css)
   .replace('<!--@tokens-->', () => tokens)
-  .replace('<!--@tokens-medallion-->', () => tokensMedallion)
+  .replace('<!--@tokens-topdown-->', () => tokensTopdown)
   .replace('<!--@icons-->', () => icons)
   .replace('/*@icons-js*/', '');
 writeFileSync(join(root, 'dist/design-system.html'), docHtml);

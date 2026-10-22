@@ -17,8 +17,26 @@ test('todo token chibi tem uma peça (modelo) e toda peça aponta para um token 
   for (const t of templates) assert.ok(chibiKeys.includes(t.sculpt), `modelo ${t.id} usa token inexistente "${t.sculpt}"`);
 });
 
-test('todo token existe também em medalhão (automático quando não há arte própria)', () => {
-  for (const key of chibiKeys) assert.equal(typeof T.MEDALLION_SVGS[key], 'function', key);
+test('todo token existe também na vista de cima, e vice-versa', () => {
+  for (const key of chibiKeys) assert.equal(typeof T.TOPDOWN_SVGS[key], 'function', key);
+  assert.deepEqual(Object.keys(T.TOPDOWN_SVGS).sort(), [...chibiKeys].sort());
+});
+
+test('o estilo medalhão aposentado cai na vista de cima', () => {
+  assert.equal(Object.keys(T.TOKEN_STYLES).sort().join(), 'chibi,topo');
+  T.setTokenStyle('medalhao');
+  assert.equal(T.activeStyle(), 'topo');
+  T.setTokenStyle('chibi');
+});
+
+test('os tokens vistos de cima renderizam SVG válido e com ids próprios', () => {
+  for (const key of chibiKeys) {
+    const svg = T.TOPDOWN_SVGS[key]();
+    assert.match(svg, /^<svg viewBox="0 0 256 256"/, key);
+    assert.ok(svg.includes(`t_${key}`), `${key}: id t_${key} ausente`);
+    assert.ok(!/<(image|text)\b/.test(svg), `${key}: não use <image> nem <text>`);
+    for (const m of svg.matchAll(/url\(#([^)]+)\)/g)) assert.ok(svg.includes(`id="${m[1]}"`), `${key}: gradiente/filtro ${m[1]} sem definição`);
+  }
 });
 
 test('os tokens renderizam SVG válido e com ids próprios', () => {

@@ -1,8 +1,8 @@
 /* ============================================================================
-   1. TOKENS — KIT DE ILUSTRAÇÃO SVG (medalhões de retrato 256×256)
-   Cada token é um medalhão: aro metálico (herói = ouro, vilão = ferro),
-   campo pintado com raios e vinheta, busto do personagem recortado no campo e
-   armas/adereços que ultrapassam o aro para dar profundidade.
+   1. TOKENS — KIT DE ILUSTRAÇÃO SVG (256×256)
+   Utilitários de cor e gradiente (mix, lighten, darken, lin, rad) usados pelo kit
+   da vista de cima (00i). As peças de retrato (face, pauldron, frame) vêm do
+   antigo estilo medalhão e seguem disponíveis para artes novas.
    ============================================================================ */
 const TK = (() => {
   const attr = (a) => (a === undefined ? '' : ` stop-opacity="${a}"`);
@@ -247,5 +247,3 @@ const TK = (() => {
   return { lin, rad, mix, lighten, darken, cloth, skinDefs, face, pauldron, frame, gl, TORSO };
 })();
 
-/** Estilo "medalhão" (retrato em aro). O estilo ativo é escolhido em 00y-token-styles.js. */
-const MEDALLION_SVGS = {};

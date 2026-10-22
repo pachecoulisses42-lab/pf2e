@@ -123,7 +123,8 @@ silhueta legível, nenhuma função fora do kit.
 **Depois de receber o código**, siga o passo a passo da seção "Como adicionar um token novo" do
 [guia](GUIA-LAYOUT-E-TOKENS.md#8-como-adicionar-um-token-novo). Em resumo: cole a função em
 `src/js/00e-chibi-heroes.js` (ou `00f-chibi-villains.js`), registre a chave nos dois `<select>`
-de `src/index.html`, crie a peça (modelo) equipada em `src/js/03-templates.js`, marque o vilão em `VILLAIN_SCULPTS` e rode `npm run check`.
+de `src/index.html`, crie a peça (modelo) equipada em `src/js/03-templates.js`, marque o vilão em `VILLAIN_SCULPTS`, desenhe a versão
+vista de cima em `src/js/00j-topdown-tokens.js` (guia, seção 7.5) e rode `npm run check`.
 
 ---
 

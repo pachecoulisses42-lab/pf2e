@@ -59,11 +59,11 @@ brigandine/
       layout.css               Casca do app, painéis, HUD, gaveta de registro, celular
       theme-parchment.css      Tema Pergaminho (sobrepõe tudo em body.theme-parchment)
     js/                        Concatenados em ordem alfabética
-      00a-token-kit.js         Kit do estilo "medalhão"
-      00b/00c-tokens-*.js      12 tokens no estilo medalhão
+      00a-token-kit.js         Utilitários de cor e gradiente (TK.mix, lighten, darken)
       00d-chibi-kit.js         Kit do estilo "chibi" (o padrão)
-      00e-chibi-heroes.js      9 heróis chibi
-      00f-chibi-villains.js    3 vilões chibi
+      00e…00h-chibi-*.js       22 personagens chibi (heróis e vilões)
+      00i-topdown-kit.js       Kit do estilo "vista de cima" (TDK)
+      00j-topdown-tokens.js    22 personagens vistos de cima
       00y-token-styles.js      Estilos de token e seleção do ativo
       00z-token-loader.js      Cache de imagens, tokens com imagem do usuário
       01…14-*.js               Regras, ficha, estado, tabuleiro, combate, painéis, tooltip
@@ -300,10 +300,11 @@ Um **token** é a figura da peça no tabuleiro (≈ 55 px) e nos painéis (46–
 trocáveis em *Peças → Estilo dos tokens* (escolha guardada no navegador):
 
 - **Chibi (padrão):** personagem de corpo inteiro sobre base oval.
-- **Medalhão:** retrato em aro metálico (ouro para heróis, ferro para vilões).
+- **Vista de cima:** personagem visto do alto, virado para o sul, com volumes pintados, grão de tinta e
+  sombra projetada macia, sem moldura (substitui o antigo estilo medalhão; quem tinha medalhão salvo passa
+  para a vista de cima automaticamente).
 
-Os 22 personagens existem nos dois estilos, com as mesmas chaves (os novos só têm arte chibi; no estilo
-medalhão o app recorta o chibi dentro do aro automaticamente):
+Os 22 personagens existem nos dois estilos, com as mesmas chaves:
 
 | Facção | Chaves |
 | --- | --- |
@@ -405,12 +406,24 @@ cabelo, chapéu, elmo, barba.
 | Rogue | `narrow` | `none` | `browTilt: 1` |
 | Goblin | `glare` | `grin` | `browTilt: 1`, orelhas `big` |
 
-### 7.5 Estilo medalhão (resumo)
+### 7.5 Estilo vista de cima ("Zênite")
 
-Retrato de busto dentro de um aro metálico, com contorno de nanquim, sombra dura (cel shading),
-luz de recorte na cor do personagem, retícula no fundo e brilhos. Vem de `00a-token-kit.js`
-(`TK.frame`, `TK.face`, filtros `comic_`/`cel_`). Ele continua disponível, mas **novos tokens devem
-ser feitos em chibi**: é o estilo padrão.
+Figura vista do alto, frente para o sul (para baixo da tela), luz sempre de cima-esquerda, sombra
+projetada para baixo-direita e nenhuma moldura. O kit `TDK` (`src/js/00i-topdown-kit.js`) faz tudo por
+camadas, de trás para a frente:
+
+| Camada | Função |
+| --- | --- |
+| Capa que escorre para o norte | `TDK.cape(p, cor, { len, sway, width })` |
+| Pernas e botas aparecendo ao sul | `TDK.feet(p, { pants, boot, stride, spread })` |
+| Ombros e costas | `TDK.torso(p, cor)`, `TDK.pauldrons`, `TDK.fur` |
+| Braços (lado −1 esquerdo, +1 direito) | `TDK.arm(p, lado, [mãoX, mãoY], manga, pele)` |
+| Armas | `sword, axe, spear, staff, bow, dagger, mace, shield, kite, flame, orb, flask, book, lute, quiver, pack` |
+| Cabeça (por último) | `TDK.head(p, { skin, style, hair, helm, hat, plume, beard, ears })`, estilos `short, long, bald, hood, helmet, horned, wide-hat, pointed-hat, skull, bun, mohawk` |
+
+Geometria (viewBox 256): cabeça em (128, 112) raio 29; ombros em x 86/170, y 124; mãos em geral entre
+y 150 e 190. Cada token é `art('<chave>', (p) => ...)` em `00j-topdown-tokens.js`; `p.paint(cor)` devolve
+o gradiente pintado da cor. Prévia completa: `docs/token-preview/zenite-tokens-preview.png`.
 
 ---
 
@@ -436,8 +449,8 @@ Exemplo completo pronto para colar em `docs/exemplo-token-druida.js`. Para gerar
    (hoje 22); atualize o número. `tests/templates.test.mjs` confere sozinho que o token tem peça, que a facção
    bate, que armas, magias e itens são válidos e que o seletor da interface lista a chave. Depois rode `npm run check` e os testes de navegador.
 6. **Confira visualmente** no `dist/design-system.html` e no tabuleiro (55 px), nos dois temas.
-7. **Estilo medalhão (opcional):** se não houver versão medalhão da chave, o app recorta o chibi dentro do aro
-   automaticamente. Para ter uma arte de retrato própria, acrescente `MEDALLION_SVGS.<chave>` em `00b`/`00c`.
+7. **Vista de cima (obrigatório):** desenhe também `art('<chave>', (p) => ...)` em `src/js/00j-topdown-tokens.js`
+   com o kit `TDK` (seção 7.5). O teste exige que os dois estilos tenham exatamente as mesmas chaves.
 
 **Checklist de qualidade do token**
 - [ ] A mão segura o objeto pelo lugar certo (arco pelo punho, cajado pelo cabo).

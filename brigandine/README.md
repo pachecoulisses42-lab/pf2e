@@ -40,17 +40,17 @@ src/
     layout.css            Casca do app, painéis, HUD do tabuleiro, gaveta de registro
     theme-parchment.css   Tema Pergaminho (sobrepõe tokens e componentes em body.theme-parchment)
   js/                     Concatenados em ordem alfabética
-    00a-token-kit.js      Kit de ilustração dos tokens (filtros de quadrinhos, rosto, pauldron, moldura)
+    00a-token-kit.js      Utilitários de cor e gradiente dos tokens
     00d-chibi-kit.js      Kit chibi (cabeça, tronco, membros, moldura com base oval)
-    00e/00f-chibi-*.js    12 personagens chibi (heróis e vilões)
-    00y-token-styles.js   Estilos de token (chibi, medalhão) e seleção do ativo
-    00b-tokens-heroes.js  9 heróis (medalhão)
-    00c-tokens-villains.js 3 vilões
+    00e…00h-chibi-*.js    22 personagens chibi (heróis e vilões)
+    00i-topdown-kit.js    Kit da vista de cima (corpo, cabeça, armas, grão, sombra)
+    00j-topdown-tokens.js 22 personagens vistos de cima
+    00y-token-styles.js   Estilos de token (chibi, vista de cima) e seleção do ativo
     00z-token-loader.js   Cache de imagens, token com imagem do usuário, pré-visualização (ids de SVG únicos)
     01-catalog.js         Catálogo de magias e itens
     01b-rules.js          Regras puras: dados, tipos de dano, runas, pacote de dano, defesas
     02-sheet-engine.js    Cálculo da ficha PF2e (CA, testes, ataque, CD, escudo)
-    03-templates.js       12 modelos de peça
+    03-templates.js       22 modelos de peça
     04-state.js           Estado global
     05-app-mode.js        Inicialização e modos Montagem/Combate
     06-grid-and-ranges.js Geometria hex/quadrada, movimento, alcance, áreas
@@ -82,7 +82,7 @@ dist/                     Saída versionada: app, CSS do design system, document
 - **Tema Pergaminho** (novo, padrão): interface de RPG com papel envelhecido, contorno marrom grosso, plaquinhas de madeira com pregos, botões verde/vermelho, cartas de arma/magia/item com faixa colorida e selo de custo, lista de iniciativa em madeira, dica escura sobre o alvo e mapa de pergaminho. O tema Moderno continua disponível em Arquivo → Tema.
 - **Importar vários tokens de uma vez**: Peças → *Importar imagens como modelos* cria um modelo por imagem (nome do arquivo), herdando a ficha do modelo selecionado.
 - **22 peças equipadas por classe** (novo): além dos 12 originais, entram Druida, Monge, Alquimista, Bruxa e Espadachim (heróis) e Esqueleto, Orc, Cultista, Zumbi e Kobold (vilões). Cada peça traz ficha, armas com tipo de dano (e runas quando cabe), magias, itens e escudo coerentes com a classe; mortos-vivos têm imunidades, resistências e fraqueza a vital.
-- **Tokens** (novo): 22 personagens chibi de corpo inteiro (estilo padrão: cabeça grande, contorno marrom, cores chapadas, base oval na cor da classe); o estilo anterior em medalhão continua em Peças → Estilo dos tokens. O medalhão tem acabamento de quadrinhos — contorno de nanquim, sombra em cel shading, luz de recorte na cor do personagem, retícula, brilhos de metal e expressões próprias (ver `dist/design-system.html`).
+- **Tokens** (novo): 22 personagens chibi de corpo inteiro (estilo padrão: cabeça grande, contorno marrom, cores chapadas, base oval na cor da classe); em Peças → Estilo dos tokens há a **vista de cima**, que substituiu o medalhão: personagens vistos do alto, com volumes pintados, grão de tinta e sombra projetada, sem moldura, cada um equipado conforme a classe (prévia em `docs/token-preview/`).
 - Salvar no navegador, exportar e importar JSON. Arquivos antigos (v4) são aceitos; armas e magias são normalizadas ao importar.
 
 ## Decisões

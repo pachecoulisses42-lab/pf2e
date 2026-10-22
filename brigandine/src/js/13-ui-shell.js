@@ -91,11 +91,11 @@ function toggleTheme() {
   setTheme(document.body.classList.contains('theme-parchment') ? 'modern' : 'parchment');
 }
 
-/** Troca o estilo dos tokens (chibi/medalhão) e redesenha tudo. */
+/** Troca o estilo dos tokens (chibi/vista de cima) e redesenha tudo. */
 function chooseTokenStyle(style) {
   setTokenStyle(style);
   document.getElementById('styleChibi').classList.toggle('active', activeTokenStyle === 'chibi');
-  document.getElementById('styleMedalhao').classList.toggle('active', activeTokenStyle === 'medalhao');
+  document.getElementById('styleTopo').classList.toggle('active', activeTokenStyle === 'topo');
   savePrefs({ tokenStyle: activeTokenStyle });
   renderPieceGallery();
   syncInspectorUI();
@@ -106,5 +106,5 @@ function chooseTokenStyle(style) {
 function applyPrefs() {
   const prefs = readPrefs();
   setTheme(prefs.theme || 'parchment');
-  if (prefs.tokenStyle && TOKEN_STYLES[prefs.tokenStyle]) chooseTokenStyle(prefs.tokenStyle);
+  if (prefs.tokenStyle && (TOKEN_STYLES[prefs.tokenStyle] || RETIRED_TOKEN_STYLES[prefs.tokenStyle])) chooseTokenStyle(prefs.tokenStyle);
 }
