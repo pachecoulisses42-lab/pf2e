@@ -37,7 +37,7 @@
 
   <div class="header-actions">
     <details class="menu" id="fileMenu">
-      <summary class="btn"><svg class="icon"><use href="#i-folder"/></svg><span>Arquivo</span><svg class="icon"><use href="#i-chevron"/></svg></summary>
+      <summary class="btn" aria-label="Arquivo"><svg class="icon"><use href="#i-folder"/></svg><span class="label-long">Arquivo</span><svg class="icon label-long"><use href="#i-chevron"/></svg></summary>
       <div class="menu-pop">
         <button class="menu-item" onclick="saveStateToLocal(); closeMenus()"><svg class="icon"><use href="#i-save"/></svg>Salvar no navegador</button>
         <button class="menu-item" onclick="loadStateFromLocal(); closeMenus()"><svg class="icon"><use href="#i-folder"/></svg>Carregar do navegador</button>
@@ -45,7 +45,6 @@
         <label class="menu-item"><svg class="icon"><use href="#i-upload"/></svg>Importar JSON<input type="file" accept=".json" class="sr-only" onchange="importJSON(event); closeMenus()"></label>
       </div>
     </details>
-    <button class="btn btn-ghost btn-icon panel-toggle" onclick="togglePanel('right')" aria-label="Painel direito"><svg class="icon"><use href="#i-panel" style="transform:scaleX(-1);transform-origin:center"/></svg></button>
   </div>
 </header>
 
@@ -233,6 +232,16 @@
 
   <!-- ======================== BARRA LATERAL DIREITA ======================== -->
   <aside class="sidebar-right" id="sidebarRight">
+
+    <!-- Gaveta inferior (celular e tablet em pé): sempre visível, abre ao tocar -->
+    <div class="sheet-bar">
+      <button class="sheet-handle" id="sheetHandle" onclick="toggleSheet()" aria-expanded="false" aria-controls="sidebarRight">
+        <span class="sheet-grip" aria-hidden="true"></span>
+        <span class="sheet-label" id="sheetHandleLabel">Editar peça</span>
+        <svg class="icon chev"><use href="#i-chevron-up"/></svg>
+      </button>
+      <button class="btn btn-primary btn-sm sheet-endturn" onclick="nextTurn()"><svg class="icon fill"><use href="#i-play"/></svg>Encerrar turno</button>
+    </div>
 
     <!-- COMBATE -->
     <div id="combatRightPanel" class="hidden">

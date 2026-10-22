@@ -16,6 +16,8 @@ function selectCombatMainMenu(menuKey) {
 
   syncCombatUI();
   requestRender();
+  // celular: Mover mantém o tabuleiro livre; os outros comandos abrem a folha com as opções
+  if (isCompactLayout()) toggleSheet(menuKey !== 'move');
 }
 
 function handleCombatBoardClick(cell, clickedUnit) {

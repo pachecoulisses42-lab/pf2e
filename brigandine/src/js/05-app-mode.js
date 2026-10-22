@@ -49,7 +49,7 @@ function setAppMode(mode) {
   } else {
     hudMode.textContent = 'Combate';
     headerStatus.textContent = 'Combate tático';
-    hudInstruction.textContent = 'Escolha um comando à direita: Ação, Mover, Magias, Itens ou Ficha.';
+    hudInstruction.textContent = 'Escolha um comando: Ação, Mover, Magias, Itens ou Ficha.';
 
     const alive = STATE.units.filter(u => u.hp > 0);
     if (!STATE.combat.activeUnitId && alive.length > 0) {
@@ -59,6 +59,8 @@ function setAppMode(mode) {
     STATE.selectedUnitId = STATE.combat.activeUnitId;
     selectCombatMainMenu(STATE.combat.mainMenu);
   }
+  updateSheetLabel();
+  if (isCompactLayout()) toggleSheet(false);
   requestRender();
 }
 

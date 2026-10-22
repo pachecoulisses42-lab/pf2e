@@ -11,15 +11,45 @@ function toggleLogDock() {
   dock.querySelector('.log-bar').setAttribute('aria-expanded', String(open));
 }
 
-/** Em telas estreitas os painéis laterais viram gavetas. */
-function togglePanel(side) {
-  const left = document.getElementById('sidebarLeft');
-  const right = document.getElementById('sidebarRight');
-  const target = side === 'left' ? left : right;
-  const other = side === 'left' ? right : left;
-  other.classList.remove('open');
-  target.classList.toggle('open');
+/** Telas estreitas: painel esquerdo vira gaveta lateral e o direito vira folha inferior. */
+function isCompactLayout() {
+  return window.matchMedia('(max-width: 960px)').matches;
 }
+
+function togglePanel(side) {
+  if (side === 'right') { toggleSheet(); return; }
+  document.getElementById('sidebarRight').classList.remove('open');
+  document.getElementById('sidebarLeft').classList.toggle('open');
+}
+
+/** Rótulo da alça da folha inferior conforme o modo e a peça. */
+function updateSheetLabel() {
+  const label = document.getElementById('sheetHandleLabel');
+  if (!label) return;
+  const u = STATE.mode === 'combat'
+    ? STATE.units.find(x => x.id === STATE.combat.activeUnitId)
+    : STATE.units.find(x => x.id === STATE.selectedUnitId);
+  if (STATE.mode === 'combat') label.textContent = u ? `Comandos · ${u.name}` : 'Comandos';
+  else label.textContent = u ? `Editar · ${u.name}` : 'Editar peça (toque numa peça)';
+}
+
+/** Abre/fecha a folha inferior e reenquadra o tabuleiro no espaço que sobrou. */
+function toggleSheet(force) {
+  const sheet = document.getElementById('sidebarRight');
+  const open = force === undefined ? !sheet.classList.contains('open') : !!force;
+  document.getElementById('sidebarLeft').classList.remove('open');
+  sheet.classList.toggle('open', open);
+  document.getElementById('sheetHandle').setAttribute('aria-expanded', String(open));
+  refitBoard();
+}
+
+/** Recalcula o canvas e reenquadra o tabuleiro (usado quando o espaço do palco muda). */
+function refitBoard() {
+  resizeCanvas();
+  if (isCompactLayout()) resetCamera();
+}
+
+window.addEventListener('resize', () => { if (isCompactLayout()) updateSheetLabel(); });
 
 document.addEventListener('click', (e) => {
   const menu = document.getElementById('fileMenu');
@@ -30,6 +60,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeMenus();
     document.getElementById('sidebarLeft').classList.remove('open');
-    document.getElementById('sidebarRight').classList.remove('open');
+    toggleSheet(false);
   }
 });

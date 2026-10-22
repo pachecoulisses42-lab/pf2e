@@ -1,6 +1,18 @@
 /* ============================================================================
    12. CANVAS POINTER INTERACTION
    ============================================================================ */
+/**
+ * Gestos de toque: toque simples age ao soltar (não ao pousar o dedo), arrastar com um dedo
+ * move a câmera e o pinça com dois dedos dá zoom. Mouse mantém o comportamento imediato.
+ */
+const touchState = { pointers: new Map(), pending: null, pinchDist: 0 };
+const TOUCH_MOVE_THRESHOLD = 10;
+
+function touchPinchDistance() {
+  const [a, b] = Array.from(touchState.pointers.values());
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
 function initCanvasEvents() {
   canvas.addEventListener('pointerdown', onCanvasPointerDown);
   canvas.addEventListener('pointermove', onCanvasPointerMove);
@@ -21,6 +33,7 @@ function initCanvasEvents() {
     applyTokenFile(unit, file);
   });
   window.addEventListener('pointerup', onCanvasPointerUp);
+  window.addEventListener('pointercancel', onCanvasPointerUp);
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     zoomBoard(e.deltaY < 0 ? 1.1 : 0.91);
@@ -33,6 +46,18 @@ function getCanvasRelativeCoords(e) {
 }
 
 function onCanvasPointerDown(e) {
+  const isTouch = e.pointerType === 'touch';
+  if (isTouch) {
+    touchState.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touchState.pointers.size === 2) {
+      touchState.pending = null;
+      STATE.interaction.isPanning = false;
+      STATE.interaction.draggingUnitId = null;
+      STATE.interaction.paintingTerrain = false;
+      touchState.pinchDist = touchPinchDistance();
+      return;
+    }
+  }
   const pt = getCanvasRelativeCoords(e);
   const cell = pixelToCell(pt.x, pt.y);
 
@@ -51,6 +76,16 @@ function onCanvasPointerDown(e) {
 
   const clickedUnit = STATE.units.find(u => u.col === cell.col && u.row === cell.row && u.hp > 0) ||
                       STATE.units.find(u => u.col === cell.col && u.row === cell.row);
+
+  // toque: adia a ação até soltar o dedo, para permitir arrastar o tabuleiro
+  const deferrable = isTouch && (STATE.mode === 'combat' || (STATE.setupTool !== 'terrain' && !clickedUnit));
+  if (deferrable) {
+    touchState.pending = {
+      pointerId: e.pointerId, cell, clickedUnit, mode: STATE.mode,
+      startPt: pt, camStart: { x: STATE.camera.x, y: STATE.camera.y }
+    };
+    return;
+  }
 
   if (STATE.mode === 'setup') {
     if (STATE.setupTool === 'terrain') {
@@ -73,6 +108,22 @@ function onCanvasPointerDown(e) {
 
 function onCanvasPointerMove(e) {
   const pt = getCanvasRelativeCoords(e);
+  if (e.pointerType === 'touch' && touchState.pointers.has(e.pointerId)) {
+    touchState.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touchState.pointers.size === 2) {
+      const dist = touchPinchDistance();
+      if (touchState.pinchDist > 0) zoomBoard(dist / touchState.pinchDist);
+      touchState.pinchDist = dist;
+      return;
+    }
+    const pend = touchState.pending;
+    if (pend && pend.pointerId === e.pointerId) {
+      if (Math.hypot(pt.x - pend.startPt.x, pt.y - pend.startPt.y) < TOUCH_MOVE_THRESHOLD) return;
+      STATE.interaction.isPanning = true;
+      STATE.interaction.panStart = { x: pend.startPt.x - pend.camStart.x, y: pend.startPt.y - pend.camStart.y };
+      touchState.pending = null;
+    }
+  }
   if (STATE.interaction.isPanning) {
     hideUnitTip();
     STATE.camera.x = pt.x - STATE.interaction.panStart.x;
@@ -118,7 +169,19 @@ function onCanvasPointerMove(e) {
   requestRender();
 }
 
-function onCanvasPointerUp() {
+function onCanvasPointerUp(e) {
+  if (e && e.pointerType === 'touch') {
+    touchState.pointers.delete(e.pointerId);
+    if (touchState.pointers.size < 2) touchState.pinchDist = 0;
+    const pend = touchState.pending;
+    if (pend && pend.pointerId === e.pointerId) {
+      touchState.pending = null;
+      if (e.type === 'pointerup') {
+        if (pend.mode === 'combat') handleCombatBoardClick(pend.cell, pend.clickedUnit);
+        else if (STATE.mode === 'setup') spawnUnitFromTemplate(STATE.selectedTemplateId, pend.cell.col, pend.cell.row);
+      }
+    }
+  }
   STATE.interaction.isPanning = false;
   STATE.interaction.draggingUnitId = null;
   STATE.interaction.paintingTerrain = false;

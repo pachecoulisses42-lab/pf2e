@@ -607,18 +607,64 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .defense-bar .defense-text { display: flex; flex-direction: column; gap: 1px; font-size: var(--text-xs); color: var(--text-2); }
 .defense-bar .defense-text strong { color: var(--ward); font-size: var(--text-sm); }
 
-/* ---------- Responsivo: painéis viram gavetas ---------- */
+/* ---------- Gaveta inferior (só aparece em telas estreitas) ---------- */
+.sheet-bar, .mobile-only { display: none; }
+
+/* ---------- Responsivo: tablet em pé e celular ---------- */
 @media (max-width: 960px) {
+  body { height: 100dvh; }
   .panel-toggle { display: inline-flex; }
-  .brand-title span { display: none; }
-  .sidebar-left, .sidebar-right { position: absolute; top: 0; bottom: 0; width: min(92vw, 380px); transform: translateX(-102%); transition: transform var(--dur) var(--ease); box-shadow: var(--shadow-pop); }
-  .sidebar-right { right: 0; transform: translateX(102%); }
-  .sidebar-left.open { transform: none; }
-  .sidebar-right.open { transform: none; }
-  .mode-btn span.label-long { display: none; }
-  .mode-btn { padding: 0 var(--s-3); }
-  .app-header { grid-template-columns: auto 1fr auto; }
+  .brand-title { display: none; }
+  .brand { gap: var(--s-2); }
+  .app-header { grid-template-columns: auto 1fr auto; padding: 0 var(--s-2); gap: var(--s-2); }
   .mode-switch { justify-self: center; }
+  .mode-btn { padding: 0 var(--s-3); }
+  .menu > summary .label-long { display: none; }
+  .menu > summary { min-width: 34px; padding: 0; }
+  .mobile-only { display: inline-flex; }
+
+  /* esquerda continua gaveta; a direita vira folha inferior */
+  .workspace { flex-direction: column; overflow: hidden; }
+  .sidebar-left { position: absolute; top: 0; bottom: 0; left: 0; z-index: 20; width: min(88vw, 360px); transform: translateX(-102%); transition: transform var(--dur) var(--ease); box-shadow: var(--shadow-pop); }
+  .sidebar-left.open { transform: none; }
+  .canvas-stage { order: 1; flex: 1 1 0; min-height: 0; }
+  .sidebar-right {
+    order: 2; flex: none; width: 100%; z-index: 12; overflow: hidden;
+    border-radius: var(--r-lg) var(--r-lg) 0 0; box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.45), 0 -1px 0 var(--line-strong);
+  }
+  .sidebar-right.open { height: 64dvh; overflow-y: auto; }
+  .sheet-bar { display: flex; align-items: center; gap: var(--s-2); position: sticky; top: 0; z-index: 2; background: var(--ink-900); padding-right: var(--s-3); }
+  .sheet-handle { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); min-height: 46px; padding: 8px var(--s-4); font-weight: 700; font-size: var(--text-sm); text-align: left; }
+  body:not(.mode-combat) .sheet-endturn { display: none; }
+  .sheet-grip { position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--ink-600); }
+  .sheet-label { margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sheet-handle .chev { margin-top: 6px; transition: transform var(--dur) var(--ease); color: var(--text-3); }
+  .sidebar-right.open .sheet-handle .chev { transform: rotate(180deg); }
+
+  /* recolhida: modo combate mostra a peça e os 5 comandos; montagem mostra só a alça */
+  .sidebar-right:not(.open) #setupRightPanel { display: none !important; }
+  .sidebar-right:not(.open) .subpanel { display: none; }
+  .sidebar-right:not(.open) .unit-card .vitals, .sidebar-right:not(.open) #combatUnitDefenses { display: none; }
+  .unit-card { gap: var(--s-2); padding-top: var(--s-2); padding-bottom: var(--s-2); }
+  .token-well { width: 48px; height: 48px; }
+  .unit-name { font-size: var(--text-md); }
+  .unit-sub, .unit-card .hp-bar-outer, .subpanel > .hint { display: none; }
+  .unit-card .vitals { gap: 0; }
+  .unit-card .vitals-hp { font-size: var(--text-md); }
+  .action-diamonds { gap: 4px; }
+  .reaction-pip { padding: 0 var(--s-2); }
+  .panel-section { padding: var(--s-3) var(--s-4); }
+  .action-pip { width: 34px; height: 34px; }
+  .reaction-pip { height: 34px; }
+  .cmd { padding: 8px 2px 6px; min-height: 52px; }
+
+  /* tabuleiro: HUD enxuto, sem dica (a gaveta já guia) */
+  .hint-pill { display: none; }
+  .hud-readout #hudHoverCell, .hud-readout #hudDistanceMeasure, .hud-readout .hud-sep { display: none; }
+  .canvas-top-hud { top: var(--s-2); left: var(--s-2); right: var(--s-2); }
+  .canvas-bottom-hud { left: var(--s-2); right: var(--s-2); bottom: var(--s-2); }
+  .log-dock { width: 100%; }
+  .unit-tip { display: none; }
 }
 
 /* ---------- Tooltip do alvo (defesas + prévia do ataque) ---------- */
@@ -710,7 +756,7 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 
   <div class="header-actions">
     <details class="menu" id="fileMenu">
-      <summary class="btn"><svg class="icon"><use href="#i-folder"/></svg><span>Arquivo</span><svg class="icon"><use href="#i-chevron"/></svg></summary>
+      <summary class="btn" aria-label="Arquivo"><svg class="icon"><use href="#i-folder"/></svg><span class="label-long">Arquivo</span><svg class="icon label-long"><use href="#i-chevron"/></svg></summary>
       <div class="menu-pop">
         <button class="menu-item" onclick="saveStateToLocal(); closeMenus()"><svg class="icon"><use href="#i-save"/></svg>Salvar no navegador</button>
         <button class="menu-item" onclick="loadStateFromLocal(); closeMenus()"><svg class="icon"><use href="#i-folder"/></svg>Carregar do navegador</button>
@@ -718,7 +764,6 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
         <label class="menu-item"><svg class="icon"><use href="#i-upload"/></svg>Importar JSON<input type="file" accept=".json" class="sr-only" onchange="importJSON(event); closeMenus()"></label>
       </div>
     </details>
-    <button class="btn btn-ghost btn-icon panel-toggle" onclick="togglePanel('right')" aria-label="Painel direito"><svg class="icon"><use href="#i-panel" style="transform:scaleX(-1);transform-origin:center"/></svg></button>
   </div>
 </header>
 
@@ -906,6 +951,16 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 
   <!-- ======================== BARRA LATERAL DIREITA ======================== -->
   <aside class="sidebar-right" id="sidebarRight">
+
+    <!-- Gaveta inferior (celular e tablet em pé): sempre visível, abre ao tocar -->
+    <div class="sheet-bar">
+      <button class="sheet-handle" id="sheetHandle" onclick="toggleSheet()" aria-expanded="false" aria-controls="sidebarRight">
+        <span class="sheet-grip" aria-hidden="true"></span>
+        <span class="sheet-label" id="sheetHandleLabel">Editar peça</span>
+        <svg class="icon chev"><use href="#i-chevron-up"/></svg>
+      </button>
+      <button class="btn btn-primary btn-sm sheet-endturn" onclick="nextTurn()"><svg class="icon fill"><use href="#i-play"/></svg>Encerrar turno</button>
+    </div>
 
     <!-- COMBATE -->
     <div id="combatRightPanel" class="hidden">
@@ -2831,7 +2886,7 @@ function setAppMode(mode) {
   } else {
     hudMode.textContent = 'Combate';
     headerStatus.textContent = 'Combate tático';
-    hudInstruction.textContent = 'Escolha um comando à direita: Ação, Mover, Magias, Itens ou Ficha.';
+    hudInstruction.textContent = 'Escolha um comando: Ação, Mover, Magias, Itens ou Ficha.';
 
     const alive = STATE.units.filter(u => u.hp > 0);
     if (!STATE.combat.activeUnitId && alive.length > 0) {
@@ -2841,6 +2896,8 @@ function setAppMode(mode) {
     STATE.selectedUnitId = STATE.combat.activeUnitId;
     selectCombatMainMenu(STATE.combat.mainMenu);
   }
+  updateSheetLabel();
+  if (isCompactLayout()) toggleSheet(false);
   requestRender();
 }
 
@@ -3541,6 +3598,18 @@ function drawUnitToken(unit, isTargetable) {
 /* ============================================================================
    12. CANVAS POINTER INTERACTION
    ============================================================================ */
+/**
+ * Gestos de toque: toque simples age ao soltar (não ao pousar o dedo), arrastar com um dedo
+ * move a câmera e o pinça com dois dedos dá zoom. Mouse mantém o comportamento imediato.
+ */
+const touchState = { pointers: new Map(), pending: null, pinchDist: 0 };
+const TOUCH_MOVE_THRESHOLD = 10;
+
+function touchPinchDistance() {
+  const [a, b] = Array.from(touchState.pointers.values());
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
 function initCanvasEvents() {
   canvas.addEventListener('pointerdown', onCanvasPointerDown);
   canvas.addEventListener('pointermove', onCanvasPointerMove);
@@ -3561,6 +3630,7 @@ function initCanvasEvents() {
     applyTokenFile(unit, file);
   });
   window.addEventListener('pointerup', onCanvasPointerUp);
+  window.addEventListener('pointercancel', onCanvasPointerUp);
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     zoomBoard(e.deltaY < 0 ? 1.1 : 0.91);
@@ -3573,6 +3643,18 @@ function getCanvasRelativeCoords(e) {
 }
 
 function onCanvasPointerDown(e) {
+  const isTouch = e.pointerType === 'touch';
+  if (isTouch) {
+    touchState.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touchState.pointers.size === 2) {
+      touchState.pending = null;
+      STATE.interaction.isPanning = false;
+      STATE.interaction.draggingUnitId = null;
+      STATE.interaction.paintingTerrain = false;
+      touchState.pinchDist = touchPinchDistance();
+      return;
+    }
+  }
   const pt = getCanvasRelativeCoords(e);
   const cell = pixelToCell(pt.x, pt.y);
 
@@ -3591,6 +3673,16 @@ function onCanvasPointerDown(e) {
 
   const clickedUnit = STATE.units.find(u => u.col === cell.col && u.row === cell.row && u.hp > 0) ||
                       STATE.units.find(u => u.col === cell.col && u.row === cell.row);
+
+  // toque: adia a ação até soltar o dedo, para permitir arrastar o tabuleiro
+  const deferrable = isTouch && (STATE.mode === 'combat' || (STATE.setupTool !== 'terrain' && !clickedUnit));
+  if (deferrable) {
+    touchState.pending = {
+      pointerId: e.pointerId, cell, clickedUnit, mode: STATE.mode,
+      startPt: pt, camStart: { x: STATE.camera.x, y: STATE.camera.y }
+    };
+    return;
+  }
 
   if (STATE.mode === 'setup') {
     if (STATE.setupTool === 'terrain') {
@@ -3613,6 +3705,22 @@ function onCanvasPointerDown(e) {
 
 function onCanvasPointerMove(e) {
   const pt = getCanvasRelativeCoords(e);
+  if (e.pointerType === 'touch' && touchState.pointers.has(e.pointerId)) {
+    touchState.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touchState.pointers.size === 2) {
+      const dist = touchPinchDistance();
+      if (touchState.pinchDist > 0) zoomBoard(dist / touchState.pinchDist);
+      touchState.pinchDist = dist;
+      return;
+    }
+    const pend = touchState.pending;
+    if (pend && pend.pointerId === e.pointerId) {
+      if (Math.hypot(pt.x - pend.startPt.x, pt.y - pend.startPt.y) < TOUCH_MOVE_THRESHOLD) return;
+      STATE.interaction.isPanning = true;
+      STATE.interaction.panStart = { x: pend.startPt.x - pend.camStart.x, y: pend.startPt.y - pend.camStart.y };
+      touchState.pending = null;
+    }
+  }
   if (STATE.interaction.isPanning) {
     hideUnitTip();
     STATE.camera.x = pt.x - STATE.interaction.panStart.x;
@@ -3658,7 +3766,19 @@ function onCanvasPointerMove(e) {
   requestRender();
 }
 
-function onCanvasPointerUp() {
+function onCanvasPointerUp(e) {
+  if (e && e.pointerType === 'touch') {
+    touchState.pointers.delete(e.pointerId);
+    if (touchState.pointers.size < 2) touchState.pinchDist = 0;
+    const pend = touchState.pending;
+    if (pend && pend.pointerId === e.pointerId) {
+      touchState.pending = null;
+      if (e.type === 'pointerup') {
+        if (pend.mode === 'combat') handleCombatBoardClick(pend.cell, pend.clickedUnit);
+        else if (STATE.mode === 'setup') spawnUnitFromTemplate(STATE.selectedTemplateId, pend.cell.col, pend.cell.row);
+      }
+    }
+  }
   STATE.interaction.isPanning = false;
   STATE.interaction.draggingUnitId = null;
   STATE.interaction.paintingTerrain = false;
@@ -3684,6 +3804,8 @@ function selectCombatMainMenu(menuKey) {
 
   syncCombatUI();
   requestRender();
+  // celular: Mover mantém o tabuleiro livre; os outros comandos abrem a folha com as opções
+  if (isCompactLayout()) toggleSheet(menuKey !== 'move');
 }
 
 function handleCombatBoardClick(cell, clickedUnit) {
@@ -4274,6 +4396,7 @@ function spellSummary(sp) {
    16. COMBAT UI SYNCHRONIZATION (5 MAIN MENUS)
    ============================================================================ */
 function syncCombatUI() {
+  updateSheetLabel();
   document.getElementById('roundCounterBadge').textContent = STATE.combat.round;
   const activeUnit = STATE.units.find(u => u.id === STATE.combat.activeUnitId);
 
@@ -4530,6 +4653,7 @@ function editorCardHTML({ kind, idx, title, sub, tags, open, body }) {
 }
 
 function syncInspectorUI() {
+  updateSheetLabel();
   const u = selectedUnit();
   const emptyBox = document.getElementById('inspectorEmpty');
   const contentBox = document.getElementById('inspectorContent');
@@ -5388,15 +5512,45 @@ function toggleLogDock() {
   dock.querySelector('.log-bar').setAttribute('aria-expanded', String(open));
 }
 
-/** Em telas estreitas os painéis laterais viram gavetas. */
-function togglePanel(side) {
-  const left = document.getElementById('sidebarLeft');
-  const right = document.getElementById('sidebarRight');
-  const target = side === 'left' ? left : right;
-  const other = side === 'left' ? right : left;
-  other.classList.remove('open');
-  target.classList.toggle('open');
+/** Telas estreitas: painel esquerdo vira gaveta lateral e o direito vira folha inferior. */
+function isCompactLayout() {
+  return window.matchMedia('(max-width: 960px)').matches;
 }
+
+function togglePanel(side) {
+  if (side === 'right') { toggleSheet(); return; }
+  document.getElementById('sidebarRight').classList.remove('open');
+  document.getElementById('sidebarLeft').classList.toggle('open');
+}
+
+/** Rótulo da alça da folha inferior conforme o modo e a peça. */
+function updateSheetLabel() {
+  const label = document.getElementById('sheetHandleLabel');
+  if (!label) return;
+  const u = STATE.mode === 'combat'
+    ? STATE.units.find(x => x.id === STATE.combat.activeUnitId)
+    : STATE.units.find(x => x.id === STATE.selectedUnitId);
+  if (STATE.mode === 'combat') label.textContent = u ? `Comandos · ${u.name}` : 'Comandos';
+  else label.textContent = u ? `Editar · ${u.name}` : 'Editar peça (toque numa peça)';
+}
+
+/** Abre/fecha a folha inferior e reenquadra o tabuleiro no espaço que sobrou. */
+function toggleSheet(force) {
+  const sheet = document.getElementById('sidebarRight');
+  const open = force === undefined ? !sheet.classList.contains('open') : !!force;
+  document.getElementById('sidebarLeft').classList.remove('open');
+  sheet.classList.toggle('open', open);
+  document.getElementById('sheetHandle').setAttribute('aria-expanded', String(open));
+  refitBoard();
+}
+
+/** Recalcula o canvas e reenquadra o tabuleiro (usado quando o espaço do palco muda). */
+function refitBoard() {
+  resizeCanvas();
+  if (isCompactLayout()) resetCamera();
+}
+
+window.addEventListener('resize', () => { if (isCompactLayout()) updateSheetLabel(); });
 
 document.addEventListener('click', (e) => {
   const menu = document.getElementById('fileMenu');
@@ -5407,7 +5561,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeMenus();
     document.getElementById('sidebarLeft').classList.remove('open');
-    document.getElementById('sidebarRight').classList.remove('open');
+    toggleSheet(false);
   }
 });
 

@@ -26,6 +26,7 @@ function spellSummary(sp) {
    16. COMBAT UI SYNCHRONIZATION (5 MAIN MENUS)
    ============================================================================ */
 function syncCombatUI() {
+  updateSheetLabel();
   document.getElementById('roundCounterBadge').textContent = STATE.combat.round;
   const activeUnit = STATE.units.find(u => u.id === STATE.combat.activeUnitId);
 
@@ -282,6 +283,7 @@ function editorCardHTML({ kind, idx, title, sub, tags, open, body }) {
 }
 
 function syncInspectorUI() {
+  updateSheetLabel();
   const u = selectedUnit();
   const emptyBox = document.getElementById('inspectorEmpty');
   const contentBox = document.getElementById('inspectorContent');
