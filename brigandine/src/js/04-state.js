@@ -32,6 +32,8 @@ const STATE = {
   effectZones: [],        // emanações presas a peças: { id, type, unitId, radius }
   flashLights: [],        // clarões de magia: { keys, round } — luz plena até o fim da rodada
   layers: { terrain: 50, effects: 50, map: 0 }, // transparência (%) de cada menu
+  hudTool: null,          // ferramenta da barra do tabuleiro: 'pan' | 'erase' | 'edit' | null
+  spacePan: false,        // Espaço segurado = mão temporária
   openMenu: null,         // 'board' | 'map' | 'tools' | null — só o menu aberto age no tabuleiro
   toolTab: 'piece',       // aba da caixa de ferramentas
   objectBrush: null,      // objeto ou perigo escolhido (ou 'erase')
@@ -60,6 +62,8 @@ const STATE = {
     isPanning: false,
     panStart: { x: 0, y: 0 },
     paintingTerrain: false,
+    erasing: false,         // lixeira arrastando
+    editDrag: null,         // lápis: { item, start, moved }
     rotatingUnitId: null,   // peça sendo girada pela alça
     rotateStart: null,
     facingHandle: null      // posição da alça desenhada no último quadro

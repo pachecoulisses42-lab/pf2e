@@ -97,7 +97,8 @@ const isAnimalTemplate = (t) => t.category === 'animal';
 function renderPieceGallery() {
   const container = document.getElementById('pieceGalleryContainer');
   const heroes = UNIT_TEMPLATES.filter(t => t.faction === 'hero').length;
-  document.getElementById('galleryCount').textContent = `${heroes} heróis · ${UNIT_TEMPLATES.length - heroes} vilões`;
+  const countEl = document.getElementById('galleryCount');
+  if (countEl) countEl.textContent = `${heroes} heróis · ${UNIT_TEMPLATES.length - heroes} vilões`;
   container.innerHTML = '';
   const q = normalizeSearchText(document.getElementById('galleryFilterText')?.value);
   const fac = document.getElementById('galleryFilterFaction')?.value || '';

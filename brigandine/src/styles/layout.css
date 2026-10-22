@@ -226,3 +226,18 @@
 body.mode-combat .log-dock { display: none; }
 .combat-log-panel { height: auto; max-height: min(420px, 48vh); padding: 0 2px; }
 .log-section .log-tools { display: flex; justify-content: flex-end; }
+
+/* Ferramentas da barra do tabuleiro: mão, lixeira, lápis */
+body.mode-combat .hud-setup-only { display: none; }
+.hud-pill .btn.active { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.board-pop { position: absolute; z-index: 30; width: 260px; padding: var(--s-3); border-radius: var(--r-md); background: var(--ink-850); color: var(--text); box-shadow: var(--shadow-pop), 0 0 0 1px var(--line-strong); display: flex; flex-direction: column; gap: var(--s-2); }
+.board-pop.hidden { display: none; }
+.board-pop-head { display: flex; align-items: center; gap: var(--s-2); }
+.board-pop-head .faint { flex: 1; font-size: var(--text-2xs); color: var(--text-3); }
+.board-pop-actions { display: flex; align-items: center; gap: var(--s-2); }
+.board-pop-actions .hint { margin: 0; font-size: var(--text-2xs); }
+@media (max-width: 600px) {
+  /* no celular o zoom é na pinça: a barra fica com mão, lixeira, lápis, régua e centralizar */
+  .hud-pill .hud-zoom, .hud-pill > .hud-sep { display: none; }
+  .hud-pill .btn-icon { width: 32px; }
+}

@@ -200,7 +200,7 @@
       </details>
 
       <details class="acc" name="setup-acc" data-menu="tools" open>
-        <summary><svg class="icon"><use href="#i-wrench"/></svg>Caixa de ferramentas<span class="summary-meta" id="galleryCount">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+        <summary><svg class="icon"><use href="#i-wrench"/></svg>Caixa de ferramentas<svg class="icon chev" style="margin-left:auto"><use href="#i-chevron"/></svg></summary>
         <div class="acc-body">
           <div class="tool-tabs" role="tablist" aria-label="Ferramentas">
             <button id="toolTab_piece" class="tool-tab active" onclick="setSetupTool('piece')"><svg class="icon"><use href="#i-pawn"/></svg>Personagens</button>
@@ -366,14 +366,19 @@
         </div>
       </div>
       <div class="hud-pill">
+        <button class="btn btn-ghost btn-icon" id="btnHudPan" onclick="setHudTool('pan')" title="Mão: arrastar para mover a visão (Espaço segurado faz o mesmo)" aria-label="Mão: mover a visão" aria-pressed="false"><svg class="icon"><use href="#i-hand"/></svg></button>
+        <button class="btn btn-ghost btn-icon hud-setup-only" id="btnHudErase" onclick="setHudTool('erase')" title="Lixeira: clique numa peça, objeto, perigo ou terreno para apagar (Ctrl+Z desfaz)" aria-label="Lixeira: apagar do tabuleiro" aria-pressed="false"><svg class="icon"><use href="#i-trash"/></svg></button>
+        <button class="btn btn-ghost btn-icon hud-setup-only" id="btnHudEdit" onclick="setHudTool('edit')" title="Lápis: clique para editar; arraste para mover" aria-label="Lápis: editar no tabuleiro" aria-pressed="false"><svg class="icon"><use href="#i-pencil"/></svg></button>
+        <span class="hud-sep"></span>
         <button class="btn btn-ghost btn-icon" id="btnToggleRuler" onclick="toggleRulerTool()" title="Régua" aria-label="Régua"><svg class="icon"><use href="#i-ruler"/></svg></button>
-        <button class="btn btn-ghost btn-icon" onclick="zoomBoard(1.15)" title="Aproximar" aria-label="Aproximar"><svg class="icon"><use href="#i-zoom-in"/></svg></button>
-        <button class="btn btn-ghost btn-icon" onclick="zoomBoard(0.87)" title="Afastar" aria-label="Afastar"><svg class="icon"><use href="#i-zoom-out"/></svg></button>
+        <button class="btn btn-ghost btn-icon hud-zoom" onclick="zoomBoard(1.15)" title="Aproximar" aria-label="Aproximar"><svg class="icon"><use href="#i-zoom-in"/></svg></button>
+        <button class="btn btn-ghost btn-icon hud-zoom" onclick="zoomBoard(0.87)" title="Afastar" aria-label="Afastar"><svg class="icon"><use href="#i-zoom-out"/></svg></button>
         <button class="btn btn-ghost btn-icon" onclick="resetCamera()" title="Centralizar" aria-label="Centralizar"><svg class="icon"><use href="#i-target"/></svg></button>
       </div>
     </div>
 
     <canvas id="battleCanvas"></canvas>
+    <div id="boardEditPop" class="board-pop hidden" role="dialog" aria-label="Editar no tabuleiro"></div>
     <div id="unitTip" class="unit-tip hidden" role="tooltip"></div>
 
     <div class="canvas-bottom-hud">

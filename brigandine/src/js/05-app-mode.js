@@ -32,6 +32,8 @@ function resizeCanvas() {
    ============================================================================ */
 function setAppMode(mode) {
   STATE.mode = mode;
+  // lixeira e lápis são da montagem; a mão vale nos dois modos
+  if (mode !== 'setup' && STATE.hudTool && STATE.hudTool !== 'pan') { STATE.hudTool = null; closeBoardEditor(); }
   if (mode !== 'combat') STATE.flashLights = []; // clarões de magia só existem durante o combate
   document.body.classList.toggle('mode-combat', mode === 'combat');
   document.body.classList.toggle('mode-setup', mode !== 'combat');
@@ -69,6 +71,7 @@ function setAppMode(mode) {
   }
   updateSheetLabel();
   if (isCompactLayout()) toggleSheet(false);
+  if (typeof syncHudToolButtons === 'function') syncHudToolButtons();
   requestRender();
 }
 

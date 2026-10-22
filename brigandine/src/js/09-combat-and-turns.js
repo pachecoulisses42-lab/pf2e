@@ -326,7 +326,7 @@ function toggleLightItem(unit, idx, inCombat) {
 function applyHazardAt(unit) {
   const hz = (STATE.objects || []).find(o => o.col === unit.col && o.row === unit.row && HAZARD_TYPES[o.type]);
   if (!hz || unit.hp <= 0) return;
-  const def = HAZARD_TYPES[hz.type];
+  const def = envHazardDamage(hz);
   const dmg = rollDamage({ name: def.label, dmgDie: def.dmgDie, dmgType: def.dmgType });
   const applied = applyDefenses(dmg.parts, 1, unit);
   unit.hp = Math.max(0, unit.hp - applied.total);

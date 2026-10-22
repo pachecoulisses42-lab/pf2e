@@ -56,8 +56,26 @@ document.addEventListener('click', (e) => {
   if (menu && menu.open && !menu.contains(e.target)) closeMenus();
 });
 
+document.addEventListener('keyup', (e) => {
+  if (e.code === 'Space' && STATE.spacePan) { STATE.spacePan = false; syncHudToolButtons(); }
+});
+
 document.addEventListener('keydown', (e) => {
+  const typingHere = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
+  // Espaço segurado: mão temporária para mover a visão
+  if (e.code === 'Space' && !typingHere && !e.target.closest?.('button, summary, dialog')) {
+    e.preventDefault();
+    if (!STATE.spacePan) { STATE.spacePan = true; syncHudToolButtons(); }
+    return;
+  }
+  // Ctrl/⌘+Z: desfaz o que a lixeira apagou
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z') && !typingHere) {
+    if (undoErase()) e.preventDefault();
+    return;
+  }
   if (e.key === 'Escape') {
+    if (STATE.hudTool) setHudTool(STATE.hudTool);
+    closeBoardEditor();
     closeMenus();
     document.getElementById('sidebarLeft').classList.remove('open');
     toggleSheet(false);

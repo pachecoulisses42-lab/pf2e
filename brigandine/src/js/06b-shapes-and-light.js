@@ -106,7 +106,7 @@ function lightBlockedBetween(a, b, blockers) {
 function collectLightSources() {
   const out = [];
   for (const o of STATE.objects || []) {
-    const light = (OBJECT_TYPES[o.type] || HAZARD_TYPES[o.type] || {}).light;
+    const light = envObjectLight(o);
     if (light) out.push({ col: o.col, row: o.row, ...light, from: o.type });
   }
   for (const u of STATE.units || []) {

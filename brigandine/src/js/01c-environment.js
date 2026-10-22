@@ -112,11 +112,41 @@ function darknessAt(hasDarkness, lightLevel) {
   return 1;
 }
 
+/**
+ * Objeto/perigo com os ajustes feitos no lápis: luz própria (bright/dim) para objetos que iluminam
+ * e dano próprio (dado e tipo) para perigos. Valores inválidos são descartados.
+ */
+function normalizeEnvObject(o) {
+  const out = { id: String(o.id || `o_${o.col}_${o.row}_${o.type}`), type: o.type, col: o.col, row: o.row };
+  const baseLight = (OBJECT_TYPES[o.type] || HAZARD_TYPES[o.type] || {}).light;
+  if (baseLight && o.light && Number(o.light.bright) >= 0 && Number(o.light.dim) > 0) {
+    const bright = Math.min(60, Number(o.light.bright));
+    out.light = { bright, dim: Math.max(bright, Math.min(120, Number(o.light.dim))) };
+  }
+  if (HAZARD_TYPES[o.type]) {
+    if (typeof o.dmgDie === 'string' && /^\d+d\d+$/i.test(o.dmgDie.trim())) out.dmgDie = o.dmgDie.trim().toLowerCase();
+    if (typeof o.dmgType === 'string' && typeof DAMAGE_TYPES !== 'undefined' && DAMAGE_TYPES.includes(o.dmgType)) out.dmgType = o.dmgType;
+  }
+  return out;
+}
+
+/** Luz efetiva do objeto (ajuste do lápis ou padrão do tipo). */
+function envObjectLight(o) {
+  const base = (OBJECT_TYPES[o.type] || HAZARD_TYPES[o.type] || {}).light;
+  return base ? { ...base, ...(o.light || {}) } : null;
+}
+
+/** Dano efetivo do perigo (ajuste do lápis ou padrão do tipo). */
+function envHazardDamage(o) {
+  const h = HAZARD_TYPES[o.type];
+  return h ? { label: h.label, dmgDie: o.dmgDie || h.dmgDie, dmgType: o.dmgType || h.dmgType } : null;
+}
+
 /** Normaliza o pacote de ambiente salvo (arquivos antigos não têm nada disso). */
 function normalizeEnvironment(data = {}) {
   const objects = (Array.isArray(data.objects) ? data.objects : [])
     .filter((o) => o && (OBJECT_TYPES[o.type] || HAZARD_TYPES[o.type]) && Number.isInteger(o.col) && Number.isInteger(o.row))
-    .map((o) => ({ id: String(o.id || `o_${o.col}_${o.row}_${o.type}`), type: o.type, col: o.col, row: o.row }));
+    .map((o) => normalizeEnvObject(o));
   const effects = {};
   for (const type of Object.keys(EFFECT_TYPES)) {
     const src = data.effects && data.effects[type];

@@ -65,6 +65,9 @@ function onCanvasPointerDown(e) {
   if (e.button === 0 && startFacingDrag(pt, isTouch)) return;
   const cell = pixelToCell(pt.x, pt.y);
 
+  // mão, lixeira e lápis da barra do tabuleiro valem acima de qualquer menu
+  if (e.button === 0 && hudToolPointerDown(pt, cell)) return;
+
   if (e.button === 1 || e.button === 2 || !cell) {
     STATE.interaction.isPanning = true;
     STATE.interaction.panStart = { x: pt.x - STATE.camera.x, y: pt.y - STATE.camera.y };
@@ -132,12 +135,13 @@ function onCanvasPointerMove(e) {
     return;
   }
 
-  const overHandle = e.pointerType !== 'touch' && hitFacingHandle(pt, false);
-  canvas.style.cursor = overHandle ? 'grab' : '';
+  const overHandle = e.pointerType !== 'touch' && !STATE.hudTool && hitFacingHandle(pt, false);
+  if (!STATE.hudTool && !STATE.spacePan) canvas.style.cursor = overHandle ? 'grab' : '';
   if (overHandle) { hideUnitTip(); return; }
 
   const cell = pixelToCell(pt.x, pt.y);
   STATE.interaction.hoverCell = cell;
+  if (hudToolPointerMove(cell)) { hideUnitTip(); requestRender(); return; }
 
   if (cell) {
     document.getElementById('hudHoverCell').textContent = `Célula ${cell.col + 1}, ${cell.row + 1}`;
@@ -189,6 +193,7 @@ function onCanvasPointerUp(e) {
   if (STATE.interaction.rotatingUnitId && (!e || e.type === 'pointerup')) endFacingDrag();
   STATE.interaction.rotatingUnitId = null;
   STATE.interaction.rotateStart = null;
+  hudToolPointerUp(e && e.type === 'pointerup' ? e : null);
   if (STATE.paint.start || STATE.interaction.paintingTerrain) {
     if (!e || e.type === 'pointerup') finishPaint();
     else { STATE.paint.start = null; STATE.paint.preview = null; requestRender(); }

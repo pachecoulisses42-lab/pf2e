@@ -637,6 +637,79 @@ await check('escuridão no combate (PF2e): teste simples CD 11, desprevenido, ce
   await page.evaluate(() => populateDemoBattle());
 });
 
+await check('barra do tabuleiro: mão move a visão, lixeira apaga (Ctrl+Z desfaz), lápis edita e move; título sem contagem', async () => {
+  await page.evaluate(() => { setAppMode('setup'); populateDemoBattle(); resetCamera(); STATE.objects = []; STATE.terrainMap = {}; });
+  const title = await page.locator('details[data-menu="tools"] > summary').innerText();
+  assert.ok(!/heróis|vilões/.test(title), 'título da Caixa de ferramentas sem contagem');
+  // mão
+  await page.click('#btnHudPan');
+  const cam0 = await page.evaluate(() => ({ x: STATE.camera.x, y: STATE.camera.y, units: STATE.units.length }));
+  const a = await cellPoint(6, 8);
+  await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(a.x + 80, a.y + 40, { steps: 5 }); await page.mouse.up();
+  const cam1 = await page.evaluate(() => ({ x: STATE.camera.x, y: STATE.camera.y, units: STATE.units.length }));
+  assert.ok(Math.abs(cam1.x - cam0.x - 80) < 2 && Math.abs(cam1.y - cam0.y - 40) < 2, 'a visão andou junto com o arrasto');
+  assert.equal(cam1.units, cam0.units, 'a mão não cria peça');
+  // lixeira: peça > objeto > perigo > terreno, nessa ordem
+  const target = await page.evaluate(() => { const u = STATE.units[0]; STATE.objects.push({ id: 'p1', type: 'pedra', col: u.col, row: u.row }, { id: 'h1', type: 'espinhos', col: u.col, row: u.row }); STATE.terrainMap[u.col + ',' + u.row] = 'lama'; return { id: u.id, col: u.col, row: u.row }; });
+  await page.click('#btnHudErase');
+  assert.equal(await page.evaluate(() => STATE.hudTool), 'erase');
+  const tp = await cellPoint(target.col, target.row);
+  const seq = [];
+  for (let i = 0; i < 4; i++) {
+    await page.mouse.click(tp.x, tp.y);
+    seq.push(await page.evaluate((id) => [STATE.units.some(u => u.id === id), STATE.objects.map(o => o.type).join('+'), STATE.terrainMap[Object.keys(STATE.terrainMap)[0]] || ''], target.id));
+  }
+  assert.deepEqual(seq, [
+    [false, 'pedra+espinhos', 'lama'],
+    [false, 'espinhos', 'lama'],
+    [false, '', 'lama'],
+    [false, '', '']
+  ]);
+  // Ctrl+Z desfaz em ordem inversa
+  for (let i = 0; i < 4; i++) await page.keyboard.press('Control+z');
+  const back = await page.evaluate((id) => ({ unit: STATE.units.some(u => u.id === id), objs: STATE.objects.length, terr: Object.keys(STATE.terrainMap).length }), target.id);
+  assert.deepEqual(back, { unit: true, objs: 2, terr: 1 });
+  // arrastar a lixeira apaga terreno/objetos, mas não peças
+  await page.evaluate(() => { STATE.objects = []; STATE.terrainMap = {}; for (let c = 0; c < 5; c++) STATE.terrainMap[c + ',9'] = 'neve'; STATE.units.push({ ...JSON.parse(JSON.stringify(STATE.units[0])), id: 'u_alvo', col: 2, row: 9 }); });
+  const d0 = await cellPoint(0, 9), d1 = await cellPoint(4, 9);
+  await page.mouse.move(d0.x, d0.y); await page.mouse.down(); await page.mouse.move(d1.x, d1.y, { steps: 12 }); await page.mouse.up();
+  const dragged = await page.evaluate(() => ({ terr: Object.keys(STATE.terrainMap).length, unit: STATE.units.some(u => u.id === 'u_alvo') }));
+  assert.deepEqual(dragged, { terr: 0, unit: true }, 'o arrasto limpa o chão, inclusive sob a peça, mas não apaga a peça');
+  // lápis: objeto abre editor; mudar tipo e luz; arrastar move
+  await page.evaluate(() => { STATE.units = STATE.units.filter(u => u.id !== 'u_alvo'); STATE.terrainMap = {}; STATE.objects = [{ id: 'l1', type: 'tocha_parede', col: 6, row: 9 }]; });
+  await page.click('#btnHudEdit');
+  const op = await cellPoint(6, 9);
+  await page.mouse.click(op.x, op.y);
+  await page.waitForSelector('#boardEditPop:not(.hidden)');
+  await page.selectOption('#boardEditPop select', 'lampiao');
+  await page.fill('#boardEditPop input[type="number"] >> nth=0', '12');
+  await page.locator('#boardEditPop input[type="number"] >> nth=0').dispatchEvent('change');
+  const edited = await page.evaluate(() => ({ type: STATE.objects[0].type, light: envObjectLight(STATE.objects[0]) }));
+  assert.equal(edited.type, 'lampiao');
+  assert.deepEqual([edited.light.bright, edited.light.dim], [12, 18]);
+  const np = await cellPoint(8, 9);
+  await page.mouse.move(op.x, op.y); await page.mouse.down(); await page.mouse.move(np.x, np.y, { steps: 6 }); await page.mouse.up();
+  assert.deepEqual(await page.evaluate(() => [STATE.objects[0].col, STATE.objects[0].row]), [8, 9]);
+  // lápis numa peça seleciona e abre o inspetor
+  const u = await page.evaluate(() => ({ id: STATE.units[3].id, col: STATE.units[3].col, row: STATE.units[3].row }));
+  const up = await cellPoint(u.col, u.row);
+  await page.mouse.click(up.x, up.y);
+  assert.equal(await page.evaluate(() => STATE.selectedUnitId), u.id);
+  // perigo: dano editável e usado no combate
+  await page.evaluate(() => { STATE.objects = [{ id: 'f', type: 'fogueira', col: 9, row: 9 }]; });
+  const hp = await cellPoint(9, 9);
+  await page.mouse.click(hp.x, hp.y);
+  await page.fill('#boardEditPop input[type="text"]', '3d10');
+  await page.locator('#boardEditPop input[type="text"]').dispatchEvent('change');
+  assert.equal(await page.evaluate(() => envHazardDamage(STATE.objects[0]).dmgDie), '3d10');
+  // no combate a lixeira e o lápis somem; a mão fica
+  await page.evaluate(() => setAppMode('combat'));
+  const vis = await page.evaluate(() => ['btnHudPan', 'btnHudErase', 'btnHudEdit'].map(id => getComputedStyle(document.getElementById(id)).display !== 'none'));
+  assert.deepEqual(vis, [true, false, false]);
+  assert.equal(await page.evaluate(() => STATE.hudTool), null, 'lápis desligado ao entrar no combate');
+  await page.evaluate(() => { setAppMode('setup'); STATE.objects = []; populateDemoBattle(); });
+});
+
 await check('sem erros de JavaScript durante o fluxo', async () => {
   assert.deepEqual(errors, []);
 });

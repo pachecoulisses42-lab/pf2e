@@ -64,8 +64,14 @@ function currentBoardTool() {
 
 /* ---------------- Abas da caixa de ferramentas ---------------- */
 
+/** Escolher algo na Caixa de ferramentas desliga lixeira/lápis/mão: o próximo clique é para pôr. */
+function releaseHudTool() {
+  if (STATE.hudTool && typeof setHudTool === 'function') setHudTool(STATE.hudTool);
+}
+
 function setSetupTool(tool) {
   if (!TOOL_TABS.includes(tool)) tool = 'piece';
+  releaseHudTool();
   STATE.toolTab = tool;
   STATE.setupTool = tool; // compatibilidade
   for (const t of TOOL_TABS) {
@@ -102,9 +108,9 @@ function renderEnvPalettes() {
   syncTransparencyUI();
 }
 
-function selectTerrainBrush(type) { STATE.terrainBrush = type; renderEnvPalettes(); }
-function selectObjectBrush(type) { STATE.objectBrush = type; renderEnvPalettes(); }
-function selectEffectBrush(type) { STATE.effectBrush = type; renderEnvPalettes(); }
+function selectTerrainBrush(type) { releaseHudTool(); STATE.terrainBrush = type; renderEnvPalettes(); }
+function selectObjectBrush(type) { releaseHudTool(); STATE.objectBrush = type; renderEnvPalettes(); }
+function selectEffectBrush(type) { releaseHudTool(); STATE.effectBrush = type; renderEnvPalettes(); }
 
 /* ---------------- Formas ---------------- */
 
