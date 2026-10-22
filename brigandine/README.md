@@ -4,6 +4,13 @@ Tabuleiro tático para Pathfinder 2e Remaster que abre direto no navegador, sem 
 
 > Subprojeto independente: não usa nem altera nada do sistema `pf2e` deste repositório.
 
+## Documentação
+
+- [`docs/GUIA-LAYOUT-E-TOKENS.md`](docs/GUIA-LAYOUT-E-TOKENS.md): como o layout, o design system e os tokens funcionam e como criar novos.
+- [`docs/PROMPT-novos-tokens.md`](docs/PROMPT-novos-tokens.md): prompts prontos para colar numa IA e gerar mais tokens no mesmo estilo (em código SVG ou em imagem).
+- [`docs/exemplo-token-druida.js`](docs/exemplo-token-druida.js): exemplo completo de token novo.
+- `dist/design-system.html`: documentação visual (componentes e tokens).
+
 ## Usar
 
 Abra `dist/brigandine_pf2e_tatico_v5.html` no navegador. Para a documentação visual do design system, abra `dist/design-system.html`.
