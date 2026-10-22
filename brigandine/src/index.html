@@ -56,7 +56,7 @@
 
     <!-- MONTAGEM -->
     <div id="setupLeftPanel">
-      <details class="acc" name="setup-acc">
+      <details class="acc" name="setup-acc" data-menu="board">
         <summary>
           <svg class="icon"><use href="#i-hex"/></svg>Tabuleiro
           <span id="gridSummaryBadge" class="summary-meta">HEX 14×10 (1,5m)</span>
@@ -113,10 +113,31 @@
               </div>
             </div>
           </details>
+
+          <div class="field">
+            <div class="field-label"><span>Clima e ambiente</span><button class="btn btn-sm btn-ghost" onclick="clearAllEffects()">Limpar tudo</button></div>
+            <div id="effectPalette" class="env-palette"></div>
+            <p class="hint">Escolha um efeito e pinte no tabuleiro. Escuridão some onde houver luz (tochas, lanternas, braseiros, fogueiras).</p>
+          </div>
+              <div class="field">
+                <div class="field-label"><span>Forma</span></div>
+                <div id="effectShapeControls" class="shape-controls"></div>
+              </div>
+
+          <details class="more transp" data-layer="effects">
+            <summary><svg class="icon"><use href="#i-eye"/></svg>Transparência<span class="summary-meta num" id="transpVal_effects">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <div class="field">
+                <div class="field-label"><span>Névoa, escuridão, chuva, nevasca e fumaça</span></div>
+                <input type="range" id="transp_effects" min="0" max="90" step="5" oninput="setLayerTransparency('effects', this.value)" aria-label="Transparência: Névoa, escuridão, chuva, nevasca e fumaça">
+                <div class="range-ends"><span>Opaco</span><span>90 %</span></div>
+              </div>
+            </div>
+          </details>
         </div>
       </details>
 
-      <details class="acc" name="setup-acc">
+      <details class="acc" name="setup-acc" data-menu="map">
         <summary><svg class="icon"><use href="#i-image"/></svg>Mapa de fundo<svg class="icon chev" style="margin-left:auto"><use href="#i-chevron"/></svg></summary>
         <div class="acc-body">
           <div class="grid-2">
@@ -133,30 +154,36 @@
               <button class="chip" onclick="setProceduralMap('abyss')">Abismo</button>
             </div>
           </div>
+
+          <details class="more transp" data-layer="map">
+            <summary><svg class="icon"><use href="#i-eye"/></svg>Transparência<span class="summary-meta num" id="transpVal_map">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <div class="field">
+                <div class="field-label"><span>Mapa de fundo</span></div>
+                <input type="range" id="transp_map" min="0" max="90" step="5" oninput="setLayerTransparency('map', this.value)" aria-label="Transparência: Mapa de fundo">
+                <div class="range-ends"><span>Opaco</span><span>90 %</span></div>
+              </div>
+            </div>
+          </details>
         </div>
       </details>
 
-      <details class="acc" name="setup-acc" open>
-        <summary><svg class="icon"><use href="#i-pawn"/></svg>Peças<span class="summary-meta" id="galleryCount">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+      <details class="acc" name="setup-acc" data-menu="tools" open>
+        <summary><svg class="icon"><use href="#i-wrench"/></svg>Caixa de ferramentas<span class="summary-meta" id="galleryCount">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
         <div class="acc-body">
-          <div class="seg">
-            <button id="toolPlacePiece" class="seg-btn active" onclick="setSetupTool('piece')"><svg class="icon"><use href="#i-pawn"/></svg>Posicionar</button>
-            <button id="toolPaintTerrain" class="seg-btn" onclick="setSetupTool('terrain')"><svg class="icon"><use href="#i-mountain"/></svg>Terreno</button>
+          <div class="tool-tabs" role="tablist" aria-label="Ferramentas">
+            <button id="toolTab_piece" class="tool-tab active" onclick="setSetupTool('piece')"><svg class="icon"><use href="#i-pawn"/></svg>Personagens</button>
+            <button id="toolTab_terrain" class="tool-tab" onclick="setSetupTool('terrain')"><svg class="icon"><use href="#i-mountain"/></svg>Terreno</button>
+            <button id="toolTab_object" class="tool-tab" onclick="setSetupTool('object')"><svg class="icon"><use href="#i-grid"/></svg>Objetos</button>
+            <button id="toolTab_animal" class="tool-tab" onclick="setSetupTool('animal')"><svg class="icon"><use href="#i-target"/></svg>Animais</button>
+            <button id="toolTab_hazard" class="tool-tab" onclick="setSetupTool('hazard')"><svg class="icon"><use href="#i-bolt"/></svg>Perigos</button>
           </div>
 
-          <div id="terrainBrushBox" class="hidden">
-            <div class="chip-row">
-              <button class="chip terrain-btn active" data-t="normal" onclick="setTerrainBrush('normal')">Normal</button>
-              <button class="chip terrain-btn" data-t="difficult" onclick="setTerrainBrush('difficult')">Difícil</button>
-              <button class="chip terrain-btn" data-t="wall" onclick="setTerrainBrush('wall')">Parede</button>
-              <button class="chip terrain-btn" data-t="hazard" onclick="setTerrainBrush('hazard')">Perigo</button>
-            </div>
-          </div>
-
+          <div id="toolPanel_piece" class="tool-panel">
           <div class="field">
             <div class="field-label"><span>Estilo dos tokens</span></div>
             <div class="seg">
-              <button id="styleChibi" class="seg-btn active" onclick="chooseTokenStyle('chibi')">Chibi</button>
+              <button id="styleChibi" class="seg-btn active" onclick="chooseTokenStyle('chibi')">Token</button>
               <button id="styleTopo" class="seg-btn" onclick="chooseTokenStyle('topo')">Vista de cima</button>
             </div>
           </div>
@@ -214,6 +241,43 @@
             <button class="btn btn-primary" style="flex:1" onclick="populateDemoBattle()"><svg class="icon"><use href="#i-bolt"/></svg>Montar batalha de exemplo</button>
             <button class="btn btn-danger btn-icon" onclick="clearAllUnits()" aria-label="Remover todas as peças" title="Remover todas as peças"><svg class="icon"><use href="#i-trash"/></svg></button>
           </div>
+
+          </div>
+
+          <div id="toolPanel_terrain" class="tool-panel hidden">
+            <div id="terrainPalette" class="env-palette"></div>
+            <p class="hint">Lama, neve e água custam o dobro para andar; abismo e parede não deixam passar; parede também bloqueia a luz.</p>
+              <div class="field">
+                <div class="field-label"><span>Forma</span></div>
+                <div id="terrainShapeControls" class="shape-controls"></div>
+              </div>
+          </div>
+
+          <div id="toolPanel_object" class="tool-panel hidden">
+            <div id="objectPalette" class="env-palette"></div>
+            <p class="hint">Clique numa casa para pôr o objeto. Pedra, barril, baú, árvore, braseiro e muro bloqueiam a passagem; cadeira e mesa custam o dobro. Tochas, braseiro, lampião e cristal iluminam e afastam a escuridão.</p>
+          </div>
+
+          <div id="toolPanel_animal" class="tool-panel hidden">
+            <div id="animalGalleryContainer" class="piece-gallery"></div>
+            <p class="hint">Escolha o animal e clique numa casa livre. Ficha, armas e token se editam no inspetor.</p>
+          </div>
+
+          <div id="toolPanel_hazard" class="tool-panel hidden">
+            <div id="hazardPalette" class="env-palette"></div>
+            <p class="hint">No combate, a peça que termina o movimento num perigo sofre o dano dele. A fogueira também ilumina.</p>
+          </div>
+
+          <details class="more transp" data-layer="terrain">
+            <summary><svg class="icon"><use href="#i-eye"/></svg>Transparência<span class="summary-meta num" id="transpVal_terrain">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <div class="field">
+                <div class="field-label"><span>Terreno e perigos</span></div>
+                <input type="range" id="transp_terrain" min="0" max="90" step="5" oninput="setLayerTransparency('terrain', this.value)" aria-label="Transparência: Terreno e perigos">
+                <div class="range-ends"><span>Opaco</span><span>90 %</span></div>
+              </div>
+            </div>
+          </details>
         </div>
       </details>
     </div>
@@ -373,7 +437,7 @@
         <!-- Itens -->
         <div id="subpanelItems" class="subpanel hidden">
           <div class="subpanel-head"><span class="section-title">Itens</span><span class="badge" style="background:var(--supply-soft);color:var(--supply)">◆◆</span></div>
-          <p class="hint">Escolha a poção ou pergaminho e clique no alvo, ou use em si mesmo.</p>
+          <p class="hint">Escolha a poção ou pergaminho e clique no alvo, ou use em si mesmo. Tocha, lanterna e lampião acendem com ◆ e ficam acesos até você apagar.</p>
           <div id="combatItemList" class="stack"></div>
           <button id="btnQuickSelfItem" class="btn btn-block" onclick="useSelectedItemOnSelf()"><svg class="icon"><use href="#i-flask"/></svg>Usar em si mesmo</button>
         </div>
@@ -587,6 +651,9 @@
                   <option value="perg_relampago">Pergaminho de Relâmpago (4d12)</option>
                   <option value="perg_bola_fogo">Pergaminho de Bola de Fogo (6d6)</option>
                   <option value="perg_cura">Pergaminho de Cura Sagrada (2d8+8 PV)</option>
+                  <option value="tocha">Tocha (luz 6m ao redor)</option>
+                  <option value="lanterna">Lanterna Direcional (cone 18m)</option>
+                  <option value="lampiao">Lampião (luz 9m ao redor)</option>
                 </select>
                 <button class="btn btn-block" onclick="addItemToSelectedUnit()"><svg class="icon"><use href="#i-plus"/></svg>Incluir item</button>
               </div>

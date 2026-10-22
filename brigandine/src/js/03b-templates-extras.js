@@ -10,6 +10,7 @@
   const piece = ({ id, name, sculpt, faction = 'hero', moveSpeed = 9, sheet, weapons, spells = [], items = [], resistances, weaknesses, immunities }) => {
     const t = {
       id, name, sculpt, faction, moveSpeed, maxHp: 1, ac: 10,
+      ...(/^t_lobo_/.test(id) ? { category: 'animal' } : {}),
       sheet: { level: 3, shieldBonus: 0, dexCap: 5, armorItemBonus: 0, skills: [], feats: [], ...sheet },
       weapons, spells, items
     };

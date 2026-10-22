@@ -68,6 +68,7 @@ function handleCombatBoardClick(cell, clickedUnit) {
     activeUnit.actions = Math.max(0, activeUnit.actions - destInfo.actionsNeeded);
     spawnFloatingText(cell.col, cell.row, `🥾 -${destInfo.actionsNeeded}◆ (${destInfo.meters}m)`, '#86efac');
     addLog(`🥾 <strong>${activeUnit.name}</strong> moveu ${destInfo.meters}m para (${cell.col + 1}, ${cell.row + 1}) gastando <strong>${'◆'.repeat(destInfo.actionsNeeded)} (${destInfo.actionsNeeded} ação/ões)</strong>.`);
+    applyHazardAt(activeUnit);
     syncCombatUI();
     requestRender();
     return;
@@ -248,7 +249,53 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
   return true;
 }
 
+/**
+ * Acende (gasta ◆ no combate) ou apaga (sem custo) um item de luz da peça. Fica aceso
+ * até o usuário apagar; a luz segue a peça e, na lanterna, a direção dela.
+ */
+function toggleLightItem(unit, idx, inCombat) {
+  const item = unit && unit.items[idx];
+  const light = itemLight(item);
+  if (!light) return false;
+  if (item.lit) {
+    item.lit = false;
+    addLog(`🕯️ <strong>${escapeHtml(unit.name)}</strong> apagou <em>${escapeHtml(item.name)}</em>.`);
+  } else {
+    const cost = item.cost || 1;
+    if (inCombat) {
+      if (unit.actions < cost) {
+        addLog(`⚠️ <strong>${escapeHtml(unit.name)}</strong> precisa de ${'◆'.repeat(cost)} para acender <em>${escapeHtml(item.name)}</em>.`);
+        return false;
+      }
+      unit.actions -= cost;
+    }
+    item.lit = true;
+    const shape = light.shape === 'cone' ? `cone de ${String(light.bright).replace('.', ',')} m para onde a peça olha` : `${String(light.bright).replace('.', ',')} m ao redor`;
+    addLog(`🔥 <strong>${escapeHtml(unit.name)}</strong> acendeu <em>${escapeHtml(item.name)}</em>${inCombat ? ` (${'◆'.repeat(cost)})` : ''}: luz plena ${shape}, penumbra até ${String(light.dim).replace('.', ',')} m. Fica acesa até ser apagada.`);
+  }
+  if (STATE.mode === 'combat') syncCombatUI(); else syncInspectorUI();
+  requestRender();
+  return true;
+}
+
+/** Perigo na casa onde a peça terminou o movimento: rola o dano (com defesas). */
+function applyHazardAt(unit) {
+  const hz = (STATE.objects || []).find(o => o.col === unit.col && o.row === unit.row && HAZARD_TYPES[o.type]);
+  if (!hz || unit.hp <= 0) return;
+  const def = HAZARD_TYPES[hz.type];
+  const dmg = rollDamage({ name: def.label, dmgDie: def.dmgDie, dmgType: def.dmgType });
+  const applied = applyDefenses(dmg.parts, 1, unit);
+  unit.hp = Math.max(0, unit.hp - applied.total);
+  const note = describeDefenseEffects(applied.lines);
+  spawnFloatingText(unit.col, unit.row, applied.total ? `⚠️ -${applied.total} PV` : '🛡️ RESISTIU', applied.total ? '#fca5a5' : '#94a3b8');
+  addLog(`⚠️ <strong>${escapeHtml(unit.name)}</strong> parou em <em>${escapeHtml(def.label)}</em> e sofreu <strong style="color:var(--strike)">${applied.total}</strong> de dano (${formatDamageParts(dmg.parts, 1)})${note ? ` <em>(${note})</em>` : ''}.${unit.hp === 0 ? ` 💀 <strong style="color:var(--strike)">${escapeHtml(unit.name)} MORTO!</strong>` : ` (PV: ${unit.hp}/${unit.maxHp})`}`);
+}
+
 function executeItemUseOnCell(user, item, cell, clickedUnit) {
+  if (item.kind === 'light') {
+    toggleLightItem(user, user.items.indexOf(item), true);
+    return;
+  }
   const cost = item.cost || 2;
   if (user.actions < cost) {
     addLog(`⚠️ <strong>${user.name}</strong> precisa de ${cost} ações (◆◆) para usar <em>${item.name}</em>.`);
@@ -294,6 +341,10 @@ function useSelectedItemOnSelf() {
   const item = activeUnit.items[STATE.combat.selectedItemIdx];
   if (!item || item.qty <= 0) {
     addLog(`⚠️ Nenhuma poção/item disponível.`);
+    return;
+  }
+  if (item.kind === 'light') {
+    toggleLightItem(activeUnit, STATE.combat.selectedItemIdx, true);
     return;
   }
   if (item.kind !== 'potion') {

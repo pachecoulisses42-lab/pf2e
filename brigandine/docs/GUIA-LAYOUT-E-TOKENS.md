@@ -299,7 +299,7 @@ Textos da interface: português, frases curtas, verbo no infinitivo nos botões
 Um **token** é a figura da peça no tabuleiro (≈ 55 px) e nos painéis (46–64 px). Existem **dois estilos**,
 trocáveis em *Peças → Estilo dos tokens* (escolha guardada no navegador):
 
-- **Chibi (padrão):** personagem de corpo inteiro sobre base oval.
+- **Token (padrão, antes chamado Chibi):** personagem de corpo inteiro sobre base oval.
 - **Vista de cima:** personagem visto do alto, virado para o sul, com volumes pintados, grão de tinta e
   sombra projetada macia, sem moldura (substitui o antigo estilo medalhão; quem tinha medalhão salvo passa
   para a vista de cima automaticamente).
@@ -452,6 +452,28 @@ Além dos estilos desenhados em código, o app traz tokens pintados em imagem, e
 Para acrescentar uma folha nova: recorte com `scripts/recortar-tokens-extras.py` (ou exporte cada token
 em PNG/WebP 256×256 transparente), copie para `src/tokens-extra/`, acrescente as entradas no manifesto e rode
 `npm run check`. Os extras aparecem sozinhos na galeria, nas listas e no salvamento.
+
+### 7.7 Ambiente: terreno, objetos, perigos, clima e luz
+
+Dados e regras puras em `src/js/01c-environment.js`; formas e luz em `06b-shapes-and-light.js`; desenho em
+`07c-environment-render.js`; interface em `12c-toolbox.js`.
+
+| Camada | Onde fica | Transparência |
+| --- | --- | --- |
+| Terreno (`STATE.terrainMap`) e perigos | Caixa de ferramentas → Terreno / Perigos | Terreno e perigos (padrão 50 %) |
+| Objetos (`STATE.objects`) | Caixa de ferramentas → Objetos | sempre opacos |
+| Clima (`STATE.effects`, `STATE.effectZones`) | Tabuleiro → Clima e ambiente | Clima (padrão 50 %) |
+| Mapa de fundo | Mapa de fundo | Mapa (padrão 0 %) |
+
+**Luz.** Toda fonte tem `light: { shape: 'emanation' | 'cone', bright, dim }` (metros). Luz plena anula a
+escuridão; penumbra deixa metade. Paredes e muros (`blocksLight`) cortam a luz; a face da parede recebe luz.
+Itens de luz das peças (`kind: 'light'`) acendem com ◆ e ficam acesos até apagar; cone segue a direção da peça.
+
+**Decisões registradas** (o que ainda não interage com a escuridão até o dono do projeto decidir):
+magias de fogo e de luz existentes (Bola de Fogo, Chama Cristalina, Fogo de Raposa, Sopro Dracônico,
+Fogueira Goblin, Julgamento Radiante, Lança Divina, Relâmpago) são instantâneas e **não** iluminam;
+magias sombrias (Maldição Sombria, Toque Sombrio, Uivo Espectral) **não** criam escuridão.
+Antes de mudar isso ou criar algo que interaja com a escuridão, pergunte ao usuário (ver `CLAUDE.md`).
 
 ## 8. Como adicionar um token novo
 

@@ -150,12 +150,18 @@ function syncCombatUI() {
       card.classList.add('has-cost', 'item-card');
       card.innerHTML = `
         <div class="card-ribbon">${escapeHtml(it.name)}</div>
-        <div class="card-art"><svg class="icon"><use href="#i-${it.kind === 'potion' ? 'flask' : 'scroll'}"/></svg></div>
-        <div class="card-text"><b>×${it.qty}</b><span>${escapeHtml(it.desc)}</span></div>
+        <div class="card-art"><svg class="icon"><use href="#i-${it.kind === 'potion' ? 'flask' : it.kind === 'light' ? 'sparkles' : 'scroll'}"/></svg></div>
+        <div class="card-text"><b>×${it.qty}${it.kind === 'light' ? (it.lit ? ' · 🔥 acesa' : ' · apagada') : ''}</b><span>${escapeHtml(it.desc)}</span></div>
         <div class="card-cost"><span class="cost-badge">${it.cost || 2}</span></div>`;
       iBox.appendChild(card);
     });
   }
+
+  // botão do painel de itens: "usar em si mesmo" ou acender/apagar luz
+  const selItem = activeUnit.items[STATE.combat.selectedItemIdx];
+  const selfBtn = document.getElementById('btnQuickSelfItem');
+  if (itemLight(selItem)) selfBtn.innerHTML = `<svg class="icon"><use href="#i-sparkles"/></svg>${selItem.lit ? 'Apagar (sem custo)' : `Acender (${'◆'.repeat(selItem.cost || 1)})`}`;
+  else selfBtn.innerHTML = '<svg class="icon"><use href="#i-flask"/></svg>Usar em si mesmo';
 
   // Subpanel 5: Ficha (somente leitura no combate)
   document.getElementById('sheetHeaderBadge').textContent = `${activeUnit.sheet?.ancestry || ''} · Nív ${activeUnit.sheet?.level || 1}`;
@@ -365,7 +371,8 @@ function syncInspectorUI() {
     const row = document.createElement('div');
     row.className = 'tag-list-item';
     row.innerHTML = `
-      <div class="grow"><span class="option-title">${escapeHtml(it.name)}</span><span class="option-sub">×${it.qty} · ${escapeHtml(it.desc)}</span></div>
+      <div class="grow"><span class="option-title">${escapeHtml(it.name)}${it.lit ? ' · 🔥 acesa' : ''}</span><span class="option-sub">×${it.qty} · ${escapeHtml(it.desc)}</span></div>
+      ${itemLight(it) ? `<button class="btn btn-sm" onclick="toggleLightItem(STATE.units.find(x => x.id === STATE.selectedUnitId), ${idx}, false)">${it.lit ? 'Apagar' : 'Acender'}</button>` : ''}
       <button class="btn btn-sm btn-ghost btn-icon" onclick="removeItemFromUnit(${idx})" aria-label="Remover ${escapeHtml(it.name)}"><svg class="icon"><use href="#i-trash"/></svg></button>`;
     eiList.appendChild(row);
   });

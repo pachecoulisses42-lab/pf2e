@@ -68,7 +68,20 @@ function buildUnitTipHTML(unit) {
     </div>
     <div class="hp-bar-outer"><div class="hp-bar-inner" data-level="${level}" style="width:${hpPct}%"></div></div>
     <div class="chip-row">${chips || '<span class="faint">Sem resistências, fraquezas ou imunidades</span>'}</div>
+    ${unitLightNoteHTML(unit)}
     ${preview}`;
+}
+
+/** Escuridão/penumbra na casa da peça e luz que ela carrega acesa. */
+function unitLightNoteHTML(unit) {
+  const k = `${unit.col},${unit.row}`;
+  const dark = effectCellSet('escuridao').has(k) ? darknessAt(true, computeLightMap()[k] || 0) : 0;
+  const lit = (unit.items || []).filter(it => it.lit && itemLight(it)).map(it => escapeHtml(it.name));
+  const parts = [];
+  if (dark === 1) parts.push('🌑 Na escuridão');
+  else if (dark === 0.5) parts.push('🌘 Na penumbra');
+  if (lit.length) parts.push(`🔥 ${lit.join(', ')} acesa`);
+  return parts.length ? `<div class="tip-note">${parts.join(' · ')}</div>` : '';
 }
 
 function hideUnitTip() {

@@ -82,7 +82,9 @@ function onCanvasPointerDown(e) {
                       STATE.units.find(u => u.col === cell.col && u.row === cell.row);
 
   // toque: adia a ação até soltar o dedo, para permitir arrastar o tabuleiro
-  const deferrable = isTouch && (STATE.mode === 'combat' || (STATE.setupTool !== 'terrain' && !clickedUnit));
+  const tool = STATE.mode === 'setup' ? currentBoardTool() : null;
+  const paints = tool === 'terrain' || tool === 'effect';
+  const deferrable = isTouch && (STATE.mode === 'combat' || (!paints && (!clickedUnit || tool === 'object' || tool === 'hazard')));
   if (deferrable) {
     touchState.pending = {
       pointerId: e.pointerId, cell, clickedUnit, mode: STATE.mode,
@@ -92,19 +94,7 @@ function onCanvasPointerDown(e) {
   }
 
   if (STATE.mode === 'setup') {
-    if (STATE.setupTool === 'terrain') {
-      STATE.interaction.paintingTerrain = true;
-      paintCellTerrain(cell.col, cell.row);
-      return;
-    }
-    if (clickedUnit) {
-      STATE.selectedUnitId = clickedUnit.id;
-      STATE.interaction.draggingUnitId = clickedUnit.id;
-      syncInspectorUI();
-      requestRender();
-    } else {
-      spawnUnitFromTemplate(STATE.selectedTemplateId, cell.col, cell.row);
-    }
+    setupPointerDown(cell, clickedUnit);
   } else {
     handleCombatBoardClick(cell, clickedUnit);
   }
@@ -168,8 +158,8 @@ function onCanvasPointerMove(e) {
   }
 
   if (STATE.mode === 'setup') {
-    if (STATE.interaction.paintingTerrain && cell) {
-      paintCellTerrain(cell.col, cell.row);
+    if ((STATE.interaction.paintingTerrain || STATE.paint.start) && cell) {
+      paintDragTo(cell);
     } else if (STATE.interaction.draggingUnitId && cell) {
       const dragged = STATE.units.find(u => u.id === STATE.interaction.draggingUnitId);
       const occupied = STATE.units.find(u => u.id !== dragged.id && u.col === cell.col && u.row === cell.row);
@@ -192,13 +182,17 @@ function onCanvasPointerUp(e) {
       touchState.pending = null;
       if (e.type === 'pointerup') {
         if (pend.mode === 'combat') handleCombatBoardClick(pend.cell, pend.clickedUnit);
-        else if (STATE.mode === 'setup') spawnUnitFromTemplate(STATE.selectedTemplateId, pend.cell.col, pend.cell.row);
+        else if (STATE.mode === 'setup') setupTap(pend.cell, pend.clickedUnit);
       }
     }
   }
   if (STATE.interaction.rotatingUnitId && (!e || e.type === 'pointerup')) endFacingDrag();
   STATE.interaction.rotatingUnitId = null;
   STATE.interaction.rotateStart = null;
+  if (STATE.paint.start || STATE.interaction.paintingTerrain) {
+    if (!e || e.type === 'pointerup') finishPaint();
+    else { STATE.paint.start = null; STATE.paint.preview = null; requestRender(); }
+  }
   STATE.interaction.isPanning = false;
   STATE.interaction.draggingUnitId = null;
   STATE.interaction.paintingTerrain = false;

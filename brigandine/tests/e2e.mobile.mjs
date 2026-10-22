@@ -129,6 +129,27 @@ await check('gaveta de edição abre ao tocar na alça e mostra o inspetor', asy
   assert.ok(box && box.y + box.height <= 780);
 });
 
+await check('celular: arrastar com Terreno pinta casa a casa; com Objetos, toque põe e arrastar só move a câmera', async () => {
+  await page.evaluate(() => {
+    document.getElementById('sidebarRight').classList.remove('open');
+    resetCamera(); STATE.units = [];
+    setSetupTool('terrain'); selectTerrainBrush('neve'); setPaintShape('cell'); STATE.terrainMap = {};
+  });
+  const a = await cellPoint(2, 5), b = await cellPoint(4, 5);
+  const cam0 = await page.evaluate(() => ({ ...STATE.camera }));
+  await swipe(a, b, 10);
+  const painted = await page.evaluate(() => Object.keys(STATE.terrainMap).filter(k => STATE.terrainMap[k] === 'neve').length);
+  assert.ok(painted >= 3, `pintou ${painted} casas`);
+  assert.deepEqual(await page.evaluate(() => ({ ...STATE.camera })), cam0, 'pintar não move a câmera');
+  await page.evaluate(() => { setSetupTool('object'); selectObjectBrush('barril'); STATE.objects = []; });
+  const c = await cellPoint(2, 3);
+  await swipe(c, { x: c.x + 60, y: c.y + 30 });
+  assert.equal(await page.evaluate(() => STATE.objects.length), 0, 'arrastar não põe objeto');
+  const c2 = await cellPoint(2, 3);
+  await page.touchscreen.tap(c2.x, c2.y);
+  assert.deepEqual(await page.evaluate(() => STATE.objects.map(o => [o.type, o.col, o.row])), [['barril', 2, 3]]);
+});
+
 await check('sem erros de JavaScript', async () => { assert.deepEqual(errors, []); });
 
 await browser.close();

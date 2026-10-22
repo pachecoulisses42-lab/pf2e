@@ -140,6 +140,21 @@ const ITEM_CATALOG = {
     cost: 1, range: 1.5, dice: '2d6', bonus: 6, qty: 2,
     desc: 'Recupera 2d6+6 PV (Si mesmo ou Adjacente | ◆ 1 Ação)'
   },
+  tocha: {
+    id: 'tocha', name: 'Tocha', kind: 'light', cost: 1, qty: 1,
+    light: { shape: 'emanation', bright: 6, dim: 12 },
+    desc: 'Acender (◆): luz plena 6m e penumbra até 12m ao redor da peça'
+  },
+  lanterna: {
+    id: 'lanterna', name: 'Lanterna Direcional', kind: 'light', cost: 1, qty: 1,
+    light: { shape: 'cone', bright: 18, dim: 36 },
+    desc: 'Acender (◆): cone de luz plena 18m (penumbra até 36m) para onde a peça olha'
+  },
+  lampiao: {
+    id: 'lampiao', name: 'Lampião', kind: 'light', cost: 1, qty: 1,
+    light: { shape: 'emanation', bright: 9, dim: 18 },
+    desc: 'Acender (◆): luz plena 9m e penumbra até 18m ao redor da peça'
+  },
   perg_cura: {
     id: 'perg_cura', name: 'Pergaminho de Cura Sagrada', kind: 'potion',
     cost: 2, range: 9, dice: '2d8', bonus: 8, qty: 1,

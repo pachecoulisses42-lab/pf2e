@@ -488,6 +488,22 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .np-token-preview { width: 64px; height: 64px; }
 .np-token-preview svg { width: 100%; height: 100%; }
 
+/* Caixa de ferramentas: abas, paletas de terreno/objetos/perigos/clima, transparência */
+.tool-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; padding: 3px; background: var(--ink-950); border-radius: var(--r-md); box-shadow: inset 0 0 0 1px var(--line); }
+.tool-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 1px; border: 0; border-radius: calc(var(--r-md) - 2px); background: transparent; color: var(--text-2); font: inherit; font-size: 0.66rem; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; cursor: pointer; min-width: 0; }
+.tool-tab .icon { width: 18px; height: 18px; }
+.tool-tab:hover { background: var(--ink-850); }
+.tool-tab.active { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.tool-panel { display: flex; flex-direction: column; gap: var(--s-3); }
+.env-palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; }
+.env-pick { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 2px 5px; border: 0; border-radius: var(--r-md); background: var(--ink-900); box-shadow: inset 0 0 0 1px var(--line); color: var(--text); font: inherit; font-size: var(--text-2xs); line-height: 1.1; text-align: center; cursor: pointer; }
+.env-pick:hover { box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.env-pick.active { background: var(--accent-soft); box-shadow: inset 0 0 0 2.5px var(--accent); }
+.env-swatch { width: 40px; height: 40px; border-radius: 6px; display: grid; place-items: center; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25); }
+.env-erase { background: var(--ink-850); color: var(--danger); }
+.range-ends { display: flex; justify-content: space-between; font-size: var(--text-2xs); color: var(--text-3); }
+.shape-controls select { width: auto; }
+
 /* --- layout.css --- */
 /* ==========================================================================
    Brigandine DS — Layout do app (shell, painéis, HUD)

@@ -8,7 +8,9 @@ function initApp() {
   initCanvasEvents();
   appendExtraTokenOptions(document.getElementById('inspTokenSelect'));
   appendExtraTokenOptions(document.getElementById('newPieceSculpt'));
+  initSetupMenus();
   renderPieceGallery();
+  renderEnvPalettes();
   populateDemoBattle();
   resetCamera();
   applyPrefs();

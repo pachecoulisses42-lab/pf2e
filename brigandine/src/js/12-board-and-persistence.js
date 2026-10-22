@@ -91,24 +91,8 @@ function setProceduralMap(theme) {
   clearBackgroundMap();
 }
 
-function setSetupTool(tool) {
-  STATE.setupTool = tool;
-  document.getElementById('toolPlacePiece').classList.toggle('active', tool === 'piece');
-  document.getElementById('toolPaintTerrain').classList.toggle('active', tool === 'terrain');
-  document.getElementById('terrainBrushBox').classList.toggle('hidden', tool !== 'terrain');
-}
-
-function setTerrainBrush(type) {
-  STATE.terrainBrush = type;
-  document.querySelectorAll('.terrain-btn').forEach(b => b.classList.toggle('active', b.dataset.t === type));
-}
-
-function paintCellTerrain(col, row) {
-  const key = `${col},${row}`;
-  if (STATE.terrainBrush === 'normal') delete STATE.terrainMap[key];
-  else STATE.terrainMap[key] = STATE.terrainBrush;
-  requestRender();
-}
+/** Animais ficam na aba própria da caixa de ferramentas; o resto em Personagens. */
+const isAnimalTemplate = (t) => t.category === 'animal';
 
 function renderPieceGallery() {
   const container = document.getElementById('pieceGalleryContainer');
@@ -117,15 +101,17 @@ function renderPieceGallery() {
   container.innerHTML = '';
   const q = normalizeSearchText(document.getElementById('galleryFilterText')?.value);
   const fac = document.getElementById('galleryFilterFaction')?.value || '';
-  const shown = UNIT_TEMPLATES.filter(t => (!fac || t.faction === fac) &&
+  const shown = UNIT_TEMPLATES.filter(t => !isAnimalTemplate(t) && (!fac || t.faction === fac) &&
     (!q || normalizeSearchText(`${t.name} ${t.sheet?.className || ''} ${t.sheet?.ancestry || ''}`).includes(q)));
   if (shown.length === 0) container.innerHTML = '<p class="hint" style="grid-column:1/-1">Nenhuma peça com esse filtro.</p>';
-  for (const t of shown) {
+  const animalBox = document.getElementById('animalGalleryContainer');
+  if (animalBox) animalBox.innerHTML = '';
+  const render = (t, box, tab) => {
     const card = document.createElement('div');
     card.className = `piece-card ${t.id === STATE.selectedTemplateId ? 'selected' : ''}`;
     card.onclick = () => {
       STATE.selectedTemplateId = t.id;
-      setSetupTool('piece');
+      setSetupTool(tab);
       renderPieceGallery();
     };
     card.innerHTML = `
@@ -133,8 +119,10 @@ function renderPieceGallery() {
       <div class="piece-card-name">${escapeHtml(t.name)}</div>
       <div class="piece-card-meta">Nív ${Number(t.sheet?.level) || 1} | ${Number(t.moveSpeed) || 0}m</div>
     `;
-    container.appendChild(card);
-  }
+    box.appendChild(card);
+  };
+  for (const t of shown) render(t, container, 'piece');
+  if (animalBox) for (const t of UNIT_TEMPLATES.filter(isAnimalTemplate)) render(t, animalBox, 'animal');
 }
 
 function spawnUnitFromTemplate(templateId, col, row) {
@@ -272,6 +260,8 @@ function populateDemoBattle() {
 function clearAllUnits() {
   STATE.units = [];
   STATE.terrainMap = {};
+  STATE.objects = [];
+  clearAllEffects();
   STATE.selectedUnitId = null;
   STATE.combat.activeUnitId = null;
   syncInspectorUI();
@@ -329,6 +319,10 @@ function saveStateToLocal() {
   const payload = {
     grid: STATE.grid,
     terrainMap: STATE.terrainMap,
+    objects: STATE.objects,
+    effects: STATE.effects,
+    effectZones: STATE.effectZones,
+    layers: STATE.layers,
     units: STATE.units,
     templates: UNIT_TEMPLATES,
     round: STATE.combat.round
@@ -351,6 +345,10 @@ function exportJSON() {
   const payload = {
     grid: STATE.grid,
     terrainMap: STATE.terrainMap,
+    objects: STATE.objects,
+    effects: STATE.effects,
+    effectZones: STATE.effectZones,
+    layers: STATE.layers,
     units: STATE.units,
     templates: UNIT_TEMPLATES,
     round: STATE.combat.round
@@ -391,7 +389,17 @@ function applyLoadedPayload(data) {
     setGridSize(STATE.grid.cols, STATE.grid.rows);
     setCellScale(STATE.grid.cellScale);
   }
-  if (data.terrainMap) STATE.terrainMap = data.terrainMap;
+  if (data.terrainMap && typeof data.terrainMap === 'object') {
+    STATE.terrainMap = {};
+    for (const [k, t] of Object.entries(data.terrainMap)) if (/^\d+,\d+$/.test(k) && TERRAIN_TYPES[t]) STATE.terrainMap[k] = t;
+  }
+  // ambiente (arquivos antigos não têm: tudo vazio e transparências padrão)
+  const env = normalizeEnvironment(data);
+  STATE.objects = env.objects;
+  STATE.effects = env.effects;
+  STATE.effectZones = env.effectZones;
+  STATE.layers = env.layers;
+  syncTransparencyUI();
   if (Array.isArray(data.templates)) {
     UNIT_TEMPLATES = data.templates.filter(t => t && typeof t === 'object' && t.sheet);
     const fixed = UNIT_TEMPLATES.filter(repairPieceToken).length;

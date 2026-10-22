@@ -430,6 +430,158 @@ await check('importar peças de outro módulo: escolhe token, respeita imagem e 
   assert.equal(r.api, 'function');
 });
 
+/** Centro de uma célula em coordenadas da página. */
+async function cellPoint(col, row) {
+  return page.evaluate(([c, r]) => {
+    const p = getCellPixelCenter(c, r);
+    const b = document.getElementById('battleCanvas').getBoundingClientRect();
+    return { x: b.left + p.x, y: b.top + p.y };
+  }, [col, row]);
+}
+const openMenu = (menu) => page.evaluate((m) => {
+  const el = document.querySelector(`#setupLeftPanel details.acc[data-menu="${m}"]`);
+  if (!el.open) el.querySelector('summary').click();
+}, menu);
+
+await check('menus: um aberto por vez, só o aberto age no tabuleiro e fechar desfaz a escolha; Chibi virou Token', async () => {
+  await page.evaluate(() => { setAppMode('setup'); populateDemoBattle(); resetCamera(); });
+  await openMenu('tools');
+  await page.evaluate(() => { setSetupTool('piece'); STATE.selectedTemplateId = 't_goblin'; renderPieceGallery(); });
+  await openMenu('board');
+  const r = await page.evaluate(() => ({
+    open: Array.from(document.querySelectorAll('#setupLeftPanel details.acc')).filter(d => d.open).map(d => d.dataset.menu),
+    menu: STATE.openMenu, tpl: STATE.selectedTemplateId, units: STATE.units.length, label: document.getElementById('styleChibi').textContent.trim()
+  }));
+  assert.deepEqual(r.open, ['board']);
+  assert.equal(r.menu, 'board');
+  assert.equal(r.tpl, null, 'fechar a caixa de ferramentas desfaz a peça escolhida');
+  assert.equal(r.label, 'Token');
+  // com o Tabuleiro aberto e sem efeito escolhido, clicar numa casa vazia não cria peça
+  const pt = await cellPoint(6, 8);
+  await page.mouse.click(pt.x, pt.y);
+  assert.equal(await page.evaluate(() => STATE.units.length), r.units);
+});
+
+await check('terreno: textura pintada em quadrado arrastando, e lama custa o dobro para andar', async () => {
+  await openMenu('tools');
+  await page.evaluate(() => { setSetupTool('terrain'); selectTerrainBrush('lama'); setPaintShape('square'); });
+  const a = await cellPoint(5, 7), b = await cellPoint(7, 8);
+  await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(b.x, b.y, { steps: 5 }); await page.mouse.up();
+  const r = await page.evaluate(() => {
+    const keys = Object.entries(STATE.terrainMap).filter(([, t]) => t === 'lama').map(([k]) => k).sort();
+    return { keys, mult: cellMoveMultiplier('lama'), transp: STATE.layers.terrain };
+  });
+  assert.deepEqual(r.keys, ['5,7', '5,8', '6,7', '6,8', '7,7', '7,8']);
+  assert.equal(r.transp, 50, 'transparência padrão 50 %');
+  await page.evaluate(() => { selectTerrainBrush('normal'); setPaintShape('all'); });
+  const c = await cellPoint(0, 0);
+  await page.mouse.click(c.x, c.y);
+  assert.equal(await page.evaluate(() => Object.keys(STATE.terrainMap).length), 0, 'Apagar em Tudo limpa o terreno');
+  await page.evaluate(() => setPaintShape('cell'));
+});
+
+await check('objetos e perigos: pôr, trocar, remover; pedra bloqueia; transparência do menu', async () => {
+  await page.evaluate(() => { setSetupTool('object'); selectObjectBrush('pedra'); });
+  const p = await cellPoint(6, 9);
+  await page.mouse.click(p.x, p.y);
+  await page.evaluate(() => { setSetupTool('hazard'); selectObjectBrush('fogueira'); });
+  await page.mouse.click(p.x, p.y);
+  let objs = await page.evaluate(() => STATE.objects.map(o => o.type).sort());
+  assert.deepEqual(objs, ['fogueira', 'pedra'], 'objeto e perigo dividem a casa');
+  await page.evaluate(() => selectObjectBrush('erase'));
+  await page.mouse.click(p.x, p.y);
+  objs = await page.evaluate(() => STATE.objects.map(o => o.type));
+  assert.deepEqual(objs, ['pedra'], 'Remover na aba Perigos só tira o perigo');
+  await page.evaluate(() => { const t = document.getElementById('transp_terrain'); t.value = '80'; t.dispatchEvent(new Event('input')); });
+  assert.equal(await page.evaluate(() => STATE.layers.terrain), 80);
+  await page.evaluate(() => setLayerTransparency('terrain', 50));
+});
+
+await check('clima: escuridão em todo o tabuleiro, emanação presa à peça e transparência própria do Tabuleiro', async () => {
+  await openMenu('board');
+  await page.evaluate(() => { selectEffectBrush('escuridao'); setPaintShape('all'); });
+  const p = await cellPoint(10, 9);
+  await page.mouse.click(p.x, p.y);
+  const r = await page.evaluate(() => ({
+    dark: Object.keys(STATE.effects.escuridao).length, cells: STATE.grid.cols * STATE.grid.rows,
+    menuTools: document.querySelector('details.acc[data-menu="tools"]').open, brush: STATE.objectBrush
+  }));
+  assert.equal(r.dark, r.cells);
+  assert.equal(r.menuTools, false);
+  assert.equal(r.brush, null, 'objeto escolhido foi desfeito ao fechar a caixa de ferramentas');
+  const u = await page.evaluate(() => { const x = STATE.units.find(v => v.faction === 'villain'); return { id: x.id, col: x.col, row: x.row }; });
+  await page.evaluate(() => { selectEffectBrush('nevoa'); setPaintShape('emanation'); setPaintSize(3); });
+  const up = await cellPoint(u.col, u.row);
+  await page.mouse.click(up.x, up.y);
+  const z = await page.evaluate(() => STATE.effectZones.map(z => [z.type, z.unitId, z.radius]));
+  assert.deepEqual(z, [['nevoa', u.id, 3]]);
+  await page.evaluate(() => setLayerTransparency('effects', 30));
+  assert.equal(await page.evaluate(() => document.getElementById('transpVal_effects').textContent), '30 %');
+  await page.evaluate(() => setPaintShape('cell'));
+});
+
+await check('luz: tocha acende com ◆ no combate, anula a escuridão e fica acesa até apagar (sem custo)', async () => {
+  const r = await page.evaluate(() => {
+    const u = STATE.units.find(x => x.faction === 'hero');
+    u.items.push({ ...ITEM_CATALOG.tocha });
+    const k = `${u.col},${u.row}`;
+    const before = computeDarknessMap()[k];
+    setAppMode('combat');
+    selectActiveTurnUnit(u.id); u.actions = 3;
+    selectCombatMainMenu('items');
+    STATE.combat.selectedItemIdx = u.items.length - 1; syncCombatUI();
+    const label = document.getElementById('btnQuickSelfItem').textContent.trim();
+    document.getElementById('btnQuickSelfItem').click();
+    const lit = { actions: u.actions, lit: u.items.at(-1).lit, dark: computeDarknessMap()[k] || 0, label2: document.getElementById('btnQuickSelfItem').textContent.trim() };
+    nextTurn(); nextTurn();
+    const still = u.items.at(-1).lit;
+    selectActiveTurnUnit(u.id); u.actions = 0; selectCombatMainMenu('items'); STATE.combat.selectedItemIdx = u.items.length - 1; syncCombatUI();
+    document.getElementById('btnQuickSelfItem').click();
+    return { before, label, ...lit, still, off: u.items.at(-1).lit, darkAfter: computeDarknessMap()[k] };
+  });
+  assert.equal(r.before, 1);
+  assert.equal(r.label, 'Acender (◆)');
+  assert.deepEqual([r.actions, r.lit, r.dark, r.label2], [2, true, 0, 'Apagar (sem custo)']);
+  assert.equal(r.still, true, 'continua acesa em outros turnos');
+  assert.equal(r.off, false, 'apagar não exige ação');
+  assert.equal(r.darkAfter, 1);
+});
+
+await check('perigo: terminar o movimento na fogueira causa dano de fogo', async () => {
+  const r = await page.evaluate(() => {
+    const u = STATE.units.find(x => x.hp > 0 && x.faction === 'hero');
+    selectActiveTurnUnit(u.id); u.actions = 3; u.hp = u.maxHp; u.resistances = []; u.immunities = [];
+    selectCombatMainMenu('move');
+    const reach = computeReachableCells(u);
+    const key = Object.keys(reach).find(k => { const [c, rr] = k.split(',').map(Number); return reach[k].canAfford && !STATE.units.some(o => o.col === c && o.row === rr) && !STATE.objects.some(o => o.col === c && o.row === rr); });
+    const [c, rr] = key.split(',').map(Number);
+    STATE.objects.push({ id: 'hz', type: 'fogueira', col: c, row: rr });
+    handleCombatBoardClick({ col: c, row: rr }, null);
+    return { lost: u.maxHp - u.hp, log: document.getElementById('combatLogBox').firstElementChild.textContent };
+  });
+  assert.ok(r.lost >= 1 && r.lost <= 6, `dano ${r.lost}`);
+  assert.match(r.log, /Fogueira/);
+  await page.evaluate(() => setAppMode('setup'));
+});
+
+await check('salvar/carregar mantém terreno, objetos, clima, emanações, luz acesa e transparências', async () => {
+  const r = await page.evaluate(() => {
+    STATE.terrainMap['1,1'] = 'agua';
+    const payload = JSON.parse(JSON.stringify({ grid: STATE.grid, terrainMap: STATE.terrainMap, objects: STATE.objects, effects: STATE.effects, effectZones: STATE.effectZones, layers: STATE.layers, units: STATE.units, templates: UNIT_TEMPLATES, round: 1 }));
+    STATE.objects = []; STATE.effects = { escuridao: {} }; STATE.layers = { terrain: 50, effects: 50, map: 0 };
+    applyLoadedPayload(payload);
+    const old = JSON.parse(JSON.stringify({ grid: STATE.grid, units: STATE.units, templates: UNIT_TEMPLATES }));
+    const kept = { water: STATE.terrainMap['1,1'], objs: STATE.objects.length, dark: Object.keys(STATE.effects.escuridao).length, zones: STATE.effectZones.length, eff: STATE.layers.effects };
+    applyLoadedPayload(old); // arquivo antigo: sem ambiente
+    return { ...kept, oldObjs: STATE.objects.length, oldDark: Object.keys(STATE.effects.escuridao).length, oldLayers: STATE.layers };
+  });
+  assert.equal(r.water, 'agua');
+  assert.ok(r.objs >= 1 && r.dark > 0 && r.zones === 1);
+  assert.equal(r.eff, 30);
+  assert.deepEqual([r.oldObjs, r.oldDark, r.oldLayers], [0, 0, { terrain: 50, effects: 50, map: 0 }]);
+  await page.evaluate(() => { populateDemoBattle(); });
+});
+
 await check('sem erros de JavaScript durante o fluxo', async () => {
   assert.deepEqual(errors, []);
 });

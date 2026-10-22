@@ -51,6 +51,7 @@ src/
     00z-token-loader.js   Cache de imagens, token com imagem do usuário, pré-visualização (ids de SVG únicos)
     01-catalog.js         Catálogo de magias e itens
     01b-rules.js          Regras puras: dados, tipos de dano, runas, pacote de dano, defesas
+    01c-environment.js    Terrenos, objetos, perigos, clima, itens de luz (dados e regras puras)
     02-sheet-engine.js    Cálculo da ficha PF2e (CA, testes, ataque, CD, escudo)
     03-templates.js       22 modelos de peça
     03b-templates-extras.js 34 peças dos tokens pintados (classes novas e vilões)
@@ -58,14 +59,17 @@ src/
     04-state.js           Estado global
     05-app-mode.js        Inicialização e modos Montagem/Combate
     06-grid-and-ranges.js Geometria hex/quadrada, movimento, alcance, áreas
+    06b-shapes-and-light.js Formas de pintura, linha de visão, mapa de luz e escuridão
     07-render.js          Desenho do tabuleiro em canvas
     07b-facing.js         Direção das peças: alça de giro, seta na borda, virar para o alvo
+    07c-environment-render.js Texturas de terreno e clima, objetos, perigos, escuridão
     08-input.js           Ponteiro, arrasto, pintura de terreno
     09-combat-and-turns.js Ações, ataques, magias, itens, Erguer Escudo, turnos
     10-sheet-ui.js        Ficha em abas (Atributos, Testes, Combate, Build)
     11-panels.js          Painéis de combate e inspetor, editores de arma e magia
     12-board-and-persistence.js Galeria, câmera, registro, salvar/carregar/exportar
     12b-pieces-ui.js      Criar peça do zero, importar peças, API window.Brigandine
+    12c-toolbox.js        Menus exclusivos, caixa de ferramentas, pintura, objetos, transparência
     13-ui-shell.js        Menus, gaveta de registro, painéis responsivos
     14-unit-tip.js        Tooltip do alvo: defesas e prévia do ataque
 scripts/build.mjs         Monta dist/ (embute src/tokens-extra/*.webp)
@@ -86,6 +90,10 @@ dist/                     Saída versionada: app, CSS do design system, document
 - **Resistências, fraquezas e imunidades** (novo): por peça, na aba Base. Valem para qualquer tipo de dano e para os grupos *todo físico*, *toda energia* e *todos*. O dano é multiplicado (crítico ×2, metade ×½) antes das defesas; por tipo vale a maior resistência e a maior fraqueza; fraqueza só soma se houve dano daquele tipo; imunidade anula o tipo. Dano de precisão (ataque furtivo) conta como o tipo da arma. O registro mostra o que mudou (`fogo: resistência −5 · cortante: fraqueza +3`) e o painel de combate mostra as defesas do alvo ativo.
 - **Tooltip do alvo** (novo): ao passar o cursor sobre uma peça aparecem PV, CA e as defesas dela. No combate, com Ação ou Magias aberto, mostra também a prévia da arma/magia selecionada contra aquele alvo: chance de acerto e de crítico (já com MAP), dano médio depois das defesas, dano no crítico e o que mudou (`cortante: resistência −3 · fogo: fraqueza +5`).
 - **Imagem própria como token** (novo): aba Base → *Importar imagem* (PNG, JPG, WebP, GIF ou SVG, até 10 MB), ou arraste a imagem sobre a peça no tabuleiro. Imagens raster são reduzidas para 384 px. Por padrão a imagem é recortada em círculo com a moldura (ouro para heróis, ferro para vilões); desmarque a moldura para usar PNG transparente. *Usar padrão* volta à ilustração. A imagem vai junto no salvamento, na exportação JSON e no modelo salvo na galeria.
+- **Caixa de ferramentas** (novo; antigo menu Peças): abas **Personagens** (galeria, filtro, criar do zero, importar), **Terreno** (chão, terra, lama, neve, água, abismo, difícil, parede, perigo — com textura desenhada; lama, neve e água custam o dobro, abismo e parede bloqueiam, parede bloqueia a luz), **Objetos** (pedra, cadeira, mesa, barril, baú, árvore, muro e luzes: tocha de parede, braseiro, lampião, cristal de luz), **Animais** (lobos e outros com `category: "animal"`) e **Perigos** (espinhos, fogueira, poça de ácido, armadilha de urso, runa explosiva — no combate, quem termina o movimento no perigo sofre o dano; a fogueira ilumina). Terreno pinta em célula, raio, cone, linha, quadrado ou tudo.
+- **Clima e ambiente** (novo, menu Tabuleiro): névoa, escuridão, chuva, nevasca e fumaça, pintados em célula, raio, **emanação** (presa a uma peça, acompanha o movimento), cone, linha, quadrado ou o tabuleiro todo.
+- **Luz e escuridão** (novo): a escuridão some onde há luz plena e fica pela metade na penumbra. Luz vem de objetos (tochas de parede, braseiro, lampião, cristal), da fogueira e de itens das peças: **Tocha** (emanação 6 m, penumbra 12 m), **Lanterna Direcional** (cone 18 m para onde a peça olha) e **Lampião** (9 m). No combate, acender custa ◆ (Itens → Acender); fica aceso até você apagar, sem custo. Paredes e muros bloqueiam a luz. O tooltip da peça mostra se ela está na escuridão ou na penumbra.
+- **Menus da montagem** (novo): só um aberto por vez (Tabuleiro, Mapa de fundo, Caixa de ferramentas); só o menu aberto age no tabuleiro e fechar um menu desfaz a escolha feita nele. Cada menu termina com **Transparência** (0 % a 90 %): clima (padrão 50 %), mapa de fundo (padrão 0 %) e terreno/perigos (padrão 50 %). O estilo dos tokens agora se chama **Token** / Vista de cima.
 - **Celular e tablet em pé** (até 960 px): o painel da direita vira uma gaveta inferior sempre visível. No combate ela mostra a peça, as ações e os 5 comandos (Ação, Mover, Magias, Itens, Ficha) com o botão *Encerrar turno*; tocar em um comando abre as opções (Mover mantém o tabuleiro livre). Na montagem a alça "Editar · peça" abre o inspetor. A lista de iniciativa fica na gaveta lateral (ícone no canto superior esquerdo). Gestos: toque simples age ao soltar o dedo, arrastar com um dedo move o tabuleiro e pinça dá zoom.
 - **Tema Pergaminho** (novo, padrão): interface de RPG com papel envelhecido, contorno marrom grosso, plaquinhas de madeira com pregos, botões verde/vermelho, cartas de arma/magia/item com faixa colorida e selo de custo, lista de iniciativa em madeira, dica escura sobre o alvo e mapa de pergaminho. O tema Moderno continua disponível em Arquivo → Tema.
 - **Importar vários tokens de uma vez**: Peças → *Importar imagens como modelos* cria um modelo por imagem (nome do arquivo), herdando a ficha do modelo selecionado.

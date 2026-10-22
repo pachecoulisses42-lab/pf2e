@@ -117,6 +117,8 @@ function computeReachableCells(unit) {
   distMap[startKey] = 0;
 
   const queue = [{ col: unit.col, row: unit.row, cost: 0, diagCount: 0 }];
+  const objectAt = {};
+  for (const o of STATE.objects || []) objectAt[`${o.col},${o.row}`] = o.type;
 
   while (queue.length > 0) {
     queue.sort((a, b) => a.cost - b.cost);
@@ -126,8 +128,9 @@ function computeReachableCells(unit) {
 
     for (const nb of getNeighbors(curr.col, curr.row)) {
       const nbKey = `${nb.col},${nb.row}`;
-      const terrain = STATE.terrainMap[nbKey] || 'normal';
-      if (terrain === 'wall') continue;
+      // terreno e objeto: intransponível (parede, abismo, pedra…) ou custo multiplicado (lama, neve, água, mesa…)
+      const moveMult = cellMoveMultiplier(STATE.terrainMap[nbKey], objectAt[nbKey]);
+      if (moveMult === null) continue;
 
       const occ = STATE.units.find(u => u.hp > 0 && u.id !== unit.id && u.col === nb.col && u.row === nb.row);
       if (occ) continue;
@@ -138,7 +141,7 @@ function computeReachableCells(unit) {
         nextDiag += 1;
         if (nextDiag % 2 === 0) stepMultiplier = 2;
       }
-      if (terrain === 'difficult') stepMultiplier *= 2;
+      stepMultiplier *= moveMult;
 
       const stepMeters = scale * stepMultiplier;
       const newCost = curr.cost + stepMeters;

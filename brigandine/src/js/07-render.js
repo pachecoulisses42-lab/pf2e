@@ -49,6 +49,7 @@ function renderBoard() {
   ctx.beginPath();
   ctx.roundRect(boardX, boardY, boardW, boardH, 10);
   ctx.clip();
+  ctx.globalAlpha = layerOpacity('map');
   if (bgImageObj) {
     ctx.drawImage(bgImageObj, boardX, boardY, boardW, boardH);
   } else {
@@ -134,24 +135,21 @@ function renderBoard() {
     }
   }
 
-  // 3. Draw Grid Cells
+  // 3a. Terreno (textura), depois perigos, objetos, clima e escuridão
+  for (const [key, terrain] of Object.entries(STATE.terrainMap)) {
+    const [c, r] = key.split(',').map(Number);
+    if (c >= STATE.grid.cols || r >= STATE.grid.rows) continue;
+    drawPolygonCell(c, r);
+    drawTerrainFill(terrain);
+  }
+  drawEnvironmentLayer();
+
+  // 3b. Grid Cells: movimento, alcance e contorno por cima do ambiente
   for (let r = 0; r < STATE.grid.rows; r++) {
     for (let c = 0; c < STATE.grid.cols; c++) {
       const key = `${c},${r}`;
-      const terrain = STATE.terrainMap[key];
 
       drawPolygonCell(c, r);
-
-      if (terrain === 'difficult') {
-        ctx.fillStyle = 'rgba(217, 119, 6, 0.36)';
-        ctx.fill();
-      } else if (terrain === 'wall') {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-        ctx.fill();
-      } else if (terrain === 'hazard') {
-        ctx.fillStyle = 'rgba(220, 38, 38, 0.38)';
-        ctx.fill();
-      }
 
       // [MOVIMENTO]: Exact 50%, 25% and 10% translucent green scale requested!
       const reach = reachableMap[key];

@@ -167,7 +167,7 @@ let UNIT_TEMPLATES = [
     items: [{ ...ITEM_CATALOG.pocao_menor, qty: 1 }]
   },
   {
-    id: 't_lobo', name: 'Lobo Atroz', sculpt: 'lobo', faction: 'villain', moveSpeed: 12, maxHp: 32, ac: 18,
+    id: 't_lobo', name: 'Lobo Atroz', sculpt: 'lobo', faction: 'villain', category: 'animal', moveSpeed: 12, maxHp: 32, ac: 18,
     sheet: {
       ancestry: 'Fera', background: 'Alcateia', className: 'Predador Lupino', level: 2, keyAttr: 'FOR',
       ancestryHp: 8, classHp: 10, armorItemBonus: 2, dexCap: 3, shieldBonus: 0,

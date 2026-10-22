@@ -488,6 +488,22 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .np-token-preview { width: 64px; height: 64px; }
 .np-token-preview svg { width: 100%; height: 100%; }
 
+/* Caixa de ferramentas: abas, paletas de terreno/objetos/perigos/clima, transparência */
+.tool-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; padding: 3px; background: var(--ink-950); border-radius: var(--r-md); box-shadow: inset 0 0 0 1px var(--line); }
+.tool-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 1px; border: 0; border-radius: calc(var(--r-md) - 2px); background: transparent; color: var(--text-2); font: inherit; font-size: 0.66rem; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; cursor: pointer; min-width: 0; }
+.tool-tab .icon { width: 18px; height: 18px; }
+.tool-tab:hover { background: var(--ink-850); }
+.tool-tab.active { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.tool-panel { display: flex; flex-direction: column; gap: var(--s-3); }
+.env-palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; }
+.env-pick { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 2px 5px; border: 0; border-radius: var(--r-md); background: var(--ink-900); box-shadow: inset 0 0 0 1px var(--line); color: var(--text); font: inherit; font-size: var(--text-2xs); line-height: 1.1; text-align: center; cursor: pointer; }
+.env-pick:hover { box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.env-pick.active { background: var(--accent-soft); box-shadow: inset 0 0 0 2.5px var(--accent); }
+.env-swatch { width: 40px; height: 40px; border-radius: 6px; display: grid; place-items: center; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25); }
+.env-erase { background: var(--ink-850); color: var(--danger); }
+.range-ends { display: flex; justify-content: space-between; font-size: var(--text-2xs); color: var(--text-3); }
+.shape-controls select { width: auto; }
+
 /* --- layout.css --- */
 /* ==========================================================================
    Brigandine DS — Layout do app (shell, painéis, HUD)
@@ -1092,7 +1108,7 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
 
     <!-- MONTAGEM -->
     <div id="setupLeftPanel">
-      <details class="acc" name="setup-acc">
+      <details class="acc" name="setup-acc" data-menu="board">
         <summary>
           <svg class="icon"><use href="#i-hex"/></svg>Tabuleiro
           <span id="gridSummaryBadge" class="summary-meta">HEX 14×10 (1,5m)</span>
@@ -1149,10 +1165,31 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
               </div>
             </div>
           </details>
+
+          <div class="field">
+            <div class="field-label"><span>Clima e ambiente</span><button class="btn btn-sm btn-ghost" onclick="clearAllEffects()">Limpar tudo</button></div>
+            <div id="effectPalette" class="env-palette"></div>
+            <p class="hint">Escolha um efeito e pinte no tabuleiro. Escuridão some onde houver luz (tochas, lanternas, braseiros, fogueiras).</p>
+          </div>
+              <div class="field">
+                <div class="field-label"><span>Forma</span></div>
+                <div id="effectShapeControls" class="shape-controls"></div>
+              </div>
+
+          <details class="more transp" data-layer="effects">
+            <summary><svg class="icon"><use href="#i-eye"/></svg>Transparência<span class="summary-meta num" id="transpVal_effects">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <div class="field">
+                <div class="field-label"><span>Névoa, escuridão, chuva, nevasca e fumaça</span></div>
+                <input type="range" id="transp_effects" min="0" max="90" step="5" oninput="setLayerTransparency('effects', this.value)" aria-label="Transparência: Névoa, escuridão, chuva, nevasca e fumaça">
+                <div class="range-ends"><span>Opaco</span><span>90 %</span></div>
+              </div>
+            </div>
+          </details>
         </div>
       </details>
 
-      <details class="acc" name="setup-acc">
+      <details class="acc" name="setup-acc" data-menu="map">
         <summary><svg class="icon"><use href="#i-image"/></svg>Mapa de fundo<svg class="icon chev" style="margin-left:auto"><use href="#i-chevron"/></svg></summary>
         <div class="acc-body">
           <div class="grid-2">
@@ -1169,30 +1206,36 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
               <button class="chip" onclick="setProceduralMap('abyss')">Abismo</button>
             </div>
           </div>
+
+          <details class="more transp" data-layer="map">
+            <summary><svg class="icon"><use href="#i-eye"/></svg>Transparência<span class="summary-meta num" id="transpVal_map">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <div class="field">
+                <div class="field-label"><span>Mapa de fundo</span></div>
+                <input type="range" id="transp_map" min="0" max="90" step="5" oninput="setLayerTransparency('map', this.value)" aria-label="Transparência: Mapa de fundo">
+                <div class="range-ends"><span>Opaco</span><span>90 %</span></div>
+              </div>
+            </div>
+          </details>
         </div>
       </details>
 
-      <details class="acc" name="setup-acc" open>
-        <summary><svg class="icon"><use href="#i-pawn"/></svg>Peças<span class="summary-meta" id="galleryCount">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+      <details class="acc" name="setup-acc" data-menu="tools" open>
+        <summary><svg class="icon"><use href="#i-wrench"/></svg>Caixa de ferramentas<span class="summary-meta" id="galleryCount">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
         <div class="acc-body">
-          <div class="seg">
-            <button id="toolPlacePiece" class="seg-btn active" onclick="setSetupTool('piece')"><svg class="icon"><use href="#i-pawn"/></svg>Posicionar</button>
-            <button id="toolPaintTerrain" class="seg-btn" onclick="setSetupTool('terrain')"><svg class="icon"><use href="#i-mountain"/></svg>Terreno</button>
+          <div class="tool-tabs" role="tablist" aria-label="Ferramentas">
+            <button id="toolTab_piece" class="tool-tab active" onclick="setSetupTool('piece')"><svg class="icon"><use href="#i-pawn"/></svg>Personagens</button>
+            <button id="toolTab_terrain" class="tool-tab" onclick="setSetupTool('terrain')"><svg class="icon"><use href="#i-mountain"/></svg>Terreno</button>
+            <button id="toolTab_object" class="tool-tab" onclick="setSetupTool('object')"><svg class="icon"><use href="#i-grid"/></svg>Objetos</button>
+            <button id="toolTab_animal" class="tool-tab" onclick="setSetupTool('animal')"><svg class="icon"><use href="#i-target"/></svg>Animais</button>
+            <button id="toolTab_hazard" class="tool-tab" onclick="setSetupTool('hazard')"><svg class="icon"><use href="#i-bolt"/></svg>Perigos</button>
           </div>
 
-          <div id="terrainBrushBox" class="hidden">
-            <div class="chip-row">
-              <button class="chip terrain-btn active" data-t="normal" onclick="setTerrainBrush('normal')">Normal</button>
-              <button class="chip terrain-btn" data-t="difficult" onclick="setTerrainBrush('difficult')">Difícil</button>
-              <button class="chip terrain-btn" data-t="wall" onclick="setTerrainBrush('wall')">Parede</button>
-              <button class="chip terrain-btn" data-t="hazard" onclick="setTerrainBrush('hazard')">Perigo</button>
-            </div>
-          </div>
-
+          <div id="toolPanel_piece" class="tool-panel">
           <div class="field">
             <div class="field-label"><span>Estilo dos tokens</span></div>
             <div class="seg">
-              <button id="styleChibi" class="seg-btn active" onclick="chooseTokenStyle('chibi')">Chibi</button>
+              <button id="styleChibi" class="seg-btn active" onclick="chooseTokenStyle('chibi')">Token</button>
               <button id="styleTopo" class="seg-btn" onclick="chooseTokenStyle('topo')">Vista de cima</button>
             </div>
           </div>
@@ -1250,6 +1293,43 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
             <button class="btn btn-primary" style="flex:1" onclick="populateDemoBattle()"><svg class="icon"><use href="#i-bolt"/></svg>Montar batalha de exemplo</button>
             <button class="btn btn-danger btn-icon" onclick="clearAllUnits()" aria-label="Remover todas as peças" title="Remover todas as peças"><svg class="icon"><use href="#i-trash"/></svg></button>
           </div>
+
+          </div>
+
+          <div id="toolPanel_terrain" class="tool-panel hidden">
+            <div id="terrainPalette" class="env-palette"></div>
+            <p class="hint">Lama, neve e água custam o dobro para andar; abismo e parede não deixam passar; parede também bloqueia a luz.</p>
+              <div class="field">
+                <div class="field-label"><span>Forma</span></div>
+                <div id="terrainShapeControls" class="shape-controls"></div>
+              </div>
+          </div>
+
+          <div id="toolPanel_object" class="tool-panel hidden">
+            <div id="objectPalette" class="env-palette"></div>
+            <p class="hint">Clique numa casa para pôr o objeto. Pedra, barril, baú, árvore, braseiro e muro bloqueiam a passagem; cadeira e mesa custam o dobro. Tochas, braseiro, lampião e cristal iluminam e afastam a escuridão.</p>
+          </div>
+
+          <div id="toolPanel_animal" class="tool-panel hidden">
+            <div id="animalGalleryContainer" class="piece-gallery"></div>
+            <p class="hint">Escolha o animal e clique numa casa livre. Ficha, armas e token se editam no inspetor.</p>
+          </div>
+
+          <div id="toolPanel_hazard" class="tool-panel hidden">
+            <div id="hazardPalette" class="env-palette"></div>
+            <p class="hint">No combate, a peça que termina o movimento num perigo sofre o dano dele. A fogueira também ilumina.</p>
+          </div>
+
+          <details class="more transp" data-layer="terrain">
+            <summary><svg class="icon"><use href="#i-eye"/></svg>Transparência<span class="summary-meta num" id="transpVal_terrain">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <div class="field">
+                <div class="field-label"><span>Terreno e perigos</span></div>
+                <input type="range" id="transp_terrain" min="0" max="90" step="5" oninput="setLayerTransparency('terrain', this.value)" aria-label="Transparência: Terreno e perigos">
+                <div class="range-ends"><span>Opaco</span><span>90 %</span></div>
+              </div>
+            </div>
+          </details>
         </div>
       </details>
     </div>
@@ -1409,7 +1489,7 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
         <!-- Itens -->
         <div id="subpanelItems" class="subpanel hidden">
           <div class="subpanel-head"><span class="section-title">Itens</span><span class="badge" style="background:var(--supply-soft);color:var(--supply)">◆◆</span></div>
-          <p class="hint">Escolha a poção ou pergaminho e clique no alvo, ou use em si mesmo.</p>
+          <p class="hint">Escolha a poção ou pergaminho e clique no alvo, ou use em si mesmo. Tocha, lanterna e lampião acendem com ◆ e ficam acesos até você apagar.</p>
           <div id="combatItemList" class="stack"></div>
           <button id="btnQuickSelfItem" class="btn btn-block" onclick="useSelectedItemOnSelf()"><svg class="icon"><use href="#i-flask"/></svg>Usar em si mesmo</button>
         </div>
@@ -1623,6 +1703,9 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
                   <option value="perg_relampago">Pergaminho de Relâmpago (4d12)</option>
                   <option value="perg_bola_fogo">Pergaminho de Bola de Fogo (6d6)</option>
                   <option value="perg_cura">Pergaminho de Cura Sagrada (2d8+8 PV)</option>
+                  <option value="tocha">Tocha (luz 6m ao redor)</option>
+                  <option value="lanterna">Lanterna Direcional (cone 18m)</option>
+                  <option value="lampiao">Lampião (luz 9m ao redor)</option>
                 </select>
                 <button class="btn btn-block" onclick="addItemToSelectedUnit()"><svg class="icon"><use href="#i-plus"/></svg>Incluir item</button>
               </div>
@@ -3628,6 +3711,21 @@ const ITEM_CATALOG = {
     cost: 1, range: 1.5, dice: '2d6', bonus: 6, qty: 2,
     desc: 'Recupera 2d6+6 PV (Si mesmo ou Adjacente | ◆ 1 Ação)'
   },
+  tocha: {
+    id: 'tocha', name: 'Tocha', kind: 'light', cost: 1, qty: 1,
+    light: { shape: 'emanation', bright: 6, dim: 12 },
+    desc: 'Acender (◆): luz plena 6m e penumbra até 12m ao redor da peça'
+  },
+  lanterna: {
+    id: 'lanterna', name: 'Lanterna Direcional', kind: 'light', cost: 1, qty: 1,
+    light: { shape: 'cone', bright: 18, dim: 36 },
+    desc: 'Acender (◆): cone de luz plena 18m (penumbra até 36m) para onde a peça olha'
+  },
+  lampiao: {
+    id: 'lampiao', name: 'Lampião', kind: 'light', cost: 1, qty: 1,
+    light: { shape: 'emanation', bright: 9, dim: 18 },
+    desc: 'Acender (◆): luz plena 9m e penumbra até 18m ao redor da peça'
+  },
   perg_cura: {
     id: 'perg_cura', name: 'Pergaminho de Cura Sagrada', kind: 'potion',
     cost: 2, range: 9, dice: '2d8', bonus: 8, qty: 1,
@@ -3917,6 +4015,147 @@ function facingLabel(deg) {
   return FACING_NAMES[Math.round(normalizeFacing(deg) / 45) % 8];
 }
 
+/* ===== 01c-environment.js ===== */
+/* ============================================================================
+   2c. AMBIENTE — terreno, objetos, perigos, clima e luz (dados e regras puras)
+   Distâncias em metros. Luz: `bright` = luz plena (anula escuridão), `dim` =
+   penumbra (escuridão pela metade). Toda fonte de luz nova precisa decidir como
+   interage com a escuridão (ver CLAUDE.md do projeto).
+   ============================================================================ */
+
+/**
+ * Terrenos pintados por célula. move: multiplicador do custo de movimento (null = intransponível).
+ * blocksLight: a luz não atravessa. As chaves antigas (difficult, wall, hazard) continuam valendo.
+ */
+const TERRAIN_TYPES = {
+  chao:      { label: 'Chão',      move: 1,    blocksLight: false, desc: 'Piso de pedra' },
+  terra:     { label: 'Terra',     move: 1,    blocksLight: false, desc: 'Terra batida' },
+  lama:      { label: 'Lama',      move: 2,    blocksLight: false, desc: 'Terreno difícil' },
+  neve:      { label: 'Neve',      move: 2,    blocksLight: false, desc: 'Terreno difícil' },
+  agua:      { label: 'Água',      move: 2,    blocksLight: false, desc: 'Terreno difícil (nadar)' },
+  abismo:    { label: 'Abismo',    move: null, blocksLight: false, desc: 'Intransponível' },
+  difficult: { label: 'Difícil',   move: 2,    blocksLight: false, desc: 'Escombros, mato' },
+  wall:      { label: 'Parede',    move: null, blocksLight: true,  desc: 'Bloqueia passagem e luz' },
+  hazard:    { label: 'Perigo',    move: 1,    blocksLight: false, desc: 'Marcação de área perigosa' }
+};
+
+/** Objetos posicionados numa célula. light: fonte de luz própria (emanação). */
+const OBJECT_TYPES = {
+  pedra:        { label: 'Pedra',          move: null, blocksLight: false },
+  cadeira:      { label: 'Cadeira',        move: 2,    blocksLight: false },
+  mesa:         { label: 'Mesa',           move: 2,    blocksLight: false },
+  barril:       { label: 'Barril',         move: null, blocksLight: false },
+  bau:          { label: 'Baú',            move: null, blocksLight: false },
+  arvore:       { label: 'Árvore',         move: null, blocksLight: false },
+  muro:         { label: 'Muro',           move: null, blocksLight: true },
+  tocha_parede: { label: 'Tocha de parede', move: 1,   blocksLight: false, light: { shape: 'emanation', bright: 6, dim: 12 } },
+  braseiro:     { label: 'Braseiro',       move: null, blocksLight: false, light: { shape: 'emanation', bright: 6, dim: 12 } },
+  lampiao:      { label: 'Lampião',        move: 1,    blocksLight: false, light: { shape: 'emanation', bright: 9, dim: 18 } },
+  cristal_luz:  { label: 'Cristal de luz', move: 1,    blocksLight: false, light: { shape: 'emanation', bright: 6, dim: 12 } }
+};
+
+/** Perigos: dano a quem termina o movimento na célula (combate). A fogueira também ilumina. */
+const HAZARD_TYPES = {
+  espinhos:       { label: 'Espinhos',          dmgDie: '1d6', dmgType: 'perfurante' },
+  fogueira:       { label: 'Fogueira',          dmgDie: '1d6', dmgType: 'fogo', light: { shape: 'emanation', bright: 6, dim: 12 } },
+  acido:          { label: 'Poça de ácido',     dmgDie: '1d6', dmgType: 'ácido' },
+  armadilha_urso: { label: 'Armadilha de urso', dmgDie: '1d8', dmgType: 'perfurante' },
+  runa_explosiva: { label: 'Runa explosiva',    dmgDie: '2d6', dmgType: 'força' }
+};
+
+/** Clima e ambiente (menu Tabuleiro). Só a escuridão interage com a luz. */
+const EFFECT_TYPES = {
+  nevoa:     { label: 'Névoa' },
+  escuridao: { label: 'Escuridão', darkness: true },
+  chuva:     { label: 'Chuva' },
+  nevasca:   { label: 'Nevasca' },
+  fumaca:    { label: 'Fumaça' }
+};
+
+/** Formas de pintura. needsDrag: definida arrastando da origem até a direção/canto. */
+const PAINT_SHAPES = {
+  cell:      { label: 'Célula' },
+  burst:     { label: 'Raio', sized: true },
+  emanation: { label: 'Emanação', sized: true, effectOnly: true },
+  cone:      { label: 'Cone', sized: true, needsDrag: true },
+  line:      { label: 'Linha', sized: true, needsDrag: true },
+  square:    { label: 'Quadrado', needsDrag: true },
+  all:       { label: 'Tudo' }
+};
+
+/** Transparência dos menus: 0 % (opaco) a 90 %. */
+const TRANSPARENCY_MIN = 0;
+const TRANSPARENCY_MAX = 90;
+
+function clampTransparency(v) {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) ? Math.max(TRANSPARENCY_MIN, Math.min(TRANSPARENCY_MAX, n)) : 50;
+}
+
+/** Opacidade (0–1) a partir da transparência em %. */
+function opacityFromTransparency(t) {
+  return 1 - clampTransparency(t) / 100;
+}
+
+/**
+ * Custo de entrar numa célula: maior multiplicador entre terreno e objeto; null = não dá para entrar.
+ * Perigos não alteram o custo.
+ */
+function cellMoveMultiplier(terrainKey, objectType) {
+  const t = TERRAIN_TYPES[terrainKey];
+  const o = OBJECT_TYPES[objectType];
+  const tm = t ? t.move : 1;
+  const om = o ? o.move : 1;
+  if (tm === null || om === null) return null;
+  return Math.max(tm, om);
+}
+
+function cellBlocksLight(terrainKey, objectType) {
+  return !!(TERRAIN_TYPES[terrainKey]?.blocksLight || OBJECT_TYPES[objectType]?.blocksLight);
+}
+
+/** Luz de um item carregado (tocha, lanterna…) ou null. */
+function itemLight(item) {
+  return item && item.kind === 'light' && item.light ? item.light : null;
+}
+
+/**
+ * Nível de escuridão numa célula: 1 = escuro, 0.5 = penumbra, 0 = iluminado ou sem escuridão.
+ * lightLevel: 2 = luz plena, 1 = penumbra, 0 = nada.
+ */
+function darknessAt(hasDarkness, lightLevel) {
+  if (!hasDarkness) return 0;
+  if (lightLevel >= 2) return 0;
+  if (lightLevel === 1) return 0.5;
+  return 1;
+}
+
+/** Normaliza o pacote de ambiente salvo (arquivos antigos não têm nada disso). */
+function normalizeEnvironment(data = {}) {
+  const objects = (Array.isArray(data.objects) ? data.objects : [])
+    .filter((o) => o && (OBJECT_TYPES[o.type] || HAZARD_TYPES[o.type]) && Number.isInteger(o.col) && Number.isInteger(o.row))
+    .map((o) => ({ id: String(o.id || `o_${o.col}_${o.row}_${o.type}`), type: o.type, col: o.col, row: o.row }));
+  const effects = {};
+  for (const type of Object.keys(EFFECT_TYPES)) {
+    const src = data.effects && data.effects[type];
+    const keys = Array.isArray(src) ? src : (src && typeof src === 'object' ? Object.keys(src) : []);
+    effects[type] = {};
+    for (const k of keys) if (/^\d+,\d+$/.test(k)) effects[type][k] = 1;
+  }
+  const zones = (Array.isArray(data.effectZones) ? data.effectZones : [])
+    .filter((z) => z && EFFECT_TYPES[z.type] && typeof z.unitId === 'string' && Number(z.radius) > 0)
+    .map((z) => ({ id: String(z.id || `z_${z.unitId}_${z.type}`), type: z.type, unitId: z.unitId, radius: Number(z.radius) }));
+  const layers = data.layers || {};
+  return {
+    objects, effects, effectZones: zones,
+    layers: {
+      terrain: clampTransparency(layers.terrain ?? 50),
+      effects: clampTransparency(layers.effects ?? 50),
+      map: clampTransparency(layers.map ?? 0)
+    }
+  };
+}
+
 /* ===== 02-sheet-engine.js ===== */
 /* ============================================================================
    3. PF2E REMASTER CHARACTER SHEET & BUILD CALCULATOR ENGINE
@@ -4157,7 +4396,7 @@ let UNIT_TEMPLATES = [
     items: [{ ...ITEM_CATALOG.pocao_menor, qty: 1 }]
   },
   {
-    id: 't_lobo', name: 'Lobo Atroz', sculpt: 'lobo', faction: 'villain', moveSpeed: 12, maxHp: 32, ac: 18,
+    id: 't_lobo', name: 'Lobo Atroz', sculpt: 'lobo', faction: 'villain', category: 'animal', moveSpeed: 12, maxHp: 32, ac: 18,
     sheet: {
       ancestry: 'Fera', background: 'Alcateia', className: 'Predador Lupino', level: 2, keyAttr: 'FOR',
       ancestryHp: 8, classHp: 10, armorItemBonus: 2, dexCap: 3, shieldBonus: 0,
@@ -4380,6 +4619,7 @@ UNIT_TEMPLATES.push(
   const piece = ({ id, name, sculpt, faction = 'hero', moveSpeed = 9, sheet, weapons, spells = [], items = [], resistances, weaknesses, immunities }) => {
     const t = {
       id, name, sculpt, faction, moveSpeed, maxHp: 1, ac: 10,
+      ...(/^t_lobo_/.test(id) ? { category: 'animal' } : {}),
       sheet: { level: 3, shieldBonus: 0, dexCap: 5, armorItemBonus: 0, skills: [], feats: [], ...sheet },
       weapons, spells, items
     };
@@ -4948,6 +5188,7 @@ function normalizePieceTemplate(raw = {}, usedIds = new Set()) {
   const token = resolvePieceToken({ ...raw, faction });
   const tpl = {
     id, name, faction,
+    ...(normalizeSearchText(raw.category) === 'animal' ? { category: 'animal' } : {}),
     sculpt: token.sculpt,
     customTokenDataUrl: token.customTokenDataUrl,
     customTokenFrame: token.customTokenFrame,
@@ -4997,10 +5238,19 @@ const STATE = {
     basePx: 60
   },
   setupTool: 'piece',
-  terrainBrush: 'normal',
+  terrainBrush: null,     // terreno escolhido ('normal' = apagar)
   selectedTemplateId: 't_guerreiro',
 
   terrainMap: {},
+  objects: [],            // objetos e perigos: { id, type, col, row }
+  effects: { nevoa: {}, escuridao: {}, chuva: {}, nevasca: {}, fumaca: {} }, // clima pintado: tipo -> { "c,r": 1 }
+  effectZones: [],        // emanações presas a peças: { id, type, unitId, radius }
+  layers: { terrain: 50, effects: 50, map: 0 }, // transparência (%) de cada menu
+  openMenu: null,         // 'board' | 'map' | 'tools' | null — só o menu aberto age no tabuleiro
+  toolTab: 'piece',       // aba da caixa de ferramentas
+  objectBrush: null,      // objeto ou perigo escolhido (ou 'erase')
+  effectBrush: null,      // clima escolhido (ou 'erase')
+  paint: { shape: 'cell', size: 4.5, start: null, preview: null },
   units: [],
   selectedUnitId: null,
 
@@ -5046,7 +5296,9 @@ function initApp() {
   initCanvasEvents();
   appendExtraTokenOptions(document.getElementById('inspTokenSelect'));
   appendExtraTokenOptions(document.getElementById('newPieceSculpt'));
+  initSetupMenus();
   renderPieceGallery();
+  renderEnvPalettes();
   populateDemoBattle();
   resetCamera();
   applyPrefs();
@@ -5239,6 +5491,8 @@ function computeReachableCells(unit) {
   distMap[startKey] = 0;
 
   const queue = [{ col: unit.col, row: unit.row, cost: 0, diagCount: 0 }];
+  const objectAt = {};
+  for (const o of STATE.objects || []) objectAt[`${o.col},${o.row}`] = o.type;
 
   while (queue.length > 0) {
     queue.sort((a, b) => a.cost - b.cost);
@@ -5248,8 +5502,9 @@ function computeReachableCells(unit) {
 
     for (const nb of getNeighbors(curr.col, curr.row)) {
       const nbKey = `${nb.col},${nb.row}`;
-      const terrain = STATE.terrainMap[nbKey] || 'normal';
-      if (terrain === 'wall') continue;
+      // terreno e objeto: intransponível (parede, abismo, pedra…) ou custo multiplicado (lama, neve, água, mesa…)
+      const moveMult = cellMoveMultiplier(STATE.terrainMap[nbKey], objectAt[nbKey]);
+      if (moveMult === null) continue;
 
       const occ = STATE.units.find(u => u.hp > 0 && u.id !== unit.id && u.col === nb.col && u.row === nb.row);
       if (occ) continue;
@@ -5260,7 +5515,7 @@ function computeReachableCells(unit) {
         nextDiag += 1;
         if (nextDiag % 2 === 0) stepMultiplier = 2;
       }
-      if (terrain === 'difficult') stepMultiplier *= 2;
+      stepMultiplier *= moveMult;
 
       const stepMeters = scale * stepMultiplier;
       const newCost = curr.cost + stepMeters;
@@ -5358,6 +5613,174 @@ function computeBurstCells(centerCol, centerRow, radiusMeters) {
 }
 
 
+/* ===== 06b-shapes-and-light.js ===== */
+/* ============================================================================
+   10b. FORMAS DE PINTURA E LUZ
+   Formas (célula, raio, emanação, cone, linha, quadrado, tudo) usadas por terreno e
+   clima; fontes de luz (objetos, perigos, itens acesos nas peças) e o nível de luz
+   de cada célula, com paredes/muros bloqueando a luz.
+   ============================================================================ */
+
+const cellKey = (c, r) => `${c},${r}`;
+
+function allBoardCells() {
+  const out = [];
+  for (let r = 0; r < STATE.grid.rows; r++) for (let c = 0; c < STATE.grid.cols; c++) out.push({ col: c, row: r });
+  return out;
+}
+
+/** Ângulo (rad, tela) do centro de A ao centro de B; mesma célula = leste. */
+function cellAngle(a, b) {
+  const pa = getCellPixelCenter(a.col, a.row);
+  const pb = getCellPixelCenter(b.col, b.row);
+  return pa.x === pb.x && pa.y === pb.y ? 0 : Math.atan2(pb.y - pa.y, pb.x - pa.x);
+}
+
+/** Ângulo de tela para onde a peça olha (direção 0° = sul). */
+function facingAngle(facingDeg) {
+  const a = normalizeFacing(facingDeg) * Math.PI / 180;
+  return Math.atan2(Math.cos(a), -Math.sin(a));
+}
+
+/** Cone de 90° (Pathfinder): células até `lengthMeters`, a até 45° da direção. Inclui a origem se pedido. */
+function computeConeCells(originCol, originRow, angleRad, lengthMeters, includeOrigin = false) {
+  const o = getCellPixelCenter(originCol, originRow);
+  const out = [];
+  for (const cell of allBoardCells()) {
+    if (cell.col === originCol && cell.row === originRow) { if (includeOrigin) out.push(cell); continue; }
+    if (cellDistanceMeters(originCol, originRow, cell.col, cell.row) > lengthMeters) continue;
+    const p = getCellPixelCenter(cell.col, cell.row);
+    let diff = Math.atan2(p.y - o.y, p.x - o.x) - angleRad;
+    diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+    if (Math.abs(diff) <= Math.PI / 4 + 0.02) out.push(cell);
+  }
+  return out;
+}
+
+/** Retângulo entre duas células (por coluna e linha). */
+function computeSquareCells(a, b) {
+  const out = [];
+  const c0 = Math.min(a.col, b.col), c1 = Math.max(a.col, b.col);
+  const r0 = Math.min(a.row, b.row), r1 = Math.max(a.row, b.row);
+  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) out.push({ col: c, row: r });
+  return out;
+}
+
+/** Células de uma forma de pintura. a = origem, b = fim do arrasto (ou a mesma), size em metros. */
+function shapeCells(shape, a, b, size) {
+  switch (shape) {
+    case 'burst':
+    case 'emanation': return computeBurstCells(a.col, a.row, size);
+    case 'cone': return computeConeCells(a.col, a.row, cellAngle(a, b), size, false);
+    case 'line': return [a, ...computeLineCells(a.col, a.row, b.col, b.row, size).affected];
+    case 'square': return computeSquareCells(a, b);
+    case 'all': return allBoardCells();
+    default: return [a];
+  }
+}
+
+/* ---------------- Linha de visão da luz ---------------- */
+
+/** Células atravessadas pela reta entre duas células (sem as pontas). Hexágono em coordenadas cúbicas. */
+function cellsBetween(a, b) {
+  const out = [];
+  if (STATE.grid.type === 'square') {
+    const n = Math.max(Math.abs(b.col - a.col), Math.abs(b.row - a.row)) * 2;
+    for (let i = 1; i < n; i++) {
+      const t = i / n;
+      out.push({ col: Math.round(a.col + (b.col - a.col) * t), row: Math.round(a.row + (b.row - a.row) * t) });
+    }
+  } else {
+    const toCube = (c) => { const x = c.col - (c.row - (c.row & 1)) / 2; const z = c.row; return [x, -x - z, z]; };
+    const A = toCube(a), B = toCube(b);
+    const n = cellDistanceInSteps(a.col, a.row, b.col, b.row);
+    for (let i = 1; i < n; i++) {
+      const t = i / n;
+      // pequeno deslocamento evita empates exatos na borda entre dois hexágonos
+      let [x, y, z] = [0, 1, 2].map((k) => A[k] + (B[k] - A[k]) * t + [1e-6, 2e-6, -3e-6][k]);
+      let rx = Math.round(x), ry = Math.round(y), rz = Math.round(z);
+      const dx = Math.abs(rx - x), dy = Math.abs(ry - y), dz = Math.abs(rz - z);
+      if (dx > dy && dx > dz) rx = -ry - rz; else if (dy > dz) ry = -rx - rz; else rz = -rx - ry;
+      out.push({ col: rx + (rz - (rz & 1)) / 2, row: rz });
+    }
+  }
+  return out;
+}
+
+function objectAtCell(col, row) {
+  return (STATE.objects || []).find((o) => o.col === col && o.row === row) || null;
+}
+
+function lightBlockedBetween(a, b, blockers) {
+  const ends = new Set([cellKey(a.col, a.row), cellKey(b.col, b.row)]);
+  return cellsBetween(a, b).some((c) => { const k = cellKey(c.col, c.row); return !ends.has(k) && blockers.has(k); });
+}
+
+/* ---------------- Fontes de luz ---------------- */
+
+/** Todas as fontes de luz ativas: objetos, perigos que iluminam e itens acesos carregados pelas peças. */
+function collectLightSources() {
+  const out = [];
+  for (const o of STATE.objects || []) {
+    const light = (OBJECT_TYPES[o.type] || HAZARD_TYPES[o.type] || {}).light;
+    if (light) out.push({ col: o.col, row: o.row, ...light, from: o.type });
+  }
+  for (const u of STATE.units || []) {
+    if (u.hp <= 0) continue;
+    for (const it of u.items || []) {
+      const light = it.lit && itemLight(it);
+      if (light) out.push({ col: u.col, row: u.row, ...light, angle: light.shape === 'cone' ? facingAngle(u.facing) : 0, from: it.id, unitId: u.id });
+    }
+  }
+  return out;
+}
+
+/** Nível de luz por célula: 2 = plena, 1 = penumbra (só as células com alguma luz aparecem). */
+function computeLightMap() {
+  const blockers = new Set();
+  for (const [k, t] of Object.entries(STATE.terrainMap || {})) if (cellBlocksLight(t)) blockers.add(k);
+  for (const o of STATE.objects || []) if (cellBlocksLight(undefined, o.type)) blockers.add(cellKey(o.col, o.row));
+  const map = {};
+  for (const src of collectLightSources()) {
+    const cells = src.shape === 'cone'
+      ? computeConeCells(src.col, src.row, src.angle, src.dim, true)
+      : computeBurstCells(src.col, src.row, src.dim);
+    for (const cell of cells) {
+      const k = cellKey(cell.col, cell.row);
+      // a face da parede recebe luz; só o que está atrás dela fica escuro
+      if (lightBlockedBetween(src, cell, blockers)) continue;
+      const d = cell.col === src.col && cell.row === src.row ? 0 : cellDistanceMeters(src.col, src.row, cell.col, cell.row);
+      const level = d <= src.bright ? 2 : 1;
+      if (!map[k] || map[k] < level) map[k] = level;
+    }
+  }
+  return map;
+}
+
+/* ---------------- Clima ---------------- */
+
+/** Células com um efeito de clima: pintadas + emanações presas a peças. */
+function effectCellSet(type) {
+  const set = new Set(Object.keys((STATE.effects && STATE.effects[type]) || {}));
+  for (const z of STATE.effectZones || []) {
+    if (z.type !== type) continue;
+    const u = STATE.units.find((x) => x.id === z.unitId);
+    if (!u) continue;
+    for (const c of computeBurstCells(u.col, u.row, z.radius)) set.add(cellKey(c.col, c.row));
+  }
+  return set;
+}
+
+/** Escuridão efetiva por célula (0, 0.5, 1) já descontada a luz. */
+function computeDarknessMap(lightMap = computeLightMap()) {
+  const out = {};
+  for (const k of effectCellSet('escuridao')) {
+    const d = darknessAt(true, lightMap[k] || 0);
+    if (d > 0) out[k] = d;
+  }
+  return out;
+}
+
 /* ===== 07-render.js ===== */
 /* ============================================================================
    11. CANVAS RENDERING PIPELINE (WITH 50%, 25%, 10% GREEN MOVEMENT OPACITY)
@@ -5410,6 +5833,7 @@ function renderBoard() {
   ctx.beginPath();
   ctx.roundRect(boardX, boardY, boardW, boardH, 10);
   ctx.clip();
+  ctx.globalAlpha = layerOpacity('map');
   if (bgImageObj) {
     ctx.drawImage(bgImageObj, boardX, boardY, boardW, boardH);
   } else {
@@ -5495,24 +5919,21 @@ function renderBoard() {
     }
   }
 
-  // 3. Draw Grid Cells
+  // 3a. Terreno (textura), depois perigos, objetos, clima e escuridão
+  for (const [key, terrain] of Object.entries(STATE.terrainMap)) {
+    const [c, r] = key.split(',').map(Number);
+    if (c >= STATE.grid.cols || r >= STATE.grid.rows) continue;
+    drawPolygonCell(c, r);
+    drawTerrainFill(terrain);
+  }
+  drawEnvironmentLayer();
+
+  // 3b. Grid Cells: movimento, alcance e contorno por cima do ambiente
   for (let r = 0; r < STATE.grid.rows; r++) {
     for (let c = 0; c < STATE.grid.cols; c++) {
       const key = `${c},${r}`;
-      const terrain = STATE.terrainMap[key];
 
       drawPolygonCell(c, r);
-
-      if (terrain === 'difficult') {
-        ctx.fillStyle = 'rgba(217, 119, 6, 0.36)';
-        ctx.fill();
-      } else if (terrain === 'wall') {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-        ctx.fill();
-      } else if (terrain === 'hazard') {
-        ctx.fillStyle = 'rgba(220, 38, 38, 0.38)';
-        ctx.fill();
-      }
 
       // [MOVIMENTO]: Exact 50%, 25% and 10% translucent green scale requested!
       const reach = reachableMap[key];
@@ -6015,6 +6436,379 @@ function rotateControlledUnit(dir) {
   requestRender();
 }
 
+/* ===== 07c-environment-render.js ===== */
+/* ============================================================================
+   11c. DESENHO DO AMBIENTE — texturas de terreno e clima, objetos, perigos,
+   escuridão e luz. Texturas são ladrilhos desenhados uma vez (canvas fora da
+   tela) e repetidos acompanhando a câmera; cada camada respeita a transparência
+   do seu menu.
+   ============================================================================ */
+
+const ENV_TILE = 64;
+const ENV_PATTERN_CACHE = {};
+
+/** Gerador pseudoaleatório com semente: a textura é sempre a mesma. */
+function seededRandom(seed) {
+  let s = seed >>> 0;
+  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+}
+
+/** Desenha um ladrilho 64×64 de cada textura. Fundo transparente nos efeitos de clima. */
+const ENV_TILE_PAINTERS = {
+  chao(g, rnd) {
+    g.fillStyle = '#a39d90'; g.fillRect(0, 0, 64, 64);
+    g.strokeStyle = 'rgba(60, 52, 42, 0.55)'; g.lineWidth = 2;
+    for (const [y, off] of [[0, 0], [21, 16], [42, 0]]) {
+      g.beginPath(); g.moveTo(0, y); g.lineTo(64, y); g.stroke();
+      for (let x = off; x < 64 + 32; x += 32) { g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + 21); g.stroke(); }
+    }
+    for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(255,255,255,${0.08 + rnd() * 0.1})`; g.fillRect(rnd() * 64, rnd() * 64, 2, 2); }
+  },
+  terra(g, rnd) {
+    g.fillStyle = '#8c6a43'; g.fillRect(0, 0, 64, 64);
+    for (let i = 0; i < 70; i++) {
+      g.fillStyle = rnd() > 0.5 ? 'rgba(60, 40, 20, 0.45)' : 'rgba(200, 160, 110, 0.35)';
+      g.beginPath(); g.arc(rnd() * 64, rnd() * 64, 1 + rnd() * 2.2, 0, Math.PI * 2); g.fill();
+    }
+  },
+  lama(g, rnd) {
+    g.fillStyle = '#5b4630'; g.fillRect(0, 0, 64, 64);
+    for (let i = 0; i < 7; i++) {
+      const x = rnd() * 64, y = rnd() * 64, rx = 6 + rnd() * 10;
+      g.fillStyle = 'rgba(35, 25, 15, 0.55)'; g.beginPath(); g.ellipse(x, y, rx, rx * 0.55, rnd() * 3, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = 'rgba(190, 160, 120, 0.35)'; g.lineWidth = 1.2; g.beginPath(); g.ellipse(x - 2, y - 2, rx * 0.5, rx * 0.25, 0, Math.PI, Math.PI * 1.7); g.stroke();
+    }
+  },
+  neve(g, rnd) {
+    g.fillStyle = '#eef3f8'; g.fillRect(0, 0, 64, 64);
+    for (let i = 0; i < 6; i++) { g.fillStyle = 'rgba(150, 175, 205, 0.25)'; g.beginPath(); g.ellipse(rnd() * 64, rnd() * 64, 10, 4, 0, 0, Math.PI * 2); g.fill(); }
+    g.strokeStyle = 'rgba(120, 150, 190, 0.7)'; g.lineWidth = 1;
+    for (let i = 0; i < 7; i++) {
+      const x = rnd() * 64, y = rnd() * 64;
+      for (let k = 0; k < 3; k++) { const a = k * Math.PI / 3; g.beginPath(); g.moveTo(x - Math.cos(a) * 3, y - Math.sin(a) * 3); g.lineTo(x + Math.cos(a) * 3, y + Math.sin(a) * 3); g.stroke(); }
+    }
+  },
+  agua(g) {
+    g.fillStyle = '#3d7cb3'; g.fillRect(0, 0, 64, 64);
+    g.strokeStyle = 'rgba(210, 235, 255, 0.6)'; g.lineWidth = 2; g.lineCap = 'round';
+    for (const [y, off] of [[12, 0], [32, 16], [52, 6]]) {
+      g.beginPath();
+      for (let x = -16 + off; x < 80; x += 16) { g.moveTo(x, y); g.quadraticCurveTo(x + 4, y - 4, x + 8, y); }
+      g.stroke();
+    }
+  },
+  abismo(g, rnd) {
+    const grd = g.createRadialGradient(32, 32, 4, 32, 32, 46);
+    grd.addColorStop(0, '#000000'); grd.addColorStop(1, '#1d1626');
+    g.fillStyle = grd; g.fillRect(0, 0, 64, 64);
+    g.strokeStyle = 'rgba(140, 110, 170, 0.45)'; g.lineWidth = 1.4;
+    for (let i = 0; i < 3; i++) { let x = rnd() * 64, y = rnd() * 64; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 4; k++) { x += (rnd() - 0.5) * 18; y += (rnd() - 0.5) * 18; g.lineTo(x, y); } g.stroke(); }
+  },
+  difficult(g, rnd) {
+    g.fillStyle = '#9a7b4c'; g.fillRect(0, 0, 64, 64);
+    for (let i = 0; i < 9; i++) {
+      const x = rnd() * 64, y = rnd() * 64, r = 3 + rnd() * 4;
+      g.fillStyle = '#6f6a62'; g.strokeStyle = 'rgba(30,25,20,0.6)'; g.lineWidth = 1;
+      g.beginPath(); for (let k = 0; k < 5; k++) { const a = k * 1.25 + rnd() * 0.4; g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } g.closePath(); g.fill(); g.stroke();
+    }
+    g.strokeStyle = 'rgba(70, 110, 40, 0.8)'; g.lineWidth = 1.4;
+    for (let i = 0; i < 6; i++) { const x = rnd() * 64, y = rnd() * 64; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 2, y - 6); g.moveTo(x, y); g.lineTo(x + 2, y - 7); g.stroke(); }
+  },
+  wall(g) {
+    g.fillStyle = '#4b4a52'; g.fillRect(0, 0, 64, 64);
+    g.strokeStyle = 'rgba(15, 14, 20, 0.8)'; g.lineWidth = 2.5;
+    for (const [y, off] of [[0, 0], [16, 16], [32, 0], [48, 16]]) {
+      g.beginPath(); g.moveTo(0, y); g.lineTo(64, y); g.stroke();
+      for (let x = off; x < 80; x += 32) { g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + 16); g.stroke(); }
+    }
+    g.fillStyle = 'rgba(255,255,255,0.08)'; for (let y = 2; y < 64; y += 16) g.fillRect(0, y, 64, 3);
+  },
+  hazard(g) {
+    g.fillStyle = '#7a1f18'; g.fillRect(0, 0, 64, 64);
+    g.strokeStyle = 'rgba(240, 190, 60, 0.55)'; g.lineWidth = 7;
+    for (let x = -64; x < 128; x += 22) { g.beginPath(); g.moveTo(x, 64); g.lineTo(x + 64, 0); g.stroke(); }
+  },
+  /* ---- clima (fundo transparente) ---- */
+  nevoa(g, rnd) {
+    for (let i = 0; i < 6; i++) {
+      const x = rnd() * 64, y = rnd() * 64, r = 14 + rnd() * 14;
+      for (const [dx, dy] of [[0, 0], [64, 0], [-64, 0], [0, 64], [0, -64]]) {
+        const grd = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
+        grd.addColorStop(0, 'rgba(235, 238, 242, 0.75)'); grd.addColorStop(1, 'rgba(235, 238, 242, 0)');
+        g.fillStyle = grd; g.fillRect(0, 0, 64, 64);
+      }
+    }
+  },
+  chuva(g, rnd) {
+    g.fillStyle = 'rgba(70, 110, 160, 0.25)'; g.fillRect(0, 0, 64, 64);
+    g.strokeStyle = 'rgba(190, 220, 255, 0.85)'; g.lineWidth = 1.3; g.lineCap = 'round';
+    for (let i = 0; i < 16; i++) { const x = rnd() * 64, y = rnd() * 64; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 4, y + 10); g.stroke(); }
+  },
+  nevasca(g, rnd) {
+    g.fillStyle = 'rgba(220, 232, 245, 0.3)'; g.fillRect(0, 0, 64, 64);
+    g.strokeStyle = 'rgba(255, 255, 255, 0.85)'; g.lineWidth = 1.2;
+    for (let i = 0; i < 8; i++) { const x = rnd() * 64, y = rnd() * 64; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 12, y + 4); g.stroke(); }
+    g.fillStyle = '#ffffff';
+    for (let i = 0; i < 18; i++) { g.beginPath(); g.arc(rnd() * 64, rnd() * 64, 1 + rnd() * 1.6, 0, Math.PI * 2); g.fill(); }
+  },
+  fumaca(g, rnd) {
+    g.strokeStyle = 'rgba(70, 70, 76, 0.7)'; g.lineWidth = 5; g.lineCap = 'round';
+    for (let i = 0; i < 4; i++) {
+      const x = rnd() * 64, y = rnd() * 64;
+      g.beginPath(); g.arc(x, y, 7 + rnd() * 6, rnd() * 3, rnd() * 3 + 3.6); g.stroke();
+    }
+    g.fillStyle = 'rgba(90, 90, 96, 0.3)'; g.fillRect(0, 0, 64, 64);
+  }
+};
+
+/** Padrão de uma textura (criado uma vez), ancorado na câmera para não "escorregar" ao mover. */
+function envPattern(type) {
+  if (!ENV_TILE_PAINTERS[type]) return null;
+  if (!ENV_PATTERN_CACHE[type]) {
+    const tile = document.createElement('canvas');
+    tile.width = tile.height = ENV_TILE;
+    ENV_TILE_PAINTERS[type](tile.getContext('2d'), seededRandom(type.length * 7919 + type.charCodeAt(0)));
+    ENV_PATTERN_CACHE[type] = ctx.createPattern(tile, 'repeat');
+  }
+  const p = ENV_PATTERN_CACHE[type];
+  const k = (STATE.camera.basePx * STATE.camera.zoom) / ENV_TILE;
+  if (p && p.setTransform) p.setTransform(new DOMMatrix([k, 0, 0, k, STATE.camera.x, STATE.camera.y]));
+  return p;
+}
+
+const layerOpacity = (layer) => opacityFromTransparency(STATE.layers ? STATE.layers[layer] : 50);
+
+/** Preenche a célula (caminho já traçado) com a textura do terreno. */
+function drawTerrainFill(type) {
+  const p = envPattern(type);
+  if (!p) return;
+  ctx.save();
+  ctx.globalAlpha = layerOpacity('terrain');
+  ctx.fillStyle = p;
+  ctx.fill();
+  ctx.restore();
+}
+
+/* ---------------- Objetos e perigos (desenho vetorial, centro x,y, célula s) ---------------- */
+
+function envFlame(g, x, y, r) {
+  const grd = g.createRadialGradient(x, y, 0, x, y, r * 1.6);
+  grd.addColorStop(0, 'rgba(255, 210, 120, 0.55)'); grd.addColorStop(1, 'rgba(255, 150, 60, 0)');
+  g.fillStyle = grd; g.beginPath(); g.arc(x, y, r * 1.6, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#ff8a2a';
+  g.beginPath(); g.moveTo(x, y + r * 0.6); g.quadraticCurveTo(x - r * 0.8, y, x - r * 0.1, y - r); g.quadraticCurveTo(x + r * 0.2, y - r * 0.4, x + r * 0.4, y - r * 0.8); g.quadraticCurveTo(x + r * 0.9, y, x, y + r * 0.6); g.fill();
+  g.fillStyle = '#ffe9a8'; g.beginPath(); g.ellipse(x, y + r * 0.15, r * 0.25, r * 0.4, 0, 0, Math.PI * 2); g.fill();
+}
+
+function envOutline(g, w = 1.6) { g.strokeStyle = 'rgba(25, 18, 12, 0.85)'; g.lineWidth = w; }
+
+const ENV_OBJECT_PAINTERS = {
+  pedra(g, x, y, s) {
+    g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.ellipse(x + s * 0.06, y + s * 0.1, s * 0.34, s * 0.24, 0, 0, Math.PI * 2); g.fill();
+    const grd = g.createLinearGradient(x - s * 0.3, y - s * 0.3, x + s * 0.3, y + s * 0.3);
+    grd.addColorStop(0, '#b9b5ae'); grd.addColorStop(1, '#5d5a55');
+    g.fillStyle = grd; envOutline(g);
+    g.beginPath(); g.moveTo(x - s * 0.34, y + s * 0.05); g.lineTo(x - s * 0.2, y - s * 0.26); g.lineTo(x + s * 0.12, y - s * 0.3); g.lineTo(x + s * 0.34, y - s * 0.04); g.lineTo(x + s * 0.22, y + s * 0.24); g.lineTo(x - s * 0.18, y + s * 0.26); g.closePath(); g.fill(); g.stroke();
+  },
+  cadeira(g, x, y, s) {
+    envOutline(g); g.fillStyle = '#8a5a30';
+    g.fillRect(x - s * 0.18, y - s * 0.12, s * 0.36, s * 0.32); g.strokeRect(x - s * 0.18, y - s * 0.12, s * 0.36, s * 0.32);
+    g.fillStyle = '#6a4224'; g.fillRect(x - s * 0.2, y - s * 0.24, s * 0.4, s * 0.1); g.strokeRect(x - s * 0.2, y - s * 0.24, s * 0.4, s * 0.1);
+  },
+  mesa(g, x, y, s) {
+    g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x - s * 0.36, y - s * 0.22, s * 0.76, s * 0.5);
+    envOutline(g); g.fillStyle = '#9a6a3a';
+    g.fillRect(x - s * 0.4, y - s * 0.26, s * 0.8, s * 0.5); g.strokeRect(x - s * 0.4, y - s * 0.26, s * 0.8, s * 0.5);
+    g.strokeStyle = 'rgba(60,35,15,0.6)'; g.lineWidth = 1;
+    for (let i = 1; i < 4; i++) { g.beginPath(); g.moveTo(x - s * 0.4, y - s * 0.26 + i * s * 0.125); g.lineTo(x + s * 0.4, y - s * 0.26 + i * s * 0.125); g.stroke(); }
+  },
+  barril(g, x, y, s) {
+    envOutline(g); g.fillStyle = '#8a5a2e'; g.beginPath(); g.arc(x, y, s * 0.3, 0, Math.PI * 2); g.fill(); g.stroke();
+    g.strokeStyle = '#4a4a50'; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, s * 0.24, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.arc(x, y, s * 0.12, 0, Math.PI * 2); g.stroke();
+  },
+  bau(g, x, y, s) {
+    envOutline(g); g.fillStyle = '#7a4a24';
+    g.fillRect(x - s * 0.32, y - s * 0.2, s * 0.64, s * 0.4); g.strokeRect(x - s * 0.32, y - s * 0.2, s * 0.64, s * 0.4);
+    g.fillStyle = '#d6a740'; g.fillRect(x - s * 0.32, y - s * 0.04, s * 0.64, s * 0.08);
+    g.fillRect(x - s * 0.05, y - s * 0.08, s * 0.1, s * 0.16);
+  },
+  arvore(g, x, y, s) {
+    g.fillStyle = 'rgba(0,0,0,0.28)'; g.beginPath(); g.ellipse(x + s * 0.08, y + s * 0.1, s * 0.42, s * 0.36, 0, 0, Math.PI * 2); g.fill();
+    envOutline(g);
+    for (const [dx, dy, r, c] of [[-0.14, 0.06, 0.24, '#2f6a2a'], [0.14, 0.04, 0.24, '#2f6a2a'], [0, -0.14, 0.26, '#3e8434'], [0, 0.02, 0.2, '#4f9a3e']]) {
+      g.fillStyle = c; g.beginPath(); g.arc(x + dx * s, y + dy * s, r * s, 0, Math.PI * 2); g.fill(); g.stroke();
+    }
+  },
+  muro(g, x, y, s) {
+    const p = envPattern('wall');
+    g.fillStyle = p || '#4b4a52'; envOutline(g, 2);
+    g.fillRect(x - s * 0.45, y - s * 0.45, s * 0.9, s * 0.9); g.strokeRect(x - s * 0.45, y - s * 0.45, s * 0.9, s * 0.9);
+  },
+  tocha_parede(g, x, y, s) {
+    envOutline(g); g.fillStyle = '#5a3a1e';
+    g.fillRect(x - s * 0.04, y - s * 0.02, s * 0.08, s * 0.3); g.strokeRect(x - s * 0.04, y - s * 0.02, s * 0.08, s * 0.3);
+    envFlame(g, x, y - s * 0.1, s * 0.16);
+  },
+  braseiro(g, x, y, s) {
+    envOutline(g); g.fillStyle = '#2e2a28'; g.beginPath(); g.arc(x, y, s * 0.28, 0, Math.PI * 2); g.fill(); g.stroke();
+    g.fillStyle = '#c4401c'; g.beginPath(); g.arc(x, y, s * 0.2, 0, Math.PI * 2); g.fill();
+    envFlame(g, x - s * 0.06, y - s * 0.02, s * 0.14); envFlame(g, x + s * 0.08, y + s * 0.02, s * 0.12);
+  },
+  lampiao(g, x, y, s) {
+    const grd = g.createRadialGradient(x, y, 0, x, y, s * 0.45);
+    grd.addColorStop(0, 'rgba(255, 220, 140, 0.6)'); grd.addColorStop(1, 'rgba(255, 220, 140, 0)');
+    g.fillStyle = grd; g.beginPath(); g.arc(x, y, s * 0.45, 0, Math.PI * 2); g.fill();
+    envOutline(g); g.fillStyle = '#2e2a28'; g.fillRect(x - s * 0.13, y - s * 0.13, s * 0.26, s * 0.26); g.strokeRect(x - s * 0.13, y - s * 0.13, s * 0.26, s * 0.26);
+    g.fillStyle = '#ffd36b'; g.fillRect(x - s * 0.08, y - s * 0.08, s * 0.16, s * 0.16);
+  },
+  cristal_luz(g, x, y, s) {
+    const grd = g.createRadialGradient(x, y, 0, x, y, s * 0.45);
+    grd.addColorStop(0, 'rgba(150, 220, 255, 0.6)'); grd.addColorStop(1, 'rgba(150, 220, 255, 0)');
+    g.fillStyle = grd; g.beginPath(); g.arc(x, y, s * 0.45, 0, Math.PI * 2); g.fill();
+    envOutline(g); g.fillStyle = '#8fd8ff';
+    g.beginPath(); g.moveTo(x, y - s * 0.28); g.lineTo(x + s * 0.14, y); g.lineTo(x, y + s * 0.24); g.lineTo(x - s * 0.14, y); g.closePath(); g.fill(); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.8)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x - s * 0.04, y - s * 0.18); g.lineTo(x - s * 0.08, y); g.stroke();
+  },
+  /* ---- perigos ---- */
+  espinhos(g, x, y, s) {
+    g.fillStyle = 'rgba(60, 40, 30, 0.55)'; g.beginPath(); g.arc(x, y, s * 0.36, 0, Math.PI * 2); g.fill();
+    envOutline(g, 1.2); g.fillStyle = '#b8b4ac';
+    for (const [dx, dy] of [[-0.18, -0.12], [0.12, -0.18], [0.2, 0.1], [-0.08, 0.16], [0, -0.01], [-0.24, 0.08]]) {
+      const px = x + dx * s, py = y + dy * s;
+      g.beginPath(); g.moveTo(px, py - s * 0.12); g.lineTo(px + s * 0.06, py + s * 0.05); g.lineTo(px - s * 0.06, py + s * 0.05); g.closePath(); g.fill(); g.stroke();
+    }
+  },
+  fogueira(g, x, y, s) {
+    envOutline(g, 1.2);
+    for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; g.fillStyle = '#7a7670'; g.beginPath(); g.arc(x + Math.cos(a) * s * 0.28, y + Math.sin(a) * s * 0.28, s * 0.07, 0, Math.PI * 2); g.fill(); g.stroke(); }
+    g.strokeStyle = '#5a3a1e'; g.lineWidth = s * 0.07; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(x - s * 0.18, y + s * 0.12); g.lineTo(x + s * 0.18, y - s * 0.1); g.moveTo(x - s * 0.18, y - s * 0.1); g.lineTo(x + s * 0.18, y + s * 0.12); g.stroke();
+    envFlame(g, x, y, s * 0.2);
+  },
+  acido(g, x, y, s) {
+    g.fillStyle = 'rgba(110, 200, 60, 0.75)'; envOutline(g, 1.2);
+    g.beginPath(); g.ellipse(x, y, s * 0.36, s * 0.26, 0.3, 0, Math.PI * 2); g.fill(); g.stroke();
+    g.fillStyle = 'rgba(220, 255, 170, 0.85)';
+    for (const [dx, dy, r] of [[-0.12, -0.04, 0.05], [0.1, 0.06, 0.04], [0.02, -0.1, 0.03]]) { g.beginPath(); g.arc(x + dx * s, y + dy * s, r * s, 0, Math.PI * 2); g.fill(); }
+  },
+  armadilha_urso(g, x, y, s) {
+    envOutline(g, 1.2); g.strokeStyle = '#4a4a50'; g.lineWidth = s * 0.05;
+    g.beginPath(); g.arc(x, y, s * 0.26, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = '#c9c6c0';
+    for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; const px = x + Math.cos(a) * s * 0.24, py = y + Math.sin(a) * s * 0.24; g.beginPath(); g.moveTo(px, py); g.lineTo(x + Math.cos(a + 0.18) * s * 0.12, y + Math.sin(a + 0.18) * s * 0.12); g.lineTo(x + Math.cos(a - 0.18) * s * 0.12, y + Math.sin(a - 0.18) * s * 0.12); g.closePath(); g.fill(); }
+    g.fillStyle = '#6a6a70'; g.beginPath(); g.arc(x, y, s * 0.06, 0, Math.PI * 2); g.fill();
+  },
+  runa_explosiva(g, x, y, s) {
+    const grd = g.createRadialGradient(x, y, 0, x, y, s * 0.42);
+    grd.addColorStop(0, 'rgba(255, 140, 40, 0.5)'); grd.addColorStop(1, 'rgba(255, 140, 40, 0)');
+    g.fillStyle = grd; g.beginPath(); g.arc(x, y, s * 0.42, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#ff9a3a'; g.lineWidth = 2;
+    g.beginPath(); g.arc(x, y, s * 0.28, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * 4 * Math.PI / 5; const px = x + Math.cos(a) * s * 0.24, py = y + Math.sin(a) * s * 0.24; if (i) g.lineTo(px, py); else g.moveTo(px, py); } g.closePath(); g.stroke();
+  }
+};
+
+function drawEnvObject(g, type, x, y, s) {
+  const painter = ENV_OBJECT_PAINTERS[type];
+  if (!painter) return;
+  g.save();
+  painter(g, x, y, s);
+  g.restore();
+}
+
+/* ---------------- Camada completa ---------------- */
+
+/**
+ * Perigos → objetos → clima → escuridão → brilho das luzes → prévia da forma.
+ * Fica abaixo das áreas de movimento/alcance e dos tokens, para não esconder o jogo.
+ */
+function drawEnvironmentLayer() {
+  const s = STATE.camera.basePx * STATE.camera.zoom;
+  const objs = STATE.objects || [];
+  const terrainA = layerOpacity('terrain');
+  for (const o of objs) {
+    if (!HAZARD_TYPES[o.type]) continue;
+    const p = getCellPixelCenter(o.col, o.row);
+    ctx.save(); ctx.globalAlpha = terrainA; drawEnvObject(ctx, o.type, p.x, p.y, s); ctx.restore();
+  }
+  for (const o of objs) {
+    if (!OBJECT_TYPES[o.type]) continue;
+    const p = getCellPixelCenter(o.col, o.row);
+    drawEnvObject(ctx, o.type, p.x, p.y, s);
+  }
+
+  const effA = layerOpacity('effects');
+  for (const type of Object.keys(EFFECT_TYPES)) {
+    if (EFFECT_TYPES[type].darkness) continue;
+    const cells = effectCellSet(type);
+    if (!cells.size) continue;
+    const pat = envPattern(type);
+    ctx.save(); ctx.globalAlpha = effA; ctx.fillStyle = pat;
+    for (const k of cells) { const [c, r] = k.split(',').map(Number); drawPolygonCell(c, r); ctx.fill(); }
+    ctx.restore();
+  }
+
+  const lightMap = computeLightMap();
+  const dark = computeDarknessMap(lightMap);
+  const darkAlpha = Math.min(0.95, effA * 1.5);
+  if (Object.keys(dark).length) {
+    ctx.save();
+    for (const [k, level] of Object.entries(dark)) {
+      const [c, r] = k.split(',').map(Number);
+      drawPolygonCell(c, r);
+      ctx.fillStyle = `rgba(6, 8, 20, ${(darkAlpha * level).toFixed(3)})`;
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  // onde a luz vence a escuridão: tom quente discreto (fora da escuridão a luz não precisa aparecer)
+  ctx.save();
+  for (const k of effectCellSet('escuridao')) {
+    const lv = lightMap[k];
+    if (!lv) continue;
+    const [c, r] = k.split(',').map(Number);
+    drawPolygonCell(c, r);
+    ctx.fillStyle = lv >= 2 ? 'rgba(255, 196, 110, 0.16)' : 'rgba(255, 180, 90, 0.08)';
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // prévia da forma sendo pintada
+  const prev = STATE.paint && STATE.paint.preview;
+  if (prev && prev.length) {
+    ctx.save();
+    ctx.setLineDash([4, 3]);
+    for (const c of prev) {
+      drawPolygonCell(c.col, c.row);
+      ctx.fillStyle = 'rgba(230, 185, 95, 0.22)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(230, 185, 95, 0.9)'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+/** Miniatura de um tipo (terreno, objeto, perigo ou clima) para as paletas da caixa de ferramentas. */
+function environmentSwatchURL(type, size = 44) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  if (ENV_TILE_PAINTERS[type]) {
+    const tile = document.createElement('canvas');
+    tile.width = tile.height = ENV_TILE;
+    ENV_TILE_PAINTERS[type](tile.getContext('2d'), seededRandom(type.length * 7919 + type.charCodeAt(0)));
+    if (EFFECT_TYPES[type]) { g.fillStyle = '#8f7a5a'; g.fillRect(0, 0, size, size); }
+    g.drawImage(tile, 0, 0, size, size);
+  } else if (type === 'escuridao') {
+    g.fillStyle = '#0a0c18'; g.fillRect(0, 0, size, size);
+    g.fillStyle = 'rgba(255,255,255,0.5)'; for (const [x, y] of [[8, 9], [30, 14], [20, 32], [36, 36]]) g.fillRect(x, y, 1.5, 1.5);
+  } else {
+    g.fillStyle = 'rgba(160, 140, 110, 0.25)'; g.fillRect(0, 0, size, size);
+    drawEnvObject(g, type, size / 2, size / 2, size * 0.95);
+  }
+  return c.toDataURL();
+}
+
 /* ===== 08-input.js ===== */
 /* ============================================================================
    12. CANVAS POINTER INTERACTION
@@ -6100,7 +6894,9 @@ function onCanvasPointerDown(e) {
                       STATE.units.find(u => u.col === cell.col && u.row === cell.row);
 
   // toque: adia a ação até soltar o dedo, para permitir arrastar o tabuleiro
-  const deferrable = isTouch && (STATE.mode === 'combat' || (STATE.setupTool !== 'terrain' && !clickedUnit));
+  const tool = STATE.mode === 'setup' ? currentBoardTool() : null;
+  const paints = tool === 'terrain' || tool === 'effect';
+  const deferrable = isTouch && (STATE.mode === 'combat' || (!paints && (!clickedUnit || tool === 'object' || tool === 'hazard')));
   if (deferrable) {
     touchState.pending = {
       pointerId: e.pointerId, cell, clickedUnit, mode: STATE.mode,
@@ -6110,19 +6906,7 @@ function onCanvasPointerDown(e) {
   }
 
   if (STATE.mode === 'setup') {
-    if (STATE.setupTool === 'terrain') {
-      STATE.interaction.paintingTerrain = true;
-      paintCellTerrain(cell.col, cell.row);
-      return;
-    }
-    if (clickedUnit) {
-      STATE.selectedUnitId = clickedUnit.id;
-      STATE.interaction.draggingUnitId = clickedUnit.id;
-      syncInspectorUI();
-      requestRender();
-    } else {
-      spawnUnitFromTemplate(STATE.selectedTemplateId, cell.col, cell.row);
-    }
+    setupPointerDown(cell, clickedUnit);
   } else {
     handleCombatBoardClick(cell, clickedUnit);
   }
@@ -6186,8 +6970,8 @@ function onCanvasPointerMove(e) {
   }
 
   if (STATE.mode === 'setup') {
-    if (STATE.interaction.paintingTerrain && cell) {
-      paintCellTerrain(cell.col, cell.row);
+    if ((STATE.interaction.paintingTerrain || STATE.paint.start) && cell) {
+      paintDragTo(cell);
     } else if (STATE.interaction.draggingUnitId && cell) {
       const dragged = STATE.units.find(u => u.id === STATE.interaction.draggingUnitId);
       const occupied = STATE.units.find(u => u.id !== dragged.id && u.col === cell.col && u.row === cell.row);
@@ -6210,13 +6994,17 @@ function onCanvasPointerUp(e) {
       touchState.pending = null;
       if (e.type === 'pointerup') {
         if (pend.mode === 'combat') handleCombatBoardClick(pend.cell, pend.clickedUnit);
-        else if (STATE.mode === 'setup') spawnUnitFromTemplate(STATE.selectedTemplateId, pend.cell.col, pend.cell.row);
+        else if (STATE.mode === 'setup') setupTap(pend.cell, pend.clickedUnit);
       }
     }
   }
   if (STATE.interaction.rotatingUnitId && (!e || e.type === 'pointerup')) endFacingDrag();
   STATE.interaction.rotatingUnitId = null;
   STATE.interaction.rotateStart = null;
+  if (STATE.paint.start || STATE.interaction.paintingTerrain) {
+    if (!e || e.type === 'pointerup') finishPaint();
+    else { STATE.paint.start = null; STATE.paint.preview = null; requestRender(); }
+  }
   STATE.interaction.isPanning = false;
   STATE.interaction.draggingUnitId = null;
   STATE.interaction.paintingTerrain = false;
@@ -6294,6 +7082,7 @@ function handleCombatBoardClick(cell, clickedUnit) {
     activeUnit.actions = Math.max(0, activeUnit.actions - destInfo.actionsNeeded);
     spawnFloatingText(cell.col, cell.row, `🥾 -${destInfo.actionsNeeded}◆ (${destInfo.meters}m)`, '#86efac');
     addLog(`🥾 <strong>${activeUnit.name}</strong> moveu ${destInfo.meters}m para (${cell.col + 1}, ${cell.row + 1}) gastando <strong>${'◆'.repeat(destInfo.actionsNeeded)} (${destInfo.actionsNeeded} ação/ões)</strong>.`);
+    applyHazardAt(activeUnit);
     syncCombatUI();
     requestRender();
     return;
@@ -6474,7 +7263,53 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
   return true;
 }
 
+/**
+ * Acende (gasta ◆ no combate) ou apaga (sem custo) um item de luz da peça. Fica aceso
+ * até o usuário apagar; a luz segue a peça e, na lanterna, a direção dela.
+ */
+function toggleLightItem(unit, idx, inCombat) {
+  const item = unit && unit.items[idx];
+  const light = itemLight(item);
+  if (!light) return false;
+  if (item.lit) {
+    item.lit = false;
+    addLog(`🕯️ <strong>${escapeHtml(unit.name)}</strong> apagou <em>${escapeHtml(item.name)}</em>.`);
+  } else {
+    const cost = item.cost || 1;
+    if (inCombat) {
+      if (unit.actions < cost) {
+        addLog(`⚠️ <strong>${escapeHtml(unit.name)}</strong> precisa de ${'◆'.repeat(cost)} para acender <em>${escapeHtml(item.name)}</em>.`);
+        return false;
+      }
+      unit.actions -= cost;
+    }
+    item.lit = true;
+    const shape = light.shape === 'cone' ? `cone de ${String(light.bright).replace('.', ',')} m para onde a peça olha` : `${String(light.bright).replace('.', ',')} m ao redor`;
+    addLog(`🔥 <strong>${escapeHtml(unit.name)}</strong> acendeu <em>${escapeHtml(item.name)}</em>${inCombat ? ` (${'◆'.repeat(cost)})` : ''}: luz plena ${shape}, penumbra até ${String(light.dim).replace('.', ',')} m. Fica acesa até ser apagada.`);
+  }
+  if (STATE.mode === 'combat') syncCombatUI(); else syncInspectorUI();
+  requestRender();
+  return true;
+}
+
+/** Perigo na casa onde a peça terminou o movimento: rola o dano (com defesas). */
+function applyHazardAt(unit) {
+  const hz = (STATE.objects || []).find(o => o.col === unit.col && o.row === unit.row && HAZARD_TYPES[o.type]);
+  if (!hz || unit.hp <= 0) return;
+  const def = HAZARD_TYPES[hz.type];
+  const dmg = rollDamage({ name: def.label, dmgDie: def.dmgDie, dmgType: def.dmgType });
+  const applied = applyDefenses(dmg.parts, 1, unit);
+  unit.hp = Math.max(0, unit.hp - applied.total);
+  const note = describeDefenseEffects(applied.lines);
+  spawnFloatingText(unit.col, unit.row, applied.total ? `⚠️ -${applied.total} PV` : '🛡️ RESISTIU', applied.total ? '#fca5a5' : '#94a3b8');
+  addLog(`⚠️ <strong>${escapeHtml(unit.name)}</strong> parou em <em>${escapeHtml(def.label)}</em> e sofreu <strong style="color:var(--strike)">${applied.total}</strong> de dano (${formatDamageParts(dmg.parts, 1)})${note ? ` <em>(${note})</em>` : ''}.${unit.hp === 0 ? ` 💀 <strong style="color:var(--strike)">${escapeHtml(unit.name)} MORTO!</strong>` : ` (PV: ${unit.hp}/${unit.maxHp})`}`);
+}
+
 function executeItemUseOnCell(user, item, cell, clickedUnit) {
+  if (item.kind === 'light') {
+    toggleLightItem(user, user.items.indexOf(item), true);
+    return;
+  }
   const cost = item.cost || 2;
   if (user.actions < cost) {
     addLog(`⚠️ <strong>${user.name}</strong> precisa de ${cost} ações (◆◆) para usar <em>${item.name}</em>.`);
@@ -6520,6 +7355,10 @@ function useSelectedItemOnSelf() {
   const item = activeUnit.items[STATE.combat.selectedItemIdx];
   if (!item || item.qty <= 0) {
     addLog(`⚠️ Nenhuma poção/item disponível.`);
+    return;
+  }
+  if (item.kind === 'light') {
+    toggleLightItem(activeUnit, STATE.combat.selectedItemIdx, true);
     return;
   }
   if (item.kind !== 'potion') {
@@ -6961,12 +7800,18 @@ function syncCombatUI() {
       card.classList.add('has-cost', 'item-card');
       card.innerHTML = `
         <div class="card-ribbon">${escapeHtml(it.name)}</div>
-        <div class="card-art"><svg class="icon"><use href="#i-${it.kind === 'potion' ? 'flask' : 'scroll'}"/></svg></div>
-        <div class="card-text"><b>×${it.qty}</b><span>${escapeHtml(it.desc)}</span></div>
+        <div class="card-art"><svg class="icon"><use href="#i-${it.kind === 'potion' ? 'flask' : it.kind === 'light' ? 'sparkles' : 'scroll'}"/></svg></div>
+        <div class="card-text"><b>×${it.qty}${it.kind === 'light' ? (it.lit ? ' · 🔥 acesa' : ' · apagada') : ''}</b><span>${escapeHtml(it.desc)}</span></div>
         <div class="card-cost"><span class="cost-badge">${it.cost || 2}</span></div>`;
       iBox.appendChild(card);
     });
   }
+
+  // botão do painel de itens: "usar em si mesmo" ou acender/apagar luz
+  const selItem = activeUnit.items[STATE.combat.selectedItemIdx];
+  const selfBtn = document.getElementById('btnQuickSelfItem');
+  if (itemLight(selItem)) selfBtn.innerHTML = `<svg class="icon"><use href="#i-sparkles"/></svg>${selItem.lit ? 'Apagar (sem custo)' : `Acender (${'◆'.repeat(selItem.cost || 1)})`}`;
+  else selfBtn.innerHTML = '<svg class="icon"><use href="#i-flask"/></svg>Usar em si mesmo';
 
   // Subpanel 5: Ficha (somente leitura no combate)
   document.getElementById('sheetHeaderBadge').textContent = `${activeUnit.sheet?.ancestry || ''} · Nív ${activeUnit.sheet?.level || 1}`;
@@ -7176,7 +8021,8 @@ function syncInspectorUI() {
     const row = document.createElement('div');
     row.className = 'tag-list-item';
     row.innerHTML = `
-      <div class="grow"><span class="option-title">${escapeHtml(it.name)}</span><span class="option-sub">×${it.qty} · ${escapeHtml(it.desc)}</span></div>
+      <div class="grow"><span class="option-title">${escapeHtml(it.name)}${it.lit ? ' · 🔥 acesa' : ''}</span><span class="option-sub">×${it.qty} · ${escapeHtml(it.desc)}</span></div>
+      ${itemLight(it) ? `<button class="btn btn-sm" onclick="toggleLightItem(STATE.units.find(x => x.id === STATE.selectedUnitId), ${idx}, false)">${it.lit ? 'Apagar' : 'Acender'}</button>` : ''}
       <button class="btn btn-sm btn-ghost btn-icon" onclick="removeItemFromUnit(${idx})" aria-label="Remover ${escapeHtml(it.name)}"><svg class="icon"><use href="#i-trash"/></svg></button>`;
     eiList.appendChild(row);
   });
@@ -7670,24 +8516,8 @@ function setProceduralMap(theme) {
   clearBackgroundMap();
 }
 
-function setSetupTool(tool) {
-  STATE.setupTool = tool;
-  document.getElementById('toolPlacePiece').classList.toggle('active', tool === 'piece');
-  document.getElementById('toolPaintTerrain').classList.toggle('active', tool === 'terrain');
-  document.getElementById('terrainBrushBox').classList.toggle('hidden', tool !== 'terrain');
-}
-
-function setTerrainBrush(type) {
-  STATE.terrainBrush = type;
-  document.querySelectorAll('.terrain-btn').forEach(b => b.classList.toggle('active', b.dataset.t === type));
-}
-
-function paintCellTerrain(col, row) {
-  const key = `${col},${row}`;
-  if (STATE.terrainBrush === 'normal') delete STATE.terrainMap[key];
-  else STATE.terrainMap[key] = STATE.terrainBrush;
-  requestRender();
-}
+/** Animais ficam na aba própria da caixa de ferramentas; o resto em Personagens. */
+const isAnimalTemplate = (t) => t.category === 'animal';
 
 function renderPieceGallery() {
   const container = document.getElementById('pieceGalleryContainer');
@@ -7696,15 +8526,17 @@ function renderPieceGallery() {
   container.innerHTML = '';
   const q = normalizeSearchText(document.getElementById('galleryFilterText')?.value);
   const fac = document.getElementById('galleryFilterFaction')?.value || '';
-  const shown = UNIT_TEMPLATES.filter(t => (!fac || t.faction === fac) &&
+  const shown = UNIT_TEMPLATES.filter(t => !isAnimalTemplate(t) && (!fac || t.faction === fac) &&
     (!q || normalizeSearchText(`${t.name} ${t.sheet?.className || ''} ${t.sheet?.ancestry || ''}`).includes(q)));
   if (shown.length === 0) container.innerHTML = '<p class="hint" style="grid-column:1/-1">Nenhuma peça com esse filtro.</p>';
-  for (const t of shown) {
+  const animalBox = document.getElementById('animalGalleryContainer');
+  if (animalBox) animalBox.innerHTML = '';
+  const render = (t, box, tab) => {
     const card = document.createElement('div');
     card.className = `piece-card ${t.id === STATE.selectedTemplateId ? 'selected' : ''}`;
     card.onclick = () => {
       STATE.selectedTemplateId = t.id;
-      setSetupTool('piece');
+      setSetupTool(tab);
       renderPieceGallery();
     };
     card.innerHTML = `
@@ -7712,8 +8544,10 @@ function renderPieceGallery() {
       <div class="piece-card-name">${escapeHtml(t.name)}</div>
       <div class="piece-card-meta">Nív ${Number(t.sheet?.level) || 1} | ${Number(t.moveSpeed) || 0}m</div>
     `;
-    container.appendChild(card);
-  }
+    box.appendChild(card);
+  };
+  for (const t of shown) render(t, container, 'piece');
+  if (animalBox) for (const t of UNIT_TEMPLATES.filter(isAnimalTemplate)) render(t, animalBox, 'animal');
 }
 
 function spawnUnitFromTemplate(templateId, col, row) {
@@ -7851,6 +8685,8 @@ function populateDemoBattle() {
 function clearAllUnits() {
   STATE.units = [];
   STATE.terrainMap = {};
+  STATE.objects = [];
+  clearAllEffects();
   STATE.selectedUnitId = null;
   STATE.combat.activeUnitId = null;
   syncInspectorUI();
@@ -7908,6 +8744,10 @@ function saveStateToLocal() {
   const payload = {
     grid: STATE.grid,
     terrainMap: STATE.terrainMap,
+    objects: STATE.objects,
+    effects: STATE.effects,
+    effectZones: STATE.effectZones,
+    layers: STATE.layers,
     units: STATE.units,
     templates: UNIT_TEMPLATES,
     round: STATE.combat.round
@@ -7930,6 +8770,10 @@ function exportJSON() {
   const payload = {
     grid: STATE.grid,
     terrainMap: STATE.terrainMap,
+    objects: STATE.objects,
+    effects: STATE.effects,
+    effectZones: STATE.effectZones,
+    layers: STATE.layers,
     units: STATE.units,
     templates: UNIT_TEMPLATES,
     round: STATE.combat.round
@@ -7970,7 +8814,17 @@ function applyLoadedPayload(data) {
     setGridSize(STATE.grid.cols, STATE.grid.rows);
     setCellScale(STATE.grid.cellScale);
   }
-  if (data.terrainMap) STATE.terrainMap = data.terrainMap;
+  if (data.terrainMap && typeof data.terrainMap === 'object') {
+    STATE.terrainMap = {};
+    for (const [k, t] of Object.entries(data.terrainMap)) if (/^\d+,\d+$/.test(k) && TERRAIN_TYPES[t]) STATE.terrainMap[k] = t;
+  }
+  // ambiente (arquivos antigos não têm: tudo vazio e transparências padrão)
+  const env = normalizeEnvironment(data);
+  STATE.objects = env.objects;
+  STATE.effects = env.effects;
+  STATE.effectZones = env.effectZones;
+  STATE.layers = env.layers;
+  syncTransparencyUI();
   if (Array.isArray(data.templates)) {
     UNIT_TEMPLATES = data.templates.filter(t => t && typeof t === 'object' && t.sheet);
     const fixed = UNIT_TEMPLATES.filter(repairPieceToken).length;
@@ -8138,6 +8992,303 @@ window.Brigandine = Object.freeze({
     ...Object.values(EXTRA_TOKENS).map(t => ({ key: t.key, name: t.name, source: t.kind }))
   ]
 });
+
+/* ===== 12c-toolbox.js ===== */
+/* ============================================================================
+   15c. CAIXA DE FERRAMENTAS E MENUS DA MONTAGEM
+   - Só um menu aberto por vez (Tabuleiro, Mapa de fundo, Caixa de ferramentas);
+     só o menu aberto age no tabuleiro e, ao fechar, a escolha dele é desfeita.
+   - Caixa de ferramentas: Personagens, Terreno, Objetos, Animais, Perigos.
+   - Tabuleiro: clima pintado em célula, raio, emanação, cone, linha, quadrado ou tudo.
+   - Cada menu termina com a própria transparência (0 % a 90 %).
+   ============================================================================ */
+
+const TOOL_TABS = ['piece', 'terrain', 'object', 'animal', 'hazard'];
+const PAINT_SIZES = [1.5, 3, 4.5, 6, 9, 12, 18, 30];
+const SWATCH_CACHE = {};
+
+function swatch(type) {
+  if (!SWATCH_CACHE[type]) SWATCH_CACHE[type] = environmentSwatchURL(type);
+  return SWATCH_CACHE[type];
+}
+
+/* ---------------- Menus exclusivos ---------------- */
+
+function initSetupMenus() {
+  const menus = Array.from(document.querySelectorAll('#setupLeftPanel details.acc[data-menu]'));
+  for (const el of menus) {
+    el.addEventListener('toggle', () => onSetupMenuToggle(el, menus));
+    if (el.open) STATE.openMenu = el.dataset.menu;
+  }
+  // garante um só aberto já no início
+  let seen = false;
+  for (const el of menus) { if (el.open && seen) el.open = false; if (el.open) seen = true; }
+}
+
+function onSetupMenuToggle(el, menus) {
+  const menu = el.dataset.menu;
+  if (el.open) {
+    for (const other of menus) if (other !== el && other.open) other.open = false;
+    STATE.openMenu = menu;
+  } else {
+    if (STATE.openMenu === menu) STATE.openMenu = null;
+    deselectMenu(menu);
+  }
+  STATE.paint.start = null;
+  STATE.paint.preview = null;
+  requestRender();
+}
+
+/** Ao fechar um menu, a ferramenta escolhida nele deixa de valer. */
+function deselectMenu(menu) {
+  if (menu === 'tools') {
+    STATE.selectedTemplateId = null;
+    STATE.terrainBrush = null;
+    STATE.objectBrush = null;
+    renderPieceGallery();
+  }
+  if (menu === 'board') STATE.effectBrush = null;
+  renderEnvPalettes();
+}
+
+/** Ferramenta que o clique no tabuleiro usa agora (montagem). */
+function currentBoardTool() {
+  if (STATE.openMenu === 'tools') return STATE.toolTab;
+  if (STATE.openMenu === 'board') return 'effect';
+  return 'none';
+}
+
+/* ---------------- Abas da caixa de ferramentas ---------------- */
+
+function setSetupTool(tool) {
+  if (!TOOL_TABS.includes(tool)) tool = 'piece';
+  STATE.toolTab = tool;
+  STATE.setupTool = tool; // compatibilidade
+  for (const t of TOOL_TABS) {
+    document.getElementById(`toolTab_${t}`)?.classList.toggle('active', t === tool);
+    document.getElementById(`toolPanel_${t}`)?.classList.toggle('hidden', t !== tool);
+  }
+  // abrir a ferramenta pelo código também abre a caixa de ferramentas
+  const box = document.querySelector('#setupLeftPanel details.acc[data-menu="tools"]');
+  if (box && !box.open) box.open = true;
+  STATE.paint.preview = null;
+  renderEnvPalettes();
+  requestRender();
+}
+
+/* ---------------- Paletas ---------------- */
+
+function paletteHTML(entries, current, onPick) {
+  return entries.map(([key, label]) =>
+    `<button type="button" class="env-pick${key === current ? ' active' : ''}" title="${escapeHtml(label)}" onclick="${onPick}('${key}')">` +
+    (key === 'erase' || key === 'normal'
+      ? `<span class="env-swatch env-erase"><svg class="icon"><use href="#i-x"/></svg></span>`
+      : `<img class="env-swatch" src="${swatch(key)}" alt="">`) +
+    `<span>${escapeHtml(label)}</span></button>`).join('');
+}
+
+function renderEnvPalettes() {
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  set('terrainPalette', paletteHTML([...Object.entries(TERRAIN_TYPES).map(([k, t]) => [k, t.label]), ['normal', 'Apagar']], STATE.terrainBrush, 'selectTerrainBrush'));
+  set('objectPalette', paletteHTML([...Object.entries(OBJECT_TYPES).map(([k, t]) => [k, t.label]), ['erase', 'Remover']], STATE.toolTab === 'object' ? STATE.objectBrush : null, 'selectObjectBrush'));
+  set('hazardPalette', paletteHTML([...Object.entries(HAZARD_TYPES).map(([k, t]) => [k, t.label]), ['erase', 'Remover']], STATE.toolTab === 'hazard' ? STATE.objectBrush : null, 'selectObjectBrush'));
+  set('effectPalette', paletteHTML([...Object.entries(EFFECT_TYPES).map(([k, t]) => [k, t.label]), ['erase', 'Apagar']], STATE.effectBrush, 'selectEffectBrush'));
+  renderShapeControls('terrainShapeControls', false);
+  renderShapeControls('effectShapeControls', true);
+  syncTransparencyUI();
+}
+
+function selectTerrainBrush(type) { STATE.terrainBrush = type; renderEnvPalettes(); }
+function selectObjectBrush(type) { STATE.objectBrush = type; renderEnvPalettes(); }
+function selectEffectBrush(type) { STATE.effectBrush = type; renderEnvPalettes(); }
+
+/* ---------------- Formas ---------------- */
+
+function renderShapeControls(containerId, allowEmanation) {
+  const box = document.getElementById(containerId);
+  if (!box) return;
+  const shapes = Object.entries(PAINT_SHAPES).filter(([, d]) => allowEmanation || !d.effectOnly);
+  // terreno não tem emanação: mostra (e usa) como raio, sem mexer na escolha do clima
+  const shown = !allowEmanation && STATE.paint.shape === 'emanation' ? 'burst' : STATE.paint.shape;
+  const cur = PAINT_SHAPES[shown] || PAINT_SHAPES.cell;
+  const hints = {
+    cell: 'Clique ou arraste para pintar casa por casa.',
+    burst: 'Clique no centro.',
+    emanation: 'Clique numa peça: o efeito acompanha a peça. Numa casa vazia, vale como raio.',
+    cone: 'Arraste da origem para a direção do cone.',
+    line: 'Arraste da origem para a direção da linha.',
+    square: 'Arraste de um canto ao outro.',
+    all: 'Clique em qualquer casa para cobrir o tabuleiro todo.'
+  };
+  box.innerHTML = `<div class="chip-row">${shapes.map(([k, d]) =>
+    `<button type="button" class="chip${k === shown ? ' active' : ''}" onclick="setPaintShape('${k}')">${d.label}</button>`).join('')}</div>` +
+    (cur.sized ? `<div class="field-label" style="margin-top:6px"><span>Tamanho</span><select aria-label="Tamanho da forma" onchange="setPaintSize(this.value)">${PAINT_SIZES.map(m =>
+      `<option value="${m}"${m === STATE.paint.size ? ' selected' : ''}>${String(m).replace('.', ',')} m</option>`).join('')}</select></div>` : '') +
+    `<p class="hint">${hints[shown] || ''}</p>`;
+}
+
+function setPaintShape(shape) {
+  if (PAINT_SHAPES[shape]) STATE.paint.shape = shape;
+  STATE.paint.preview = null;
+  renderEnvPalettes();
+}
+
+function setPaintSize(m) {
+  const n = Number(m);
+  if (PAINT_SIZES.includes(n)) STATE.paint.size = n;
+}
+
+/* ---------------- Transparência ---------------- */
+
+function setLayerTransparency(layer, value) {
+  STATE.layers[layer] = clampTransparency(value);
+  syncTransparencyUI();
+  requestRender();
+}
+
+function syncTransparencyUI() {
+  for (const layer of ['terrain', 'effects', 'map']) {
+    const v = clampTransparency(STATE.layers[layer]);
+    const slider = document.getElementById(`transp_${layer}`);
+    if (slider && Number(slider.value) !== v) slider.value = String(v);
+    const label = document.getElementById(`transpVal_${layer}`);
+    if (label) label.textContent = `${v} %`;
+  }
+}
+
+/* ---------------- Pintura (terreno e clima) ---------------- */
+
+/** Pinta (ou apaga) uma lista de células com o pincel da ferramenta atual. */
+function applyPaintCells(tool, cells) {
+  for (const { col, row } of cells) {
+    if (col < 0 || row < 0 || col >= STATE.grid.cols || row >= STATE.grid.rows) continue;
+    const k = `${col},${row}`;
+    if (tool === 'terrain') {
+      if (STATE.terrainBrush === 'normal') delete STATE.terrainMap[k];
+      else STATE.terrainMap[k] = STATE.terrainBrush;
+    } else if (tool === 'effect') {
+      if (STATE.effectBrush === 'erase') for (const t of Object.keys(STATE.effects)) delete STATE.effects[t][k];
+      else (STATE.effects[STATE.effectBrush] ||= {})[k] = 1;
+    }
+  }
+  requestRender();
+}
+
+function brushFor(tool) {
+  return tool === 'terrain' ? STATE.terrainBrush : tool === 'effect' ? STATE.effectBrush : null;
+}
+
+/** Começo da pintura. Devolve true se o clique foi usado. */
+function beginPaint(tool, cell, clickedUnit) {
+  if (!brushFor(tool)) {
+    addLog(tool === 'effect' ? '🌫️ Escolha um efeito de clima (ou Apagar) antes de pintar.' : '🗺️ Escolha um tipo de terreno (ou Apagar) antes de pintar.');
+    return false;
+  }
+  const shape = tool === 'terrain' && STATE.paint.shape === 'emanation' ? 'burst' : STATE.paint.shape;
+  const size = STATE.paint.size;
+  if (shape === 'emanation' && tool === 'effect' && clickedUnit) {
+    STATE.effectZones = STATE.effectZones.filter(z => !(z.unitId === clickedUnit.id && (STATE.effectBrush === 'erase' || z.type === STATE.effectBrush)));
+    if (STATE.effectBrush !== 'erase') {
+      STATE.effectZones.push({ id: `z_${Date.now()}`, type: STATE.effectBrush, unitId: clickedUnit.id, radius: size });
+      addLog(`🌫️ ${escapeHtml(EFFECT_TYPES[STATE.effectBrush].label)} em emanação de ${String(size).replace('.', ',')} m ao redor de <strong>${escapeHtml(clickedUnit.name)}</strong> (acompanha a peça).`);
+    }
+    requestRender();
+    return true;
+  }
+  if (shape === 'cell') {
+    STATE.interaction.paintingTerrain = tool;
+    applyPaintCells(tool, [cell]);
+    return true;
+  }
+  if (PAINT_SHAPES[shape]?.needsDrag) {
+    STATE.paint.start = cell;
+    STATE.paint.tool = tool;
+    STATE.paint.preview = shapeCells(shape, cell, cell, size);
+    requestRender();
+    return true;
+  }
+  applyPaintCells(tool, shapeCells(shape, cell, cell, size));
+  return true;
+}
+
+/** Arrasto: casa a casa (forma Célula) ou prévia da forma (cone, linha, quadrado). */
+function paintDragTo(cell) {
+  if (!cell) return;
+  if (STATE.interaction.paintingTerrain) applyPaintCells(STATE.interaction.paintingTerrain, [cell]);
+  else if (STATE.paint.start) {
+    STATE.paint.preview = shapeCells(STATE.paint.shape === 'emanation' ? 'burst' : STATE.paint.shape, STATE.paint.start, cell, STATE.paint.size);
+    requestRender();
+  }
+}
+
+/** Soltar: aplica a forma arrastada. */
+function finishPaint() {
+  if (STATE.paint.start && STATE.paint.preview) applyPaintCells(STATE.paint.tool, STATE.paint.preview);
+  STATE.paint.start = null;
+  STATE.paint.preview = null;
+  STATE.interaction.paintingTerrain = false;
+}
+
+function clearAllEffects() {
+  for (const t of Object.keys(STATE.effects)) STATE.effects[t] = {};
+  STATE.effectZones = [];
+  requestRender();
+}
+
+/* ---------------- Objetos e perigos ---------------- */
+
+function placeObjectAt(cell) {
+  const brush = STATE.objectBrush;
+  if (!brush) {
+    addLog(STATE.toolTab === 'hazard' ? '⚠️ Escolha um perigo (ou Remover) antes de clicar no tabuleiro.' : '🪑 Escolha um objeto (ou Remover) antes de clicar no tabuleiro.');
+    return;
+  }
+  // objetos e perigos dividem a casa: cada aba só mexe no seu tipo
+  const isHazardTab = STATE.toolTab === 'hazard';
+  const sameKind = (o) => (isHazardTab ? !!HAZARD_TYPES[o.type] : !!OBJECT_TYPES[o.type]);
+  STATE.objects = STATE.objects.filter(o => !(o.col === cell.col && o.row === cell.row && sameKind(o)));
+  if (brush !== 'erase') STATE.objects.push({ id: `o_${Date.now()}_${Math.floor(Math.random() * 1000)}`, type: brush, col: cell.col, row: cell.row });
+  requestRender();
+}
+
+/* ---------------- Clique no tabuleiro (montagem) ---------------- */
+
+/** Toque/clique simples já confirmado (no celular, ao soltar o dedo). */
+function setupTap(cell, clickedUnit) {
+  const tool = currentBoardTool();
+  if (tool === 'object' || tool === 'hazard') { placeObjectAt(cell); return; }
+  if (clickedUnit) {
+    STATE.selectedUnitId = clickedUnit.id;
+    syncInspectorUI();
+    requestRender();
+    return;
+  }
+  if (tool === 'piece' || tool === 'animal') {
+    if (STATE.selectedTemplateId) spawnUnitFromTemplate(STATE.selectedTemplateId, cell.col, cell.row);
+    else addLog(tool === 'animal' ? '🐺 Escolha um animal na caixa de ferramentas antes de clicar no tabuleiro.' : '🧙 Escolha uma peça na galeria antes de clicar no tabuleiro.');
+  }
+}
+
+/** Ao pousar o ponteiro (mouse). Devolve true se a ação já foi tratada aqui. */
+function setupPointerDown(cell, clickedUnit) {
+  const tool = currentBoardTool();
+  if (tool === 'terrain' || tool === 'effect') return beginPaint(tool, cell, clickedUnit) || selectOnly(clickedUnit);
+  if (tool === 'object' || tool === 'hazard') { placeObjectAt(cell); return true; }
+  if ((tool === 'piece' || tool === 'animal') && clickedUnit) {
+    STATE.selectedUnitId = clickedUnit.id;
+    STATE.interaction.draggingUnitId = clickedUnit.id;
+    syncInspectorUI();
+    requestRender();
+    return true;
+  }
+  setupTap(cell, clickedUnit);
+  return true;
+}
+
+function selectOnly(unit) {
+  if (unit) { STATE.selectedUnitId = unit.id; syncInspectorUI(); requestRender(); }
+  return true;
+}
 
 /* ===== 13-ui-shell.js ===== */
 /* ============================================================================
@@ -8327,7 +9478,20 @@ function buildUnitTipHTML(unit) {
     </div>
     <div class="hp-bar-outer"><div class="hp-bar-inner" data-level="${level}" style="width:${hpPct}%"></div></div>
     <div class="chip-row">${chips || '<span class="faint">Sem resistências, fraquezas ou imunidades</span>'}</div>
+    ${unitLightNoteHTML(unit)}
     ${preview}`;
+}
+
+/** Escuridão/penumbra na casa da peça e luz que ela carrega acesa. */
+function unitLightNoteHTML(unit) {
+  const k = `${unit.col},${unit.row}`;
+  const dark = effectCellSet('escuridao').has(k) ? darknessAt(true, computeLightMap()[k] || 0) : 0;
+  const lit = (unit.items || []).filter(it => it.lit && itemLight(it)).map(it => escapeHtml(it.name));
+  const parts = [];
+  if (dark === 1) parts.push('🌑 Na escuridão');
+  else if (dark === 0.5) parts.push('🌘 Na penumbra');
+  if (lit.length) parts.push(`🔥 ${lit.join(', ')} acesa`);
+  return parts.length ? `<div class="tip-note">${parts.join(' · ')}</div>` : '';
 }
 
 function hideUnitTip() {

@@ -23,10 +23,19 @@ const STATE = {
     basePx: 60
   },
   setupTool: 'piece',
-  terrainBrush: 'normal',
+  terrainBrush: null,     // terreno escolhido ('normal' = apagar)
   selectedTemplateId: 't_guerreiro',
 
   terrainMap: {},
+  objects: [],            // objetos e perigos: { id, type, col, row }
+  effects: { nevoa: {}, escuridao: {}, chuva: {}, nevasca: {}, fumaca: {} }, // clima pintado: tipo -> { "c,r": 1 }
+  effectZones: [],        // emanações presas a peças: { id, type, unitId, radius }
+  layers: { terrain: 50, effects: 50, map: 0 }, // transparência (%) de cada menu
+  openMenu: null,         // 'board' | 'map' | 'tools' | null — só o menu aberto age no tabuleiro
+  toolTab: 'piece',       // aba da caixa de ferramentas
+  objectBrush: null,      // objeto ou perigo escolhido (ou 'erase')
+  effectBrush: null,      // clima escolhido (ou 'erase')
+  paint: { shape: 'cell', size: 4.5, start: null, preview: null },
   units: [],
   selectedUnitId: null,
 

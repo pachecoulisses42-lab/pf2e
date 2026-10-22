@@ -231,6 +231,7 @@ function normalizePieceTemplate(raw = {}, usedIds = new Set()) {
   const token = resolvePieceToken({ ...raw, faction });
   const tpl = {
     id, name, faction,
+    ...(normalizeSearchText(raw.category) === 'animal' ? { category: 'animal' } : {}),
     sculpt: token.sculpt,
     customTokenDataUrl: token.customTokenDataUrl,
     customTokenFrame: token.customTokenFrame,

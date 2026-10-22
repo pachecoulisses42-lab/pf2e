@@ -279,3 +279,44 @@ test('direção da peça: normaliza, arredonda e aponta para o vetor', () => {
   assert.equal(R.facingLabel(315), 'sudeste');
   assert.equal(R.facingLabel(350), 'sul');
 });
+
+test('ambiente: custo de movimento, bloqueio de luz, escuridão e transparência', async () => {
+  const { readFileSync } = await import('node:fs');
+  const vm = await import('node:vm');
+  const { join, dirname } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const ctx = vm.createContext({});
+  for (const f of ['01-catalog.js', '01b-rules.js', '01c-environment.js']) vm.runInContext(readFileSync(join(root, 'src/js', f), 'utf8'), ctx);
+  const E = vm.runInContext('({ cellMoveMultiplier, cellBlocksLight, darknessAt, opacityFromTransparency, clampTransparency, itemLight, normalizeEnvironment, ITEM_CATALOG })', ctx);
+  assert.equal(E.cellMoveMultiplier(undefined, undefined), 1);
+  assert.equal(E.cellMoveMultiplier('lama', undefined), 2);
+  assert.equal(E.cellMoveMultiplier('agua', 'cadeira'), 2);
+  assert.equal(E.cellMoveMultiplier('abismo', undefined), null);
+  assert.equal(E.cellMoveMultiplier('chao', 'pedra'), null);
+  assert.equal(E.cellMoveMultiplier('difficult', undefined), 2, 'chave antiga continua valendo');
+  assert.equal(E.cellMoveMultiplier('chao', 'espinhos'), 1, 'perigo não muda custo');
+  assert.equal(E.cellBlocksLight('wall'), true);
+  assert.equal(E.cellBlocksLight('abismo'), false);
+  assert.equal(E.cellBlocksLight(undefined, 'muro'), true);
+  assert.deepEqual([E.darknessAt(false, 0), E.darknessAt(true, 0), E.darknessAt(true, 1), E.darknessAt(true, 2)], [0, 1, 0.5, 0]);
+  assert.equal(E.clampTransparency(120), 90);
+  assert.equal(E.clampTransparency(-5), 0);
+  assert.equal(E.clampTransparency('x'), 50);
+  assert.equal(E.opacityFromTransparency(50), 0.5);
+  assert.equal(E.itemLight(E.ITEM_CATALOG.lanterna).shape, 'cone');
+  assert.equal(E.itemLight(E.ITEM_CATALOG.tocha).shape, 'emanation');
+  assert.equal(E.itemLight(E.ITEM_CATALOG.pocao_menor), null);
+  const env = JSON.parse(JSON.stringify(E.normalizeEnvironment({
+    objects: [{ type: 'pedra', col: 1, row: 2 }, { type: 'nada', col: 0, row: 0 }, { type: 'fogueira', col: 'x', row: 0 }],
+    effects: { escuridao: ['1,1', 'lixo'], chuva: { '2,2': 1 }, inventado: ['0,0'] },
+    effectZones: [{ type: 'nevoa', unitId: 'u1', radius: 3 }, { type: 'nevoa', unitId: 'u1', radius: 0 }],
+    layers: { terrain: 200 }
+  })));
+  assert.equal(env.objects.length, 1);
+  assert.deepEqual(Object.keys(env.effects.escuridao), ['1,1']);
+  assert.deepEqual(Object.keys(env.effects.chuva), ['2,2']);
+  assert.equal(env.effects.inventado, undefined);
+  assert.equal(env.effectZones.length, 1);
+  assert.deepEqual(env.layers, { terrain: 90, effects: 50, map: 0 });
+});
