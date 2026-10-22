@@ -1158,7 +1158,7 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
       </details>
 
       <details class="acc" name="setup-acc" open>
-        <summary><svg class="icon"><use href="#i-pawn"/></svg>Peças<span class="summary-meta">9 heróis · 3 vilões</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+        <summary><svg class="icon"><use href="#i-pawn"/></svg>Peças<span class="summary-meta" id="galleryCount">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
         <div class="acc-body">
           <div class="seg">
             <button id="toolPlacePiece" class="seg-btn active" onclick="setSetupTool('piece')"><svg class="icon"><use href="#i-pawn"/></svg>Posicionar</button>
@@ -1433,7 +1433,7 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
                 <option value="rogue">Rogue</option>
                 <option value="goblin">Goblin</option>
                 <option value="lobo">Lobo atroz</option>
-                <option value="bandido">Bandido</option>
+                <option value="bandido">Bandido</option><option value="druida">Druida</option><option value="monge">Monge</option><option value="alquimista">Alquimista</option><option value="bruxa">Bruxa</option><option value="espadachim">Espadachim</option><option value="esqueleto">Esqueleto</option><option value="orc">Orc</option><option value="cultista">Cultista</option><option value="zumbi">Zumbi</option><option value="kobold">Kobold</option>
               </select>
             </div>
 
@@ -1585,7 +1585,7 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
                 <option value="guerreiro">Guerreiro</option><option value="barbaro">Bárbaro</option><option value="bardo">Bardo</option>
                 <option value="clerigo">Clérigo</option><option value="feiticeiro">Feiticeiro</option><option value="mago">Mago</option>
                 <option value="paladino">Paladino</option><option value="ranger">Ranger</option><option value="rogue">Rogue</option>
-                <option value="goblin">Goblin</option><option value="lobo">Lobo</option><option value="bandido">Bandido</option>
+                <option value="goblin">Goblin</option><option value="lobo">Lobo</option><option value="bandido">Bandido</option><option value="druida">Druida</option><option value="monge">Monge</option><option value="alquimista">Alquimista</option><option value="bruxa">Bruxa</option><option value="espadachim">Espadachim</option><option value="esqueleto">Esqueleto</option><option value="orc">Orc</option><option value="cultista">Cultista</option><option value="zumbi">Zumbi</option><option value="kobold">Kobold</option>
               </select>
               <select id="newPieceFaction"><option value="hero">Herói</option><option value="villain">Vilão</option></select>
             </div>
@@ -2847,6 +2847,251 @@ CHIBI_SVGS.bandido = () => CB.frame('c_bandido', {
   }
 });
 
+/* ===== 00g-chibi-heroes-2.js ===== */
+/* ============================================================================
+   1h. TOKENS CHIBI — HERÓIS (2ª leva): druida, monge, alquimista, bruxa, espadachim
+   ============================================================================ */
+CHIBI_SVGS.druida = () => CB.frame('c_druida', {
+  faction: 'hero', accent: '#5fae6a',
+  art: (id) => {
+    const h = chead(id, { skin: SKIN, eyes: 'round', eyeColor: '#4a9a50', mouth: 'smile', brow: '#5a3a1e', ears: 'pointed' });
+    return { body: `
+      ${cb('M90 146 Q70 194 84 216 L172 216 Q186 194 166 146Z', '#3f7a46')}
+      ${clegs({ pants: '#6a4a30', boot: '#4a3426' })}
+      ${ctorso({ fill: '#5fae6a' })}
+      ${cb('M108 148 L148 148 L146 196 Q128 204 110 196Z', '#8bcf86')}
+      ${cb('M100 176 Q128 187 156 176 L156 185 Q128 196 100 185Z', '#6a4a2a')}${cc(128, 184, 5, '#f0c84a', 3)}
+      ${ccap(206, 224, 206, 52, 8, '#8a6038')}${cb('M206 28 C190 30 186 52 206 62 C226 52 222 30 206 28Z', '#7fd070')}${csh('M198 38 C198 46 202 52 206 55', 0.7)}
+      ${carm(1, 206, 152, '#5fae6a', SKIN)}
+      ${carm(-1, 84, 176, '#5fae6a', SKIN)}
+      ${h.back}${h.head}
+      ${cb('M80 92 C76 50 100 34 128 34 C156 34 180 50 176 92 C166 76 150 66 128 66 C106 66 90 76 80 92Z', '#3f7a46')}
+      ${cb('M104 44 L92 14 L112 34Z M152 44 L164 14 L144 34Z', '#c9a86a', 4)}
+      ${cb('M84 80 Q128 66 172 80 L172 88 Q128 74 84 88Z', '#f0c84a', 3.5)}
+      ${csh('M96 54 Q108 44 126 42', 0.6)}` };
+  }
+});
+
+CHIBI_SVGS.monge = () => CB.frame('c_monge', {
+  faction: 'hero', accent: '#e0a030',
+  art: (id) => {
+    const h = chead(id, { skin: SKIN, eyes: 'sleepy', mouth: 'smile', brow: '#3a2418', browTilt: -0.2, blush: true });
+    return { body: `
+      ${clegs({ pants: '#e8892a', boot: '#d9b07a', stance: 8 })}
+      ${ctorso({ fill: '#f0952c' })}
+      ${cb('M104 142 L152 142 L150 170 Q128 180 106 170Z', '#f8b85a')}
+      ${cb('M98 174 Q128 185 158 174 L158 186 Q128 197 98 186Z', '#f4efe0')}
+      ${cb('M122 184 L112 216 L126 211Z M134 184 L146 214 L134 209Z', '#f4efe0', 3.5)}
+      ${ccap(210, 232, 210, 40, 7, '#8a6038')}
+      ${carm(-1, 74, 140, '#f0952c', SKIN)}${cc(74, 140, 12.5, '#d8433a', 4)}${csh('M66 134 Q70 130 76 130', 0.7)}
+      ${carm(1, 210, 152, '#f0952c', SKIN)}${cc(210, 152, 12.5, '#d8433a', 4)}
+      ${h.back}${h.head}
+      ${cb('M80 80 Q128 60 176 80 L176 89 Q128 70 80 89Z', '#d8433a')}${cb('M172 82 L196 94 L186 100 L176 92Z M172 86 L190 108 L180 108 L170 92Z', '#d8433a', 3.5)}
+      ${csh('M96 70 Q112 58 130 56', 0.55)}` };
+  }
+});
+
+CHIBI_SVGS.alquimista = () => CB.frame('c_alquimista', {
+  faction: 'hero', accent: '#9ccf3a',
+  art: (id) => {
+    const h = chead(id, { skin: SKIN, eyes: 'round', eyeColor: '#6a4a28', mouth: 'grin', brow: '#4a2e18', browTilt: -0.3 });
+    const flask = (x, y, c) => `${cb(`M${x - 4} ${y - 12} L${x + 4} ${y - 12} L${x + 4} ${y - 5} Q${x + 11} ${y + 1} ${x + 8} ${y + 9} Q${x} ${y + 14} ${x - 8} ${y + 9} Q${x - 11} ${y + 1} ${x - 4} ${y - 5}Z`, c, 3)}${cb(`M${x - 5} ${y - 14} L${x + 5} ${y - 14} L${x + 5} ${y - 11} L${x - 5} ${y - 11}Z`, '#b07a42', 2.6)}`;
+    return { body: `
+      ${cb('M70 150 Q60 190 76 214 L180 214 Q196 190 186 150Z', '#8a5a34')}${ccap(60, 168, 60, 130, 6, '#c98a4a')}${ccap(196, 168, 196, 128, 6, '#c98a4a')}
+      ${clegs({ pants: '#5a4a38', boot: '#4a3022', bootStyle: 'tall' })}
+      ${ctorso({ fill: '#e8dcc0' })}
+      ${cb('M106 142 L150 142 L152 190 Q128 198 104 190Z', '#8a5a34')}
+      ${cb('M112 150 L144 150 L144 164 L112 164Z', '#a8723e', 3)}
+      ${ccap(96, 148, 160, 192, 6, '#4a3022')}
+      ${flask(110, 176, '#7fd04a')}${flask(128, 184, '#e8564a')}${flask(146, 178, '#5aa0e0')}
+      ${cb('M100 176 Q128 187 156 176 L156 185 Q128 196 100 185Z', '#4a3022')}${cc(128, 188, 5, '#c9a850', 3)}
+      ${carm(-1, 80, 172, '#e8dcc0', SKIN)}${flask(78, 160, '#e8564a')}
+      ${carm(1, 188, 140, '#e8dcc0', SKIN)}${cc(190, 126, 20, '#9ce04a', 4.5)}${cb('M182 104 L198 104 L196 112 L184 112Z', '#b07a42', 3)}${csh('M178 120 Q182 112 190 110', 0.9)}${cb('M200 110 q4 -10 10 -8 q-2 8 -10 8Z', '#ffb84a', 2.4)}
+      ${h.back}${h.head}
+      ${cb('M82 90 C80 54 102 42 128 42 C154 42 176 54 174 90 C166 72 150 64 134 66 C130 78 118 78 112 66 C100 68 90 78 82 90Z', '#6a4226')}
+      ${cb('M82 70 Q128 56 174 70 L174 80 Q128 66 82 80Z', '#4a3022', 4)}
+      ${cc(106, 66, 15, '#6ab8d8', 4.2)}${cc(106, 66, 8.5, '#d8f4ff', 2.6)}${cc(150, 66, 15, '#6ab8d8', 4.2)}${cc(150, 66, 8.5, '#d8f4ff', 2.6)}${cb('M120 64 Q128 58 136 64', 'none', 4)}
+      ${csh('M98 50 Q110 42 126 40', 0.6)}` };
+  }
+});
+
+CHIBI_SVGS.bruxa = () => CB.frame('c_bruxa', {
+  faction: 'hero', accent: '#9a5ad8',
+  art: (id) => {
+    const h = chead(id, { skin: '#f0d0b8', eyes: 'round', eyeColor: '#9a5ad8', mouth: 'cat', brow: '#1c1428', browTilt: 0.3, blush: true });
+    return { body: `
+      ${cb('M84 146 Q62 196 78 218 L178 218 Q194 196 172 146Z', '#3a2a5a')}
+      ${clegs({ pants: '#2a2040', boot: '#1c1428' })}
+      ${ctorso({ fill: '#5a3a8a' })}
+      ${cb('M104 142 L152 142 L156 206 Q128 216 100 206Z', '#6a46a0')}
+      ${cb('M100 176 Q128 187 156 176 L156 185 Q128 196 100 185Z', '#2a2040')}${cc(128, 184, 6, '#f0c84a', 3)}
+      ${cb('M110 196 L120 206 L108 210Z', '#c8a8f0', 2.6)}
+      ${ccap(34, 228, 34, 56, 7, '#6a4a2a')}${cb('M34 30 C14 30 12 62 34 70 C26 60 28 44 40 38 C44 52 42 62 34 70 C56 62 54 30 34 30Z', '#f0e6a8')}${csh('M26 42 Q28 36 34 34', 0.8)}
+      ${carm(-1, 40, 150, '#5a3a8a', '#f0d0b8')}
+      ${carm(1, 174, 176, '#5a3a8a', '#f0d0b8')}
+      ${ce(206, 218, 26, 17, '#26222e', 4.5)}${ce(206, 196, 17, 15, '#26222e', 4.5)}${cb('M192 186 L190 172 L200 182Z M214 184 L222 172 L220 188Z', '#26222e', 3.4)}
+      ${cc(200, 196, 2.6, '#9ce04a', 1.4)}${cc(212, 196, 2.6, '#9ce04a', 1.4)}${cb('M226 224 C246 224 246 204 234 200', 'none', 5)}
+      ${h.back}
+      ${cb('M80 90 C64 130 76 170 98 180 L100 120Z M176 90 C192 130 180 170 158 180 L156 120Z', '#1c1428')}
+      ${h.head}
+      ${cb('M82 92 C84 62 104 52 128 52 C152 52 172 62 174 92 C160 78 148 70 134 74 C128 86 114 84 106 74 C98 76 88 82 82 92Z', '#1c1428')}
+      ${cb('M46 76 Q128 56 210 76 Q202 94 128 90 Q54 94 46 76Z', '#3a2a5a')}
+      ${cb('M82 74 C84 46 108 30 140 26 C154 20 164 24 176 34 C170 42 164 52 172 74 C146 64 108 64 82 74Z', '#4a3470')}
+      ${cb('M82 72 Q128 62 172 72 L172 82 Q128 72 82 82Z', '#f0c84a', 3.5)}${cb('M118 66 L138 66 L138 80 L118 80Z', '#c9a850', 3)}
+      ${csh('M96 52 Q108 40 124 36', 0.6)}` };
+  }
+});
+
+CHIBI_SVGS.espadachim = () => CB.frame('c_espadachim', {
+  faction: 'hero', accent: '#e8503a',
+  art: (id) => {
+    const h = chead(id, { skin: SKIN, eyes: 'round', eyeColor: '#4a78b8', mouth: 'grin', brow: '#4a2e18', browTilt: -0.4, blush: true });
+    return { body: `
+      ${cb('M92 146 Q64 190 76 216 L170 216 Q180 192 164 146Z', '#2a4a8a')}
+      ${clegs({ pants: '#3a3350', boot: '#4a2e1c', bootStyle: 'tall', stance: 2 })}
+      ${ctorso({ fill: '#d8453a' })}
+      ${cb('M108 142 L148 142 L146 160 Q128 170 110 160Z', '#f6f2e6')}
+      <path d="M112 146 q4 6 8 0 q4 6 8 0 q4 6 8 0 q4 6 8 0" stroke="${CI}" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      ${ccap(100, 152, 158, 192, 8, '#3a6ac0')}
+      ${[0, 1, 2].map(i => cc(122 + i * 5, 162 + i * 8, 3.6, '#f0c84a', 2.4)).join('')}
+      ${cb('M100 176 Q128 187 156 176 L156 185 Q128 196 100 185Z', '#2a1c14')}${cc(128, 184, 6, '#f0c84a', 3)}
+      ${cb('M174 154 L236 70 L242 76 L184 166Z', '#e6ebf2', 4)}${csh('M182 140 L228 80', 0.8)}
+      ${cb('M162 150 Q176 138 190 156 Q180 174 166 164Z', '#f0c84a', 3.5)}${cb('M166 160 L184 150', 'none', 3)}
+      ${carm(1, 178, 158, '#d8453a', SKIN)}
+      ${carm(-1, 88, 176, '#d8453a', SKIN)}
+      ${h.back}
+      ${cb('M80 96 C66 132 80 164 94 170 L98 120Z M176 96 C190 132 176 164 162 170 L158 120Z', '#6a3e1e')}
+      ${h.head}
+      <path d="M108 124 Q118 118 128 124 Q138 118 148 124 Q138 130 128 128 Q118 130 108 124Z" fill="#3a2414" stroke="${CI}" stroke-width="2.4"/>
+      ${cb('M82 90 C84 62 104 52 128 52 C152 52 172 62 174 90 C160 78 148 70 134 74 C128 86 114 84 106 74 C98 76 88 82 82 90Z', '#6a3e1e')}
+      ${cb('M62 70 Q128 46 194 70 Q186 84 128 78 Q70 84 62 70Z', '#2a4a8a')}
+      ${cb('M84 66 C88 38 112 28 140 30 C158 34 168 48 166 66 C140 58 108 58 84 66Z', '#2a4a8a')}
+      ${cb('M84 64 Q128 54 166 62 L166 70 Q128 60 84 72Z', '#f0c84a', 3.5)}
+      ${cb('M150 40 C176 6 218 8 228 26 C204 22 188 34 174 54Z', '#f6f2e6')}${csh('M156 38 C180 22 204 20 220 26', 0.8)}` };
+  }
+});
+
+/* ===== 00h-chibi-villains-2.js ===== */
+/* ============================================================================
+   1i. TOKENS CHIBI — VILÕES (2ª leva): esqueleto, orc, cultista, zumbi, kobold
+   ============================================================================ */
+CHIBI_SVGS.esqueleto = () => CB.frame('c_esqueleto', {
+  faction: 'villain', accent: '#9a9a7a',
+  art: (id) => {
+    const bone = '#efe7d0', boneD = '#cfc4a4';
+    const rib = [0, 1, 2, 3].map(i => `<path d="M104 ${150 + i * 9} Q128 ${158 + i * 9} 152 ${150 + i * 9}" stroke="${CI}" stroke-width="3.4" fill="none" stroke-linecap="round"/>`).join('');
+    return { body: `
+      ${clegs({ pants: bone, boot: boneD, stance: 3 })}
+      ${ctorso({ fill: bone })}
+      ${rib}<path d="M128 142 V186" stroke="${CI}" stroke-width="4" stroke-linecap="round"/>
+      ${cb('M100 176 Q128 187 156 176 L156 185 Q128 196 100 185Z', '#7a5a3a')}
+      ${cb('M184 128 L196 44 L208 50 L198 132Z', '#a8a090')}${cb('M176 128 L212 134 L210 144 L174 142Z', '#7a5a3a', 3.5)}${csh('M198 56 L190 124', 0.6)}
+      ${carm(1, 190, 148, bone, boneD)}
+      ${cc(66, 184, 26, '#8a6a42', 4.5)}${cc(66, 184, 17, '#a8804e', 3)}${cb('M52 168 L64 184 L58 202', 'none', 3.4)}
+      ${carm(-1, 78, 182, bone, boneD)}
+      ${ce(128, 96, 48, 43, bone, 4.8)}
+      ${cb('M92 126 Q96 150 128 154 Q160 150 164 126 Q148 134 128 134 Q108 134 92 126Z', boneD, 4.5)}
+      <path d="M104 134 V148 M114 136 V152 M124 137 V153 M134 137 V153 M144 136 V152 M152 134 V148" stroke="${CI}" stroke-width="3" stroke-linecap="round"/>
+      ${ce(106, 96, 15, 17, '#1a1214', 4, -8)}${ce(150, 96, 15, 17, '#1a1214', 4, 8)}
+      ${cc(108, 98, 4, '#ff4a3a', 0)}${cc(148, 98, 4, '#ff4a3a', 0)}<circle cx="106" cy="96" r="1.6" fill="#fff"/><circle cx="146" cy="96" r="1.6" fill="#fff"/>
+      ${cb('M122 114 L134 114 L128 126Z', '#1a1214', 3)}
+      <path d="M96 66 L112 78 M140 62 L132 74" stroke="${CI}" stroke-width="3" stroke-linecap="round"/>
+      ${cb('M80 88 C78 54 100 40 128 40 C156 40 178 54 176 88 C164 70 96 70 84 90Z', '#8a8272')}${cb('M80 86 Q128 64 176 86 L176 92 Q128 72 80 92Z', '#6a6254', 3.6)}
+      <circle cx="102" cy="62" r="3" fill="#4a4438" stroke="${CI}" stroke-width="1.6"/><circle cx="154" cy="62" r="3" fill="#4a4438" stroke="${CI}" stroke-width="1.6"/>
+      ${csh('M98 54 Q110 44 126 42', 0.5)}` };
+  }
+});
+
+CHIBI_SVGS.orc = () => CB.frame('c_orc', {
+  faction: 'villain', accent: '#c85a2a',
+  art: (id) => {
+    const skin = '#86a066';
+    const h = chead(id, { skin, eyes: 'angry', eyeColor: '#e8b83a', mouth: 'snarl', brow: '#1c1a10', browTilt: 1, blush: false, ears: 'pointed', browW: 6, rx: 52, ry: 46 });
+    return { body: `
+      ${clegs({ pants: '#5a4a38', boot: '#3a2a22', stance: 6 })}
+      ${ctorso({ fill: '#8a5a38', w: 64 })}
+      ${cb('M100 142 L156 142 L152 176 Q128 184 104 176Z', '#6a4430')}
+      ${[0, 1, 2].map(i => cb(`M${106 + i * 18} 150 l6 -10 l6 10z`, '#c9d4e4', 2.8)).join('')}
+      ${cb('M100 176 Q128 187 156 176 L156 185 Q128 196 100 185Z', '#3a2a22')}${cc(128, 184, 6, '#b8a060', 3)}
+      ${ccap(206, 232, 188, 56, 9, '#6a4430')}
+      ${cb('M184 66 C158 44 146 78 160 112 C174 102 182 98 192 100Z', '#9aa4b2')}${cb('M184 66 C212 44 226 78 214 114 C202 104 196 100 190 100Z', '#9aa4b2')}${csh('M162 74 C162 88 168 98 176 102', 0.7)}
+      ${carm(1, 194, 150, '#86a066', skin, 19)}
+      ${cb('M62 150 L84 136 L92 160 L70 170Z', '#9aa4b2', 4)}${cb('M70 146 l-8 -14 l14 6z M82 142 l-4 -16 l12 8z', '#c9d4e4', 3)}
+      ${carm(-1, 80, 176, '#86a066', skin, 19)}
+      ${h.back}${h.head}
+      ${cb('M114 118 Q108 104 114 96 Q119 106 119 118Z M142 118 Q148 104 142 96 Q137 106 137 118Z', '#f3ead2', 3.4)}
+      <path d="M96 112 L112 108 M96 120 L112 116 M160 112 L144 108 M160 120 L144 116" stroke="#c4301e" stroke-width="3.6" stroke-linecap="round"/>
+      ${cb('M110 52 C116 24 124 18 128 18 C132 18 140 24 146 52 C138 46 118 46 110 52Z', '#1c1a1a')}${cb('M100 60 L96 40 L110 54Z M156 60 L160 40 L146 54Z', '#1c1a1a', 3.4)}` };
+  }
+});
+
+CHIBI_SVGS.cultista = () => CB.frame('c_cultista', {
+  faction: 'villain', accent: '#8a2a4a',
+  art: (id) => {
+    const h = chead(id, { skin: '#d8c4c0', eyes: 'narrow', eyeColor: '#ff4a4a', mouth: 'cat', brow: '#1c1218', browTilt: 1, blush: false, nose: false });
+    return { body: `
+      ${cb('M78 146 Q56 196 72 224 L184 224 Q200 196 178 146Z', '#5a1a2e')}
+      ${ce(106, 226, 16, 9, '#2a1a1c', 4.2)}${ce(150, 226, 16, 9, '#2a1a1c', 4.2)}
+      ${ctorso({ fill: '#7a2a40', w: 64 })}
+      ${cb('M104 148 L152 148 L156 214 Q128 224 100 214Z', '#6a2036')}
+      ${cb('M114 156 L142 156 L128 184Z', 'none', 4).replace('stroke="#2b1b17"', 'stroke="#f0c84a"')}${cc(128, 164, 4.2, '#ff4a4a', 2.4)}
+      ${cb('M100 190 Q128 200 156 190 L156 199 Q128 209 100 199Z', '#2a1a1c')}
+      ${carm(-1, 70, 160, '#7a2a40', '#d8c4c0')}${cc(66, 142, 17, '#ff5a4a', 4)}${cc(66, 142, 10, '#ffc4a8', 2.4)}${csh('M58 134 Q62 128 68 128', 0.9)}
+      ${cb('M184 128 L192 156 L184 160 L176 132Z', '#c9d4e4', 3.6)}${cb('M176 156 L196 150 L198 158 L178 164Z', '#3a2a2c', 3.4)}
+      ${carm(1, 182, 164, '#7a2a40', '#d8c4c0')}
+      ${h.back}${h.head}
+      <path fill-rule="evenodd" d="M70 108 C62 52 96 26 128 26 C160 26 194 52 186 108 L184 156 Q150 138 128 136 Q106 138 72 156Z M90 100 C88 66 106 54 128 54 C150 54 168 66 166 100 C166 124 150 140 128 142 C106 140 90 124 90 100Z" fill="#7a2a40" stroke="${CI}" stroke-width="4.5" stroke-linejoin="round"/>
+      ${cb('M104 58 Q128 48 152 58', 'none', 4).replace('stroke="#2b1b17"', 'stroke="#f0c84a"')}
+      ${csh('M92 48 Q106 36 124 32', 0.5)}` };
+  }
+});
+
+CHIBI_SVGS.zumbi = () => CB.frame('c_zumbi', {
+  faction: 'villain', accent: '#7a9a5a',
+  art: (id) => {
+    const skin = '#9ab58a';
+    const h = chead(id, { skin, eyes: 'sleepy', eyeColor: '#d8d070', mouth: 'open', brow: '#3a4a2a', browTilt: -0.6, blush: false, nose: false });
+    return { body: `
+      ${clegs({ pants: '#5a5a6a', boot: '#4a3a30', stance: 2 })}
+      <path d="M104 190 l-4 18 M150 188 l4 20" stroke="${CI}" stroke-width="3" stroke-linecap="round"/>
+      ${ctorso({ fill: '#4a6a9a' })}
+      ${cb('M100 160 l8 10 l6 -8 l8 12 l8 -10 l8 12 l8 -10 l6 8 L152 186 Q128 194 104 186Z', skin, 3.4)}
+      <path d="M112 150 l10 8 M138 150 l-10 8" stroke="${CI}" stroke-width="3" stroke-linecap="round"/>
+      ${cb('M100 176 Q128 187 156 176 L156 185 Q128 196 100 185Z', '#3a3a4a')}
+      ${carm(-1, 66, 134, '#4a6a9a', skin)}${carm(1, 190, 136, '#4a6a9a', skin)}
+      ${cb('M52 138 l-8 -6 M56 128 l-10 -2 M200 140 l8 -6 M196 130 l10 -2', 'none', 3)}
+      ${h.back}${h.head}
+      <path d="M100 118 l14 8 M114 118 l-14 8 M146 84 l12 6 M158 84 l-12 6" stroke="${CI}" stroke-width="3" stroke-linecap="round"/>
+      ${cb('M150 58 C168 58 176 70 172 84 L148 76Z', '#e8e2c4', 3.6)}
+      <path d="M156 66 l10 4 M156 74 l12 4" stroke="${CI}" stroke-width="2.4" stroke-linecap="round"/>
+      ${cb('M84 80 C84 58 98 50 112 52 L106 66 L96 62 L92 74Z M126 52 L136 60 L130 66Z', '#4a5a2a', 3.4)}
+      ${cb('M128 128 q-2 14 2 18', 'none', 3).replace('stroke="#2b1b17"', 'stroke="#9ad08a"')}` };
+  }
+});
+
+CHIBI_SVGS.kobold = () => CB.frame('c_kobold', {
+  faction: 'villain', accent: '#d8742a',
+  art: (id) => {
+    const skin = '#d8663a';
+    const h = chead(id, { skin, eyes: 'glare', eyeColor: '#ffd23a', mouth: 'grin', brow: '#4a1a0a', browTilt: 1, blush: false, nose: false, ears: 'pointed', rx: 46, ry: 42, cy: 100 });
+    return { body: `
+      ${cb('M168 214 C214 214 232 186 214 160 C220 184 206 198 172 200Z', skin, 4.5)}
+      ${clegs({ pants: '#7a4a2a', boot: skin, stance: 3 })}
+      ${ctorso({ fill: '#8a5a30', w: 54, y: 142 })}
+      ${cb('M108 150 L148 150 L146 184 Q128 192 110 184Z', '#6a4426')}
+      ${cb('M100 180 Q128 190 156 180 L156 189 Q128 199 100 189Z', '#3a2a1a')}${cc(128, 188, 5, '#b8a060', 3)}
+      ${ccap(206, 232, 206, 30, 6, '#8a6038')}${cb('M206 8 L216 38 L206 44 L196 38Z', '#c9d4e4', 3.6)}${csh('M204 16 L200 34', 0.7)}
+      ${carm(1, 206, 150, '#8a5a30', skin)}
+      ${cc(64, 180, 22, '#8a6a42', 4.5)}${cc(64, 180, 13, '#a8804e', 3)}
+      ${carm(-1, 80, 178, '#8a5a30', skin)}
+      ${h.back}${h.head}
+      ${cb('M100 118 Q128 108 156 118 Q158 136 128 140 Q98 136 100 118Z', '#e08a58', 3.6)}
+      ${cc(118, 124, 2.4, '#4a1a0a', 0)}${cc(138, 124, 2.4, '#4a1a0a', 0)}
+      ${cb('M104 60 L112 36 L122 58Z M122 58 L128 28 L136 58Z M136 58 L146 36 L152 62Z', '#b8481e', 3.6)}
+      ${cb('M92 76 Q128 60 164 76', 'none', 3.4).replace('stroke="#2b1b17"', 'stroke="#f0a060"')}` };
+  }
+});
+
 /* ===== 00y-token-styles.js ===== */
 /* ============================================================================
    1g. TOKENS — estilos disponíveis e seleção do estilo ativo
@@ -2856,6 +3101,23 @@ const TOKEN_STYLES = {
   medalhao: { label: 'Medalhão', svgs: MEDALLION_SVGS }
 };
 const DEFAULT_TOKEN_STYLE = 'chibi';
+
+/** Personagens vilões (define a moldura do medalhão e o selo na documentação). */
+const VILLAIN_SCULPTS = new Set(['goblin', 'lobo', 'bandido', 'esqueleto', 'orc', 'cultista', 'zumbi', 'kobold']);
+
+/**
+ * Personagens que só existem em chibi ganham um medalhão automático: o chibi recortado
+ * em círculo dentro do aro (ouro para heróis, ferro para vilões).
+ */
+function chibiAsMedallion(key) {
+  return () => buildCustomTokenSVG(
+    'data:image/svg+xml;utf8,' + encodeURIComponent(CHIBI_SVGS[key]()),
+    { faction: VILLAIN_SCULPTS.has(key) ? 'villain' : 'hero', framed: true, zoom: 1.4, focusY: 118 }
+  );
+}
+for (const key of Object.keys(CHIBI_SVGS)) {
+  if (!MEDALLION_SVGS[key]) MEDALLION_SVGS[key] = chibiAsMedallion(key);
+}
 
 /** Mapa ativo usado por todo o app: key de personagem -> função que devolve o SVG. */
 const SCULPT_SVGS = {};
@@ -2887,7 +3149,7 @@ function hashString(str) {
  *  framed = true  -> recortada em círculo, dentro do aro (ouro para heróis, ferro para vilões)
  *  framed = false -> imagem inteira, sem moldura (ideal para PNG com fundo transparente)
  */
-function buildCustomTokenSVG(dataUrl, { faction = 'hero', framed = true } = {}) {
+function buildCustomTokenSVG(dataUrl, { faction = 'hero', framed = true, zoom = 1, focusY = 128 } = {}) {
   if (!framed) {
     return `<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg"><image href="${dataUrl}" x="0" y="0" width="256" height="256" preserveAspectRatio="xMidYMid meet"/></svg>`;
   }
@@ -2907,7 +3169,7 @@ function buildCustomTokenSVG(dataUrl, { faction = 'hero', framed = true } = {}) 
   <circle cx="128" cy="128" r="116" fill="none" stroke="${stud}" stroke-width="4.2" stroke-dasharray="1.2 20.6" stroke-linecap="round" opacity="0.9"/>
   <circle cx="128" cy="128" r="111" fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="3"/>
   <circle cx="128" cy="128" r="108" fill="#10141a"/>
-  <g clip-path="url(#cc)"><image href="${dataUrl}" x="20" y="20" width="216" height="216" preserveAspectRatio="xMidYMid slice"/><circle cx="128" cy="128" r="108" fill="url(#cv)"/></g>
+  <g clip-path="url(#cc)"><image href="${dataUrl}" x="${(128 - 108 * zoom).toFixed(1)}" y="${(128 - (focusY / 256) * 216 * zoom).toFixed(1)}" width="${(216 * zoom).toFixed(1)}" height="${(216 * zoom).toFixed(1)}" preserveAspectRatio="xMidYMid slice"/><circle cx="128" cy="128" r="108" fill="url(#cv)"/></g>
   <circle cx="128" cy="128" r="108" fill="none" stroke="#06060c" stroke-width="2"/>
 </svg>`;
 }
@@ -2999,6 +3261,41 @@ const SPELL_CATALOG = {
     areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '3d6', dmgBonus: 4,
     desc: 'Ataque Mágico à Distância (18m)'
   },
+  espinhos_vivos: {
+    id: 'espinhos_vivos', dmgType: 'perfurante', name: 'Espinhos Vivos', cost: 2, range: 18,
+    areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '3d6', dmgBonus: 4,
+    desc: 'Espinhos brotam do chão (18m)'
+  },
+  vento_cortante: {
+    id: 'vento_cortante', dmgType: 'cortante', name: 'Vento Cortante', cost: 2, range: 9,
+    areaType: 'line', areaSize: 9, atkBonus: 9, dmgDie: '3d8', dmgBonus: 0,
+    desc: 'Rajada afiada em linha de 9m'
+  },
+  estilhacos_de_gelo: {
+    id: 'estilhacos_de_gelo', dmgType: 'gélido', name: 'Estilhaços de Gelo', cost: 2, range: 18,
+    areaType: 'burst', areaSize: 4.5, atkBonus: 9, dmgDie: '4d6', dmgBonus: 0,
+    desc: 'Explosão de gelo, raio 4,5m (alcance 18m)'
+  },
+  maldicao_sombria: {
+    id: 'maldicao_sombria', dmgType: 'mental', name: 'Maldição Sombria', cost: 2, range: 18,
+    areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '3d6', dmgBonus: 4,
+    desc: 'Pesadelo que corrói a mente (18m)'
+  },
+  rajada_de_ki: {
+    id: 'rajada_de_ki', dmgType: 'força', name: 'Rajada de Ki', cost: 1, range: 9,
+    areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '2d6', dmgBonus: 3,
+    desc: 'Energia do punho (9m | ◆ 1 Ação)'
+  },
+  toque_sombrio: {
+    id: 'toque_sombrio', dmgType: 'espiritual', name: 'Toque Sombrio', cost: 2, range: 1.5,
+    areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '3d8', dmgBonus: 3,
+    desc: 'Toque profano (adjacente 1,5m)'
+  },
+  lanca_divina: {
+    id: 'lanca_divina', dmgType: 'espiritual', name: 'Lança Divina', cost: 1, range: 18,
+    areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '2d4', dmgBonus: 3,
+    desc: 'Lança de luz sagrada (18m | ◆ 1 Ação)'
+  },
   misseis_magicos: {
     id: 'misseis_magicos', dmgType: 'força', name: 'Mísseis Mágicos', cost: 1, range: 18,
     areaType: 'single', areaSize: 0, atkBonus: 10, dmgDie: '2d4', dmgBonus: 2,
@@ -3031,6 +3328,11 @@ const ITEM_CATALOG = {
     id: 'perg_bola_fogo', name: 'Pergaminho de Bola de Fogo', kind: 'scroll_spell',
     spellKey: 'bola_de_fogo', cost: 2, qty: 1,
     desc: 'Conjura Bola de Fogo (Raio 9m | 6d6)'
+  },
+  elixir_vida: {
+    id: 'elixir_vida', name: 'Elixir de Vida Menor', kind: 'potion',
+    cost: 1, range: 1.5, dice: '2d6', bonus: 6, qty: 2,
+    desc: 'Recupera 2d6+6 PV (Si mesmo ou Adjacente | ◆ 1 Ação)'
   },
   perg_cura: {
     id: 'perg_cura', name: 'Pergaminho de Cura Sagrada', kind: 'potion',
@@ -3371,15 +3673,15 @@ let UNIT_TEMPLATES = [
     id: 't_guerreiro', name: 'Guerreiro', sculpt: 'guerreiro', faction: 'hero', moveSpeed: 9, maxHp: 44, ac: 21,
     sheet: {
       ancestry: 'Humano', background: 'Guarda Real', className: 'Guerreiro (Fighter)', level: 3, keyAttr: 'FOR',
-      ancestryHp: 8, classHp: 10, armorItemBonus: 4, dexCap: 1,
+      ancestryHp: 8, classHp: 10, armorItemBonus: 4, dexCap: 1, shieldBonus: 2,
       attrs: { FOR: 4, DES: 2, CON: 2, INT: 0, SAB: 1, CAR: 0 },
       prof: { armor: 2, weapon: 4, spell: 0, perception: 4, fort: 4, ref: 4, will: 2 },
       skills: ['Atletismo (E)', 'Intimidação (T)', 'Acrobacia (T)'],
       feats: ['Golpe Intimidador', 'Ataque de Oportunidade', 'Escudo Reativo']
     },
     weapons: [
-      { name: 'Espada Longa', atkBonus: 12, dmgDie: '1d8', dmgBonus: 4, reach: 1.5 },
-      { name: 'Lança de Alcance', atkBonus: 12, dmgDie: '1d8', dmgBonus: 4, reach: 3 }
+      { name: 'Espada Longa', atkBonus: 12, dmgDie: '1d8', dmgBonus: 4, reach: 1.5, dmgType: 'cortante' },
+      { name: 'Lança de Alcance', atkBonus: 12, dmgDie: '1d8', dmgBonus: 4, reach: 3, dmgType: 'perfurante' }
     ],
     spells: [],
     items: [{ ...ITEM_CATALOG.pocao_menor }]
@@ -3388,15 +3690,15 @@ let UNIT_TEMPLATES = [
     id: 't_paladino', name: 'Paladino', sculpt: 'paladino', faction: 'hero', moveSpeed: 9, maxHp: 44, ac: 21,
     sheet: {
       ancestry: 'Humano', background: 'Acólito Marcial', className: 'Campeão (Paladino)', level: 3, keyAttr: 'FOR',
-      ancestryHp: 8, classHp: 10, armorItemBonus: 5, dexCap: 1,
+      ancestryHp: 8, classHp: 10, armorItemBonus: 5, dexCap: 1, shieldBonus: 2,
       attrs: { FOR: 4, DES: 1, CON: 2, INT: 0, SAB: 1, CAR: 2 },
       prof: { armor: 4, weapon: 2, spell: 2, perception: 2, fort: 4, ref: 2, will: 4 },
       skills: ['Religião (T)', 'Atletismo (T)', 'Diplomacia (T)'],
       feats: ['Golpe Retributivo', 'Imposição de Mãos', 'Devoção Divina']
     },
     weapons: [
-      { name: 'Espada Sagrada', atkBonus: 10, dmgDie: '1d8', dmgBonus: 4, reach: 1.5 },
-      { name: 'Lança Radiante', atkBonus: 10, dmgDie: '1d8', dmgBonus: 4, reach: 3 }
+      { name: 'Espada Sagrada', atkBonus: 10, dmgDie: '1d8', dmgBonus: 4, reach: 1.5, dmgType: 'cortante' },
+      { name: 'Lança Radiante', atkBonus: 10, dmgDie: '1d8', dmgBonus: 4, reach: 3, dmgType: 'perfurante' }
     ],
     spells: [{ ...SPELL_CATALOG.julgamento_divino }, { ...SPELL_CATALOG.toque_chocante }],
     items: [{ ...ITEM_CATALOG.pocao_moderada, qty: 1 }, { ...ITEM_CATALOG.perg_cura, qty: 1 }]
@@ -3405,15 +3707,15 @@ let UNIT_TEMPLATES = [
     id: 't_barbaro', name: 'Bárbaro', sculpt: 'barbaro', faction: 'hero', moveSpeed: 9, maxHp: 53, ac: 19,
     sheet: {
       ancestry: 'Orc', background: 'Nômade Feroz', className: 'Bárbaro (Fúria)', level: 3, keyAttr: 'FOR',
-      ancestryHp: 8, classHp: 12, armorItemBonus: 3, dexCap: 2,
+      ancestryHp: 8, classHp: 12, armorItemBonus: 3, dexCap: 2, shieldBonus: 0,
       attrs: { FOR: 4, DES: 1, CON: 3, INT: -1, SAB: 1, CAR: 1 },
       prof: { armor: 2, weapon: 2, spell: 0, perception: 4, fort: 4, ref: 2, will: 4 },
       skills: ['Atletismo (E)', 'Intimidação (T)', 'Sobrevivência (T)'],
       feats: ['Fúria Instintiva', 'Investida Súbita', 'Ferocidade Orc']
     },
     weapons: [
-      { name: 'Machado Grande', atkBonus: 10, dmgDie: '1d12', dmgBonus: 6, reach: 1.5 },
-      { name: 'Azagaia de Arremesso', atkBonus: 10, dmgDie: '1d6', dmgBonus: 3, reach: 9 }
+      { name: 'Machado Grande', atkBonus: 10, dmgDie: '1d12', dmgBonus: 6, reach: 1.5, dmgType: 'cortante' },
+      { name: 'Azagaia de Arremesso', atkBonus: 10, dmgDie: '1d6', dmgBonus: 3, reach: 9, dmgType: 'perfurante' }
     ],
     spells: [],
     items: [{ ...ITEM_CATALOG.pocao_moderada, qty: 1 }]
@@ -3422,29 +3724,29 @@ let UNIT_TEMPLATES = [
     id: 't_clerigo', name: 'Clérigo', sculpt: 'clerigo', faction: 'hero', moveSpeed: 9, maxHp: 35, ac: 19,
     sheet: {
       ancestry: 'Anão', background: 'Erudito do Templo', className: 'Clérigo de Batalha', level: 3, keyAttr: 'SAB',
-      ancestryHp: 10, classHp: 8, armorItemBonus: 3, dexCap: 2,
+      ancestryHp: 10, classHp: 8, armorItemBonus: 3, dexCap: 2, shieldBonus: 0,
       attrs: { FOR: 2, DES: 1, CON: 2, INT: 0, SAB: 4, CAR: 1 },
       prof: { armor: 2, weapon: 2, spell: 2, perception: 2, fort: 4, ref: 2, will: 4 },
       skills: ['Religião (E)', 'Medicina (E)', 'Diplomacia (T)'],
       feats: ['Fonte de Cura (4x)', 'Canalizar Energia', 'Medicina de Batalha']
     },
-    weapons: [{ name: 'Maça Solar', atkBonus: 8, dmgDie: '1d6', dmgBonus: 2, reach: 1.5 }],
-    spells: [{ ...SPELL_CATALOG.julgamento_divino }, { ...SPELL_CATALOG.relampago }],
+    weapons: [{ name: 'Maça Solar', atkBonus: 8, dmgDie: '1d6', dmgBonus: 2, reach: 1.5, dmgType: 'contundente' }],
+    spells: [{ ...SPELL_CATALOG.julgamento_divino }, { ...SPELL_CATALOG.lanca_divina }],
     items: [{ ...ITEM_CATALOG.pocao_menor, qty: 2 }, { ...ITEM_CATALOG.perg_cura, qty: 2 }]
   },
   {
     id: 't_bardo', name: 'Bardo', sculpt: 'bardo', faction: 'hero', moveSpeed: 9, maxHp: 35, ac: 19,
     sheet: {
       ancestry: 'Elfo', background: 'Menestrel da Corte', className: 'Bardo (Musa Enigma)', level: 3, keyAttr: 'CAR',
-      ancestryHp: 6, classHp: 8, armorItemBonus: 2, dexCap: 3,
+      ancestryHp: 6, classHp: 8, armorItemBonus: 2, dexCap: 3, shieldBonus: 0,
       attrs: { FOR: 0, DES: 3, CON: 1, INT: 1, SAB: 1, CAR: 4 },
       prof: { armor: 2, weapon: 2, spell: 2, perception: 4, fort: 2, ref: 2, will: 4 },
       skills: ['Atuação (E)', 'Ocultismo (E)', 'Enganação (T)'],
       feats: ['Hino de Coragem (+1)', 'Contramúsica', 'Saber Bárdico']
     },
     weapons: [
-      { name: 'Rapieira de Bardo', atkBonus: 9, dmgDie: '1d6', dmgBonus: 2, reach: 1.5 },
-      { name: 'Nota Cortante (Alaúde)', atkBonus: 9, dmgDie: '1d6', dmgBonus: 2, reach: 9 }
+      { name: 'Rapieira de Bardo', atkBonus: 9, dmgDie: '1d6', dmgBonus: 2, reach: 1.5, dmgType: 'perfurante' },
+      { name: 'Nota Cortante (Alaúde)', atkBonus: 9, dmgDie: '1d6', dmgBonus: 2, reach: 9, dmgType: 'sônico' }
     ],
     spells: [{ ...SPELL_CATALOG.acorde_dissonante }, { ...SPELL_CATALOG.relampago }, { ...SPELL_CATALOG.misseis_magicos }],
     items: [{ ...ITEM_CATALOG.calice_bardo, qty: 2 }, { ...ITEM_CATALOG.perg_cura, qty: 1 }]
@@ -3453,15 +3755,15 @@ let UNIT_TEMPLATES = [
     id: 't_feiticeiro', name: 'Feiticeiro', sculpt: 'feiticeiro', faction: 'hero', moveSpeed: 9, maxHp: 29, ac: 18,
     sheet: {
       ancestry: 'Gnomo', background: 'Tocado pelo Abismo', className: 'Feiticeiro Elemental', level: 3, keyAttr: 'CAR',
-      ancestryHp: 8, classHp: 6, armorItemBonus: 1, dexCap: 4,
+      ancestryHp: 8, classHp: 6, armorItemBonus: 1, dexCap: 4, shieldBonus: 0,
       attrs: { FOR: 0, DES: 2, CON: 1, INT: 1, SAB: 1, CAR: 4 },
       prof: { armor: 2, weapon: 2, spell: 2, perception: 2, fort: 2, ref: 2, will: 4 },
       skills: ['Arcanismo (E)', 'Intimidação (E)', 'Natureza (T)'],
       feats: ['Explosão de Linhagem', 'Ampliar Magia', 'Foco Rubro']
     },
     weapons: [
-      { name: 'Estilhaço de Cristal', atkBonus: 8, dmgDie: '1d6', dmgBonus: 1, reach: 1.5 },
-      { name: 'Disparo Rubro', atkBonus: 8, dmgDie: '1d8', dmgBonus: 2, reach: 9 }
+      { name: 'Estilhaço de Cristal', atkBonus: 8, dmgDie: '1d6', dmgBonus: 1, reach: 1.5, dmgType: 'perfurante' },
+      { name: 'Disparo Rubro', atkBonus: 8, dmgDie: '1d8', dmgBonus: 2, reach: 9, dmgType: 'fogo' }
     ],
     spells: [{ ...SPELL_CATALOG.chama_cristalina }, { ...SPELL_CATALOG.bola_de_fogo }, { ...SPELL_CATALOG.relampago }, { ...SPELL_CATALOG.toque_chocante }],
     items: [{ ...ITEM_CATALOG.pocao_menor, qty: 1 }, { ...ITEM_CATALOG.perg_bola_fogo, qty: 1 }]
@@ -3470,13 +3772,13 @@ let UNIT_TEMPLATES = [
     id: 't_mago', name: 'Mago', sculpt: 'mago', faction: 'hero', moveSpeed: 9, maxHp: 27, ac: 18,
     sheet: {
       ancestry: 'Elfo', background: 'Sábio Arcano', className: 'Mago (Escola Batalha)', level: 3, keyAttr: 'INT',
-      ancestryHp: 6, classHp: 6, armorItemBonus: 1, dexCap: 4,
+      ancestryHp: 6, classHp: 6, armorItemBonus: 1, dexCap: 4, shieldBonus: 0,
       attrs: { FOR: 0, DES: 2, CON: 1, INT: 4, SAB: 2, CAR: 0 },
       prof: { armor: 2, weapon: 2, spell: 2, perception: 2, fort: 2, ref: 2, will: 4 },
       skills: ['Arcanismo (E)', 'Sociedade (E)', 'Manufatura (T)'],
       feats: ['Drenar Item de Vínculo', 'Alcance de Magia', 'Grimório Expandido']
     },
-    weapons: [{ name: 'Cajado Cristalino', atkBonus: 8, dmgDie: '1d6', dmgBonus: 1, reach: 1.5 }],
+    weapons: [{ name: 'Cajado Cristalino', atkBonus: 8, dmgDie: '1d6', dmgBonus: 1, reach: 1.5, dmgType: 'contundente' }],
     spells: [{ ...SPELL_CATALOG.relampago }, { ...SPELL_CATALOG.bola_de_fogo }, { ...SPELL_CATALOG.raio_arcano }, { ...SPELL_CATALOG.misseis_magicos }],
     items: [{ ...ITEM_CATALOG.pocao_menor, qty: 1 }, { ...ITEM_CATALOG.perg_bola_fogo, qty: 1 }, { ...ITEM_CATALOG.perg_relampago, qty: 1 }]
   },
@@ -3484,15 +3786,15 @@ let UNIT_TEMPLATES = [
     id: 't_ranger', name: 'Ranger', sculpt: 'ranger', faction: 'hero', moveSpeed: 9, maxHp: 44, ac: 20,
     sheet: {
       ancestry: 'Humano', background: 'Batedor Fronteiriço', className: 'Patrulheiro (Precisão)', level: 3, keyAttr: 'DES',
-      ancestryHp: 8, classHp: 10, armorItemBonus: 2, dexCap: 3,
+      ancestryHp: 8, classHp: 10, armorItemBonus: 2, dexCap: 3, shieldBonus: 0,
       attrs: { FOR: 2, DES: 4, CON: 2, INT: 0, SAB: 2, CAR: -1 },
       prof: { armor: 2, weapon: 2, spell: 0, perception: 4, fort: 4, ref: 4, will: 2 },
       skills: ['Sobrevivência (E)', 'Furtividade (E)', 'Natureza (T)'],
       feats: ['Caçar Presa (◆)', 'Disparo dos Caçadores', 'Tiro Distante']
     },
     weapons: [
-      { name: 'Arco Longo', atkBonus: 10, dmgDie: '1d8', dmgBonus: 2, reach: 18 },
-      { name: 'Espada Curta', atkBonus: 10, dmgDie: '1d6', dmgBonus: 2, reach: 1.5 }
+      { name: 'Arco Longo', atkBonus: 10, dmgDie: '1d8', dmgBonus: 2, reach: 18, dmgType: 'perfurante' },
+      { name: 'Espada Curta', atkBonus: 10, dmgDie: '1d6', dmgBonus: 2, reach: 1.5, dmgType: 'cortante' }
     ],
     spells: [],
     items: [{ ...ITEM_CATALOG.pocao_menor, qty: 1 }]
@@ -3501,15 +3803,15 @@ let UNIT_TEMPLATES = [
     id: 't_rogue', name: 'Rogue', sculpt: 'rogue', faction: 'hero', moveSpeed: 9, maxHp: 35, ac: 20,
     sheet: {
       ancestry: 'Halfling', background: 'Infiltrador de Guilda', className: 'Ladino (Ladrão)', level: 3, keyAttr: 'DES',
-      ancestryHp: 6, classHp: 8, armorItemBonus: 1, dexCap: 4,
+      ancestryHp: 6, classHp: 8, armorItemBonus: 1, dexCap: 4, shieldBonus: 0,
       attrs: { FOR: 1, DES: 4, CON: 1, INT: 1, SAB: 2, CAR: 1 },
       prof: { armor: 2, weapon: 2, spell: 0, perception: 4, fort: 2, ref: 4, will: 4 },
       skills: ['Furtividade (E)', 'Acrobacia (E)', 'Ladroagem (E)'],
       feats: ['Ataque Furtivo (+1d6)', 'Passo Esquivo', 'Finta Rápida']
     },
     weapons: [
-      { name: 'Adagas Gêmeas', atkBonus: 10, dmgDie: '1d6', dmgBonus: 4, reach: 1.5 },
-      { name: 'Adaga Arremessada', atkBonus: 10, dmgDie: '1d4', dmgBonus: 2, reach: 3 }
+      { name: 'Adagas Gêmeas', atkBonus: 10, dmgDie: '1d6', dmgBonus: 4, reach: 1.5, dmgType: 'perfurante' },
+      { name: 'Adaga Arremessada', atkBonus: 10, dmgDie: '1d4', dmgBonus: 2, reach: 3, dmgType: 'perfurante' }
     ],
     spells: [],
     items: [{ ...ITEM_CATALOG.pocao_menor, qty: 2 }]
@@ -3518,15 +3820,15 @@ let UNIT_TEMPLATES = [
     id: 't_goblin', name: 'Goblin', sculpt: 'goblin', faction: 'villain', moveSpeed: 9, maxHp: 21, ac: 17,
     sheet: {
       ancestry: 'Goblin', background: 'Saqueador', className: 'Combatente Goblin', level: 1, keyAttr: 'DES',
-      ancestryHp: 6, classHp: 8, armorItemBonus: 1, dexCap: 4,
+      ancestryHp: 6, classHp: 8, armorItemBonus: 1, dexCap: 4, shieldBonus: 0,
       attrs: { FOR: 1, DES: 3, CON: 1, INT: 0, SAB: 0, CAR: 1 },
       prof: { armor: 2, weapon: 2, spell: 0, perception: 2, fort: 2, ref: 4, will: 2 },
       skills: ['Furtividade (T)', 'Acrobacia (T)'],
       feats: ['Deslocamento Goblin']
     },
     weapons: [
-      { name: 'Cimitarra Goblin', atkBonus: 7, dmgDie: '1d6', dmgBonus: 2, reach: 1.5 },
-      { name: 'Arco Curto Goblin', atkBonus: 7, dmgDie: '1d6', dmgBonus: 1, reach: 9 }
+      { name: 'Cimitarra Goblin', atkBonus: 7, dmgDie: '1d6', dmgBonus: 2, reach: 1.5, dmgType: 'cortante' },
+      { name: 'Arco Curto Goblin', atkBonus: 7, dmgDie: '1d6', dmgBonus: 1, reach: 9, dmgType: 'perfurante' }
     ],
     spells: [],
     items: [{ ...ITEM_CATALOG.pocao_menor, qty: 1 }]
@@ -3535,13 +3837,13 @@ let UNIT_TEMPLATES = [
     id: 't_lobo', name: 'Lobo Atroz', sculpt: 'lobo', faction: 'villain', moveSpeed: 12, maxHp: 32, ac: 18,
     sheet: {
       ancestry: 'Fera', background: 'Alcateia', className: 'Predador Lupino', level: 2, keyAttr: 'FOR',
-      ancestryHp: 8, classHp: 10, armorItemBonus: 2, dexCap: 3,
+      ancestryHp: 8, classHp: 10, armorItemBonus: 2, dexCap: 3, shieldBonus: 0,
       attrs: { FOR: 3, DES: 3, CON: 2, INT: -4, SAB: 2, CAR: -2 },
       prof: { armor: 2, weapon: 2, spell: 0, perception: 4, fort: 4, ref: 4, will: 2 },
       skills: ['Atletismo (T)', 'Sobrevivência (E)'],
       feats: ['Derrubar da Alcateia', 'Faro Aguçado']
     },
-    weapons: [{ name: 'Mandíbulas Ferozes', atkBonus: 8, dmgDie: '1d6', dmgBonus: 3, reach: 1.5 }],
+    weapons: [{ name: 'Mandíbulas Ferozes', atkBonus: 8, dmgDie: '1d6', dmgBonus: 3, reach: 1.5, dmgType: 'perfurante' }],
     spells: [],
     items: []
   },
@@ -3549,21 +3851,198 @@ let UNIT_TEMPLATES = [
     id: 't_bandido', name: 'Bandido', sculpt: 'bandido', faction: 'villain', moveSpeed: 9, maxHp: 32, ac: 18,
     sheet: {
       ancestry: 'Humano', background: 'Fora-da-Lei Fluvial', className: 'Mercenário', level: 2, keyAttr: 'FOR',
-      ancestryHp: 8, classHp: 8, armorItemBonus: 2, dexCap: 2,
+      ancestryHp: 8, classHp: 8, armorItemBonus: 2, dexCap: 2, shieldBonus: 0,
       attrs: { FOR: 3, DES: 2, CON: 2, INT: 0, SAB: 1, CAR: 0 },
-      prof: { armor: 2, weapon: 2, spell: 2, perception: 2, fort: 4, ref: 2, will: 2 },
+      prof: { armor: 2, weapon: 2, spell: 0, perception: 2, fort: 4, ref: 2, will: 2 },
       skills: ['Intimidação (T)', 'Furtividade (T)'],
       feats: ['Emboscada Rápida']
     },
     weapons: [
-      { name: 'Sabre de Abordagem', atkBonus: 8, dmgDie: '1d6', dmgBonus: 3, reach: 1.5 },
-      { name: 'Besta de Mão', atkBonus: 8, dmgDie: '1d8', dmgBonus: 2, reach: 9 }
+      { name: 'Sabre de Abordagem', atkBonus: 8, dmgDie: '1d6', dmgBonus: 3, reach: 1.5, dmgType: 'cortante' },
+      { name: 'Besta de Mão', atkBonus: 8, dmgDie: '1d8', dmgBonus: 2, reach: 9, dmgType: 'perfurante' }
     ],
-    spells: [{ ...SPELL_CATALOG.bola_de_fogo }],
+    spells: [],
     items: [{ ...ITEM_CATALOG.pocao_menor, qty: 1 }]
   }
 ];
 
+/* ----------------------------------------------------------------------------
+   2ª leva de modelos: cada peça equipada conforme a classe que representa
+   ---------------------------------------------------------------------------- */
+UNIT_TEMPLATES.push(
+  {
+    id: 't_druida', name: 'Druida', sculpt: 'druida', faction: 'hero', moveSpeed: 9, maxHp: 33, ac: 18,
+    sheet: {
+      ancestry: 'Elfo', background: 'Guardião do Bosque', className: 'Druida (Ordem da Tempestade)', level: 3, keyAttr: 'SAB',
+      ancestryHp: 6, classHp: 8, armorItemBonus: 2, dexCap: 3, shieldBonus: 0,
+      attrs: { FOR: 0, DES: 2, CON: 2, INT: 0, SAB: 4, CAR: 1 },
+      prof: { armor: 2, weapon: 2, spell: 2, perception: 4, fort: 2, ref: 2, will: 4 },
+      skills: ['Natureza (E)', 'Sobrevivência (E)', 'Medicina (T)'],
+      feats: ['Ordem da Tempestade', 'Forma Selvagem (◆)', 'Companheiro Animal']
+    },
+    weapons: [
+      { name: 'Cajado de Carvalho', dmgDie: '1d6', reach: 1.5, dmgType: 'contundente' },
+      { name: 'Foice Druídica', dmgDie: '1d4', reach: 1.5, dmgType: 'cortante' }
+    ],
+    spells: [{ ...SPELL_CATALOG.espinhos_vivos }, { ...SPELL_CATALOG.vento_cortante }, { ...SPELL_CATALOG.relampago }],
+    items: [{ ...ITEM_CATALOG.pocao_menor, qty: 2 }]
+  },
+  {
+    id: 't_monge', name: 'Monge', sculpt: 'monge', faction: 'hero', moveSpeed: 12, maxHp: 44, ac: 19,
+    sheet: {
+      ancestry: 'Humano', background: 'Discípulo do Mosteiro', className: 'Monge (Punho de Ferro)', level: 3, keyAttr: 'SAB',
+      ancestryHp: 8, classHp: 10, armorItemBonus: 0, dexCap: 5, shieldBonus: 0,
+      attrs: { FOR: 3, DES: 4, CON: 2, INT: 0, SAB: 3, CAR: 0 },
+      prof: { armor: 2, weapon: 4, spell: 2, perception: 4, fort: 4, ref: 4, will: 4 },
+      skills: ['Atletismo (E)', 'Acrobacia (E)', 'Religião (T)'],
+      feats: ['Fluxo de Golpes (◆◆)', 'Punhos de Ferro', 'Postura da Montanha']
+    },
+    weapons: [
+      { name: 'Punhos de Ferro', dmgDie: '1d6', reach: 1.5, dmgType: 'contundente' },
+      { name: 'Bastão de Combate', dmgDie: '1d8', reach: 3, dmgType: 'contundente' }
+    ],
+    spells: [{ ...SPELL_CATALOG.rajada_de_ki }],
+    items: [{ ...ITEM_CATALOG.pocao_menor, qty: 2 }]
+  },
+  {
+    id: 't_alquimista', name: 'Alquimista', sculpt: 'alquimista', faction: 'hero', moveSpeed: 9, maxHp: 35, ac: 18,
+    sheet: {
+      ancestry: 'Gnomo', background: 'Boticário', className: 'Alquimista (Bombardeiro)', level: 3, keyAttr: 'INT',
+      ancestryHp: 8, classHp: 8, armorItemBonus: 1, dexCap: 3, shieldBonus: 0,
+      attrs: { FOR: 0, DES: 3, CON: 2, INT: 4, SAB: 1, CAR: 1 },
+      prof: { armor: 2, weapon: 2, spell: 0, perception: 2, fort: 4, ref: 4, will: 2 },
+      skills: ['Manufatura (E)', 'Medicina (T)', 'Arcanismo (T)'],
+      feats: ['Bombas Químicas', 'Elixires Rápidos', 'Respingo']
+    },
+    weapons: [
+      { name: 'Bomba de Ácido', manual: true, atkBonus: 9, dmgDie: '1d8', dmgBonus: 0, reach: 9, dmgType: 'ácido', extra: [{ name: 'Respingo', die: '1d4', bonus: 0, type: 'ácido' }] },
+      { name: 'Bomba de Fogo', manual: true, atkBonus: 9, dmgDie: '1d8', dmgBonus: 0, reach: 9, dmgType: 'fogo', extra: [{ name: 'Respingo', die: '1d4', bonus: 0, type: 'fogo' }] },
+      { name: 'Faca de Trabalho', dmgDie: '1d4', reach: 1.5, dmgType: 'perfurante' }
+    ],
+    spells: [],
+    items: [{ ...ITEM_CATALOG.elixir_vida, qty: 2 }, { ...ITEM_CATALOG.pocao_menor, qty: 1 }]
+  },
+  {
+    id: 't_bruxa', name: 'Bruxa', sculpt: 'bruxa', faction: 'hero', moveSpeed: 9, maxHp: 29, ac: 17,
+    sheet: {
+      ancestry: 'Humana', background: 'Eremita do Pântano', className: 'Bruxa (Pacto do Gato)', level: 3, keyAttr: 'INT',
+      ancestryHp: 8, classHp: 6, armorItemBonus: 0, dexCap: 5, shieldBonus: 0,
+      attrs: { FOR: -1, DES: 2, CON: 1, INT: 4, SAB: 2, CAR: 1 },
+      prof: { armor: 2, weapon: 2, spell: 2, perception: 2, fort: 2, ref: 2, will: 4 },
+      skills: ['Ocultismo (E)', 'Natureza (T)', 'Intimidação (T)'],
+      feats: ['Familiar (Gato Negro)', 'Maldição do Pacto', 'Mau-olhado']
+    },
+    weapons: [{ name: 'Cajado Retorcido', dmgDie: '1d6', reach: 1.5, dmgType: 'contundente' }],
+    spells: [{ ...SPELL_CATALOG.maldicao_sombria }, { ...SPELL_CATALOG.estilhacos_de_gelo }, { ...SPELL_CATALOG.misseis_magicos }],
+    items: [{ ...ITEM_CATALOG.pocao_menor, qty: 1 }, { ...ITEM_CATALOG.perg_relampago, qty: 1 }]
+  },
+  {
+    id: 't_espadachim', name: 'Espadachim', sculpt: 'espadachim', faction: 'hero', moveSpeed: 9, maxHp: 44, ac: 20,
+    sheet: {
+      ancestry: 'Humano', background: 'Duelista da Corte', className: 'Espadachim (Duelista)', level: 3, keyAttr: 'DES',
+      ancestryHp: 8, classHp: 10, armorItemBonus: 2, dexCap: 3, shieldBonus: 0,
+      attrs: { FOR: 1, DES: 4, CON: 2, INT: 0, SAB: 1, CAR: 3 },
+      prof: { armor: 2, weapon: 4, spell: 0, perception: 4, fort: 2, ref: 4, will: 4 },
+      skills: ['Acrobacia (E)', 'Atletismo (T)', 'Atuação (T)'],
+      feats: ['Panache', 'Finta Acrobática', 'Estocada Ágil']
+    },
+    weapons: [
+      { name: 'Rapieira', dmgDie: '1d6', reach: 1.5, dmgType: 'perfurante' },
+      { name: 'Adaga de Parry', dmgDie: '1d4', reach: 1.5, dmgType: 'perfurante' }
+    ],
+    spells: [],
+    items: [{ ...ITEM_CATALOG.pocao_menor, qty: 2 }]
+  },
+  {
+    id: 't_esqueleto', name: 'Esqueleto', sculpt: 'esqueleto', faction: 'villain', moveSpeed: 9, maxHp: 24, ac: 17,
+    sheet: {
+      ancestry: 'Morto-vivo', background: 'Guarda Ressuscitado', className: 'Guerreiro Esquelético', level: 2, keyAttr: 'FOR',
+      ancestryHp: 6, classHp: 8, armorItemBonus: 2, dexCap: 2, shieldBonus: 1,
+      attrs: { FOR: 3, DES: 2, CON: 0, INT: -4, SAB: 0, CAR: -4 },
+      prof: { armor: 2, weapon: 2, spell: 0, perception: 2, fort: 2, ref: 4, will: 2 },
+      skills: ['Atletismo (T)'],
+      feats: ['Imune a Veneno e Mental', 'Ossos Resistentes']
+    },
+    weapons: [
+      { name: 'Espada Enferrujada', dmgDie: '1d6', reach: 1.5, dmgType: 'cortante' },
+      { name: 'Garras Ossudas', dmgDie: '1d4', reach: 1.5, dmgType: 'perfurante' }
+    ],
+    spells: [],
+    items: [],
+    resistances: [{ type: 'cortante', value: 5 }, { type: 'perfurante', value: 5 }],
+    weaknesses: [{ type: 'vital', value: 5 }],
+    immunities: ['veneno', 'mental']
+  },
+  {
+    id: 't_orc', name: 'Orc', sculpt: 'orc', faction: 'villain', moveSpeed: 9, maxHp: 55, ac: 19,
+    sheet: {
+      ancestry: 'Orc', background: 'Saqueador de Clã', className: 'Guerreiro Orc', level: 3, keyAttr: 'FOR',
+      ancestryHp: 10, classHp: 10, armorItemBonus: 3, dexCap: 1, shieldBonus: 0,
+      attrs: { FOR: 4, DES: 1, CON: 3, INT: -1, SAB: 0, CAR: 0 },
+      prof: { armor: 2, weapon: 4, spell: 0, perception: 2, fort: 4, ref: 2, will: 2 },
+      skills: ['Atletismo (E)', 'Intimidação (T)'],
+      feats: ['Ferocidade Orc', 'Golpe Poderoso', 'Visão no Escuro']
+    },
+    weapons: [
+      { name: 'Machado Grande Orc', dmgDie: '1d12', reach: 1.5, dmgType: 'cortante' },
+      { name: 'Azagaia', dmgDie: '1d6', reach: 9, dmgType: 'perfurante' }
+    ],
+    spells: [],
+    items: [{ ...ITEM_CATALOG.pocao_menor, qty: 1 }]
+  },
+  {
+    id: 't_cultista', name: 'Cultista', sculpt: 'cultista', faction: 'villain', moveSpeed: 9, maxHp: 32, ac: 17,
+    sheet: {
+      ancestry: 'Humano', background: 'Acólito do Culto Sombrio', className: 'Cultista Profano', level: 3, keyAttr: 'CAR',
+      ancestryHp: 8, classHp: 8, armorItemBonus: 1, dexCap: 4, shieldBonus: 0,
+      attrs: { FOR: 0, DES: 2, CON: 1, INT: 1, SAB: 2, CAR: 4 },
+      prof: { armor: 2, weapon: 2, spell: 2, perception: 2, fort: 2, ref: 2, will: 4 },
+      skills: ['Ocultismo (E)', 'Religião (T)', 'Enganação (T)'],
+      feats: ['Ritual Profano', 'Pacto de Sangue', 'Escudo Sombrio']
+    },
+    weapons: [
+      { name: 'Adaga Ritual', dmgDie: '1d4', reach: 1.5, dmgType: 'cortante', extra: [{ name: 'Profana', die: '1d4', bonus: 0, type: 'espiritual' }] }
+    ],
+    spells: [{ ...SPELL_CATALOG.maldicao_sombria }, { ...SPELL_CATALOG.toque_sombrio }],
+    items: [{ ...ITEM_CATALOG.pocao_menor, qty: 1 }]
+  },
+  {
+    id: 't_zumbi', name: 'Zumbi', sculpt: 'zumbi', faction: 'villain', moveSpeed: 6, maxHp: 44, ac: 13,
+    sheet: {
+      ancestry: 'Morto-vivo', background: 'Cadáver Errante', className: 'Zumbi Errante', level: 2, keyAttr: 'FOR',
+      ancestryHp: 10, classHp: 10, armorItemBonus: 0, dexCap: 0, shieldBonus: 0,
+      attrs: { FOR: 4, DES: -2, CON: 3, INT: -4, SAB: 0, CAR: -4 },
+      prof: { armor: 2, weapon: 2, spell: 0, perception: 0, fort: 4, ref: 0, will: 2 },
+      skills: ['Atletismo (T)'],
+      feats: ['Lento e Implacável', 'Imune a Veneno e Mental']
+    },
+    weapons: [
+      { name: 'Pancada Podre', dmgDie: '1d8', reach: 1.5, dmgType: 'contundente' },
+      { name: 'Mordida Infecta', dmgDie: '1d6', reach: 1.5, dmgType: 'perfurante', extra: [{ name: 'Infecção', die: '1d4', bonus: 0, type: 'veneno' }] }
+    ],
+    spells: [],
+    items: [],
+    weaknesses: [{ type: 'vital', value: 5 }],
+    immunities: ['veneno', 'mental']
+  },
+  {
+    id: 't_kobold', name: 'Kobold', sculpt: 'kobold', faction: 'villain', moveSpeed: 9, maxHp: 16, ac: 17,
+    sheet: {
+      ancestry: 'Kobold', background: 'Guarda da Toca', className: 'Lanceiro Kobold', level: 1, keyAttr: 'DES',
+      ancestryHp: 6, classHp: 6, armorItemBonus: 1, dexCap: 3, shieldBonus: 1,
+      attrs: { FOR: 0, DES: 3, CON: 1, INT: 0, SAB: 1, CAR: 0 },
+      prof: { armor: 2, weapon: 2, spell: 0, perception: 2, fort: 2, ref: 4, will: 2 },
+      skills: ['Furtividade (T)', 'Ladroagem (T)'],
+      feats: ['Armadilha Improvisada', 'Sangue Dracônico']
+    },
+    weapons: [
+      { name: 'Lança Kobold', dmgDie: '1d6', reach: 3, dmgType: 'perfurante' },
+      { name: 'Funda', dmgDie: '1d4', reach: 9, dmgType: 'contundente' }
+    ],
+    spells: [],
+    items: []
+  }
+);
 
 /* ===== 04-state.js ===== */
 /* ============================================================================
@@ -5343,7 +5822,7 @@ function syncCombatUI() {
         <div class="card-ribbon">${escapeHtml(it.name)}</div>
         <div class="card-art"><svg class="icon"><use href="#i-${it.kind === 'potion' ? 'flask' : 'scroll'}"/></svg></div>
         <div class="card-text"><b>×${it.qty}</b><span>${escapeHtml(it.desc)}</span></div>
-        <div class="card-cost"><span class="cost-badge">2</span></div>`;
+        <div class="card-cost"><span class="cost-badge">${it.cost || 2}</span></div>`;
       iBox.appendChild(card);
     });
   }
@@ -6061,6 +6540,8 @@ function paintCellTerrain(col, row) {
 
 function renderPieceGallery() {
   const container = document.getElementById('pieceGalleryContainer');
+  const heroes = UNIT_TEMPLATES.filter(t => t.faction === 'hero').length;
+  document.getElementById('galleryCount').textContent = `${heroes} heróis · ${UNIT_TEMPLATES.length - heroes} vilões`;
   container.innerHTML = '';
   for (const t of UNIT_TEMPLATES) {
     const card = document.createElement('div');

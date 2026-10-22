@@ -152,7 +152,7 @@ function syncCombatUI() {
         <div class="card-ribbon">${escapeHtml(it.name)}</div>
         <div class="card-art"><svg class="icon"><use href="#i-${it.kind === 'potion' ? 'flask' : 'scroll'}"/></svg></div>
         <div class="card-text"><b>×${it.qty}</b><span>${escapeHtml(it.desc)}</span></div>
-        <div class="card-cost"><span class="cost-badge">2</span></div>`;
+        <div class="card-cost"><span class="cost-badge">${it.cost || 2}</span></div>`;
       iBox.appendChild(card);
     });
   }

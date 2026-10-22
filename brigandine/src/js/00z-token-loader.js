@@ -15,7 +15,7 @@ function hashString(str) {
  *  framed = true  -> recortada em círculo, dentro do aro (ouro para heróis, ferro para vilões)
  *  framed = false -> imagem inteira, sem moldura (ideal para PNG com fundo transparente)
  */
-function buildCustomTokenSVG(dataUrl, { faction = 'hero', framed = true } = {}) {
+function buildCustomTokenSVG(dataUrl, { faction = 'hero', framed = true, zoom = 1, focusY = 128 } = {}) {
   if (!framed) {
     return `<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg"><image href="${dataUrl}" x="0" y="0" width="256" height="256" preserveAspectRatio="xMidYMid meet"/></svg>`;
   }
@@ -35,7 +35,7 @@ function buildCustomTokenSVG(dataUrl, { faction = 'hero', framed = true } = {}) 
   <circle cx="128" cy="128" r="116" fill="none" stroke="${stud}" stroke-width="4.2" stroke-dasharray="1.2 20.6" stroke-linecap="round" opacity="0.9"/>
   <circle cx="128" cy="128" r="111" fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="3"/>
   <circle cx="128" cy="128" r="108" fill="#10141a"/>
-  <g clip-path="url(#cc)"><image href="${dataUrl}" x="20" y="20" width="216" height="216" preserveAspectRatio="xMidYMid slice"/><circle cx="128" cy="128" r="108" fill="url(#cv)"/></g>
+  <g clip-path="url(#cc)"><image href="${dataUrl}" x="${(128 - 108 * zoom).toFixed(1)}" y="${(128 - (focusY / 256) * 216 * zoom).toFixed(1)}" width="${(216 * zoom).toFixed(1)}" height="${(216 * zoom).toFixed(1)}" preserveAspectRatio="xMidYMid slice"/><circle cx="128" cy="128" r="108" fill="url(#cv)"/></g>
   <circle cx="128" cy="128" r="108" fill="none" stroke="#06060c" stroke-width="2"/>
 </svg>`;
 }

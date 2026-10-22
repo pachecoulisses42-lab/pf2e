@@ -112,6 +112,8 @@ function paintCellTerrain(col, row) {
 
 function renderPieceGallery() {
   const container = document.getElementById('pieceGalleryContainer');
+  const heroes = UNIT_TEMPLATES.filter(t => t.faction === 'hero').length;
+  document.getElementById('galleryCount').textContent = `${heroes} heróis · ${UNIT_TEMPLATES.length - heroes} vilões`;
   container.innerHTML = '';
   for (const t of UNIT_TEMPLATES) {
     const card = document.createElement('div');

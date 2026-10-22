@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
@@ -39,4 +39,16 @@ export function makeUnit(overrides = {}) {
     items: [],
     ...overrides
   };
+}
+
+/** Carrega catálogo, regras, ficha, modelos e os kits de token (sem DOM). */
+export function loadTemplates() {
+  const ctx = vm.createContext({ console });
+  const files = ['01-catalog.js', '01b-rules.js', '02-sheet-engine.js', '03-templates.js'];
+  const tokenFiles = readdirSync(join(root, 'src/js')).filter((f) => /^00[a-y]/.test(f)).sort();
+  for (const f of [...tokenFiles, ...files]) vm.runInContext(readFileSync(join(root, 'src/js', f), 'utf8'), ctx, { filename: f });
+  return vm.runInContext(`({
+    UNIT_TEMPLATES, SPELL_CATALOG, ITEM_CATALOG, CHIBI_SVGS, MEDALLION_SVGS, VILLAIN_SCULPTS, DAMAGE_TYPES,
+    isValidDice, normalizeWeapon, normalizeSpell, normalizeDefenses, recalculateUnitFromSheet
+  })`, ctx);
 }

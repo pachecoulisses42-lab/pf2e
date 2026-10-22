@@ -23,17 +23,18 @@ async function check(name, fn) {
   try { await fn(); console.log('ok  ', name); } catch (e) { failed++; console.log('FAIL', name, '\n    ', e.message); }
 }
 
-await check('batalha de exemplo monta 15 peças e todos os 12 tokens renderizam', async () => {
+await check('batalha de exemplo monta 15 peças e todos os 22 tokens renderizam', async () => {
   const n = await page.evaluate(() => STATE.units.length);
   assert.equal(n, 15);
   const keys = await page.evaluate(() => Object.keys(SCULPT_SVGS).length);
-  assert.equal(keys, 12);
+  assert.equal(keys, 22);
 });
 
 await check('Erguer Escudo: gasta 1 ação, sobe a CA e some no início do próximo turno', async () => {
   const r = await page.evaluate(() => {
     setAppMode('combat');
     const u = STATE.units.find(x => x.id === STATE.combat.activeUnitId);
+    u.sheet.shieldBonus = 2; recalculateUnitFromSheet(u, false); // a peça sorteada pode não ter escudo
     const before = { ac: u.ac, actions: u.actions };
     selectCombatMainMenu('attack');
     raiseShield();

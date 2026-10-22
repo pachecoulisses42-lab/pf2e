@@ -37,6 +37,41 @@ const SPELL_CATALOG = {
     areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '3d6', dmgBonus: 4,
     desc: 'Ataque Mágico à Distância (18m)'
   },
+  espinhos_vivos: {
+    id: 'espinhos_vivos', dmgType: 'perfurante', name: 'Espinhos Vivos', cost: 2, range: 18,
+    areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '3d6', dmgBonus: 4,
+    desc: 'Espinhos brotam do chão (18m)'
+  },
+  vento_cortante: {
+    id: 'vento_cortante', dmgType: 'cortante', name: 'Vento Cortante', cost: 2, range: 9,
+    areaType: 'line', areaSize: 9, atkBonus: 9, dmgDie: '3d8', dmgBonus: 0,
+    desc: 'Rajada afiada em linha de 9m'
+  },
+  estilhacos_de_gelo: {
+    id: 'estilhacos_de_gelo', dmgType: 'gélido', name: 'Estilhaços de Gelo', cost: 2, range: 18,
+    areaType: 'burst', areaSize: 4.5, atkBonus: 9, dmgDie: '4d6', dmgBonus: 0,
+    desc: 'Explosão de gelo, raio 4,5m (alcance 18m)'
+  },
+  maldicao_sombria: {
+    id: 'maldicao_sombria', dmgType: 'mental', name: 'Maldição Sombria', cost: 2, range: 18,
+    areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '3d6', dmgBonus: 4,
+    desc: 'Pesadelo que corrói a mente (18m)'
+  },
+  rajada_de_ki: {
+    id: 'rajada_de_ki', dmgType: 'força', name: 'Rajada de Ki', cost: 1, range: 9,
+    areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '2d6', dmgBonus: 3,
+    desc: 'Energia do punho (9m | ◆ 1 Ação)'
+  },
+  toque_sombrio: {
+    id: 'toque_sombrio', dmgType: 'espiritual', name: 'Toque Sombrio', cost: 2, range: 1.5,
+    areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '3d8', dmgBonus: 3,
+    desc: 'Toque profano (adjacente 1,5m)'
+  },
+  lanca_divina: {
+    id: 'lanca_divina', dmgType: 'espiritual', name: 'Lança Divina', cost: 1, range: 18,
+    areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '2d4', dmgBonus: 3,
+    desc: 'Lança de luz sagrada (18m | ◆ 1 Ação)'
+  },
   misseis_magicos: {
     id: 'misseis_magicos', dmgType: 'força', name: 'Mísseis Mágicos', cost: 1, range: 18,
     areaType: 'single', areaSize: 0, atkBonus: 10, dmgDie: '2d4', dmgBonus: 2,
@@ -69,6 +104,11 @@ const ITEM_CATALOG = {
     id: 'perg_bola_fogo', name: 'Pergaminho de Bola de Fogo', kind: 'scroll_spell',
     spellKey: 'bola_de_fogo', cost: 2, qty: 1,
     desc: 'Conjura Bola de Fogo (Raio 9m | 6d6)'
+  },
+  elixir_vida: {
+    id: 'elixir_vida', name: 'Elixir de Vida Menor', kind: 'potion',
+    cost: 1, range: 1.5, dice: '2d6', bonus: 6, qty: 2,
+    desc: 'Recupera 2d6+6 PV (Si mesmo ou Adjacente | ◆ 1 Ação)'
   },
   perg_cura: {
     id: 'perg_cura', name: 'Pergaminho de Cura Sagrada', kind: 'potion',

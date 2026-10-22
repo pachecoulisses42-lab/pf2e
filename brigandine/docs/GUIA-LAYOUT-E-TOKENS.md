@@ -302,9 +302,16 @@ trocáveis em *Peças → Estilo dos tokens* (escolha guardada no navegador):
 - **Chibi (padrão):** personagem de corpo inteiro sobre base oval.
 - **Medalhão:** retrato em aro metálico (ouro para heróis, ferro para vilões).
 
-Os 12 personagens existem nos dois estilos, com as mesmas chaves:
-`guerreiro, paladino, barbaro, clerigo, bardo, feiticeiro, mago, ranger, rogue` (heróis) e
-`goblin, lobo, bandido` (vilões).
+Os 22 personagens existem nos dois estilos, com as mesmas chaves (os novos só têm arte chibi; no estilo
+medalhão o app recorta o chibi dentro do aro automaticamente):
+
+| Facção | Chaves |
+| --- | --- |
+| Heróis (14) | `guerreiro, paladino, barbaro, clerigo, bardo, feiticeiro, mago, ranger, rogue, druida, monge, alquimista, bruxa, espadachim` |
+| Vilões (8) | `goblin, lobo, bandido, esqueleto, orc, cultista, zumbi, kobold` |
+
+Cada token tem uma **peça** (modelo) equipada conforme a classe, em `src/js/03-templates.js`. Um teste
+(`tests/templates.test.mjs`) garante que nenhum token fica sem peça.
 
 ### 7.1 Anatomia do estilo chibi
 
@@ -341,6 +348,11 @@ Tela de **256 × 256** (`viewBox="0 0 256 256"`), personagem de frente.
 | clerigo | `#f0c64a` | lobo | `#f0a020` |
 | bardo | `#d85fb0` | bandido | `#d8283e` |
 | feiticeiro | `#f0587f` | mago | `#8d76e8` |
+| druida | `#5fae6a` | esqueleto | `#9a9a7a` |
+| monge | `#e0a030` | orc | `#c85a2a` |
+| alquimista | `#9ccf3a` | cultista | `#8a2a4a` |
+| bruxa | `#9a5ad8` | zumbi | `#7a9a5a` |
+| espadachim | `#e8503a` | kobold | `#d8742a` |
 
 Pele padrão: `#f3c29b`. Contorno: `#2b1b17`. Metal: `#9aa5b4` (claro `#aab4c2`, escuro `#7d8898`).
 Ouro: `#f0c84a`. Couro: `#6b4a2a` a `#8a5a30`. Para pele verde (goblin) `#7fb04a`.
@@ -412,14 +424,20 @@ Exemplo completo pronto para colar em `docs/exemplo-token-druida.js`. Para gerar
 2. **Registre a chave nas listas de escolha** de `src/index.html`: o `<select id="inspTokenSelect">`
    (aba Base) e o `<select id="newPieceSculpt">` (salvar peça como modelo). Exemplo:
    `<option value="druida">Druida</option>`.
-3. **Crie o modelo da peça** em `src/js/03-templates.js`: copie um modelo parecido e troque
+3. **Crie a peça (modelo)** em `src/js/03-templates.js`: copie um modelo parecido e troque
    `id` (`t_druida`), `name`, `sculpt: 'druida'`, `faction`, PV, CA, ficha, armas e magias.
+   **Equipe conforme a classe:** armas com `dmgType` (cortante, perfurante, contundente, fogo…), runas ou dano
+   extra em `extra`, magias do `SPELL_CATALOG`, itens do `ITEM_CATALOG`, `shieldBonus` (0 sem escudo, 1 a 3 com)
+   e, para mortos-vivos e criaturas, `resistances`, `weaknesses` e `immunities`.
+   Marque `manual: true` nas armas com valores próprios (por exemplo, bombas) para que a ficha não os sobrescreva.
+   Marque o vilão em `VILLAIN_SCULPTS` (`src/js/00y-token-styles.js`).
 4. **Nome na documentação** (opcional): acrescente a chave em `NAMES` em `scripts/build.mjs`.
 5. **Teste.** No `tests/e2e.smoke.mjs` a verificação “todos os tokens renderizam” conta as chaves
-   (hoje 12); atualize o número. Depois rode `npm run check` e os testes de navegador.
+   (hoje 22); atualize o número. `tests/templates.test.mjs` confere sozinho que o token tem peça, que a facção
+   bate, que armas, magias e itens são válidos e que o seletor da interface lista a chave. Depois rode `npm run check` e os testes de navegador.
 6. **Confira visualmente** no `dist/design-system.html` e no tabuleiro (55 px), nos dois temas.
-7. **Estilo medalhão (opcional):** se não houver versão medalhão da chave, o app usa o `guerreiro`
-   nesse estilo. Para ter a arte própria, acrescente `MEDALLION_SVGS.<chave>` em `00b`/`00c`.
+7. **Estilo medalhão (opcional):** se não houver versão medalhão da chave, o app recorta o chibi dentro do aro
+   automaticamente. Para ter uma arte de retrato própria, acrescente `MEDALLION_SVGS.<chave>` em `00b`/`00c`.
 
 **Checklist de qualidade do token**
 - [ ] A mão segura o objeto pelo lugar certo (arco pelo punho, cajado pelo cabo).
