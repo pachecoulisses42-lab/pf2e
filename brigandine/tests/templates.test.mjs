@@ -10,11 +10,22 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const plain = (v) => JSON.parse(JSON.stringify(v));
 const templates = plain(T.UNIT_TEMPLATES);
 const chibiKeys = Object.keys(T.CHIBI_SVGS);
+const extraKeys = Object.keys(T.EXTRA_TOKENS);
+const tokenFaction = (k) => (T.EXTRA_TOKENS[k] ? T.EXTRA_TOKENS[k].faction : (T.VILLAIN_SCULPTS.has(k) ? 'villain' : 'hero'));
 
 test('todo token chibi tem uma peça (modelo) e toda peça aponta para um token existente', () => {
   const sculptsWithTemplate = new Set(templates.map(t => t.sculpt));
   for (const key of chibiKeys) assert.ok(sculptsWithTemplate.has(key), `token "${key}" está sem peça`);
-  for (const t of templates) assert.ok(chibiKeys.includes(t.sculpt), `modelo ${t.id} usa token inexistente "${t.sculpt}"`);
+  for (const t of templates) assert.ok(chibiKeys.includes(t.sculpt) || extraKeys.includes(t.sculpt), `modelo ${t.id} usa token inexistente "${t.sculpt}"`);
+});
+
+test('toda classe nova e todo vilão novo dos tokens pintados tem peça equipada', () => {
+  // classes que já tinham peça usam o token pintado nas peças existentes
+  const existing = ['barbaro', 'bardo', 'clerigo', 'druida', 'guerreiro', 'ladino', 'mago', 'feiticeiro', 'monge', 'paladino', 'bruxo'];
+  const sculpts = new Set(templates.map(t => t.sculpt));
+  const need = extraKeys.filter(k => /^(ct|vt)_/.test(k) && !existing.includes(k.slice(3)));
+  assert.equal(need.length, 34);
+  for (const k of need) assert.ok(sculpts.has(k), `token ${k} sem peça`);
 });
 
 test('todo token existe também na vista de cima, e vice-versa', () => {
@@ -54,7 +65,7 @@ test('ids de modelo são únicos e a facção bate com a lista de vilões', () =
   const ids = templates.map(t => t.id);
   assert.equal(new Set(ids).size, ids.length);
   for (const t of templates) {
-    assert.equal(t.faction === 'villain', T.VILLAIN_SCULPTS.has(t.sculpt), `${t.id}: facção diferente da lista de vilões`);
+    assert.equal(t.faction, tokenFaction(t.sculpt), `${t.id}: facção diferente da do token`);
   }
 });
 
@@ -133,4 +144,65 @@ test('tokens extras: manifesto válido, arquivos existem e chaves não colidem c
     }
   }
   assert.equal(total, 90);
+});
+
+test('sugestão de token: nome, classe, inglês, específico vence genérico, facção como desempate', () => {
+  const s = (p) => T.suggestTokenKey(p);
+  assert.equal(s({ name: 'Goblin Xamã', faction: 'villain' }), 'vt_goblin_xama');
+  assert.equal(s({ name: 'Goblin', faction: 'villain' }), 'goblin');
+  assert.equal(s({ name: 'Lobo Alfa' }), 'vt_lobo_alfa');
+  assert.equal(s({ name: 'Ezren', className: 'Wizard' }), 'mago');
+  assert.equal(s({ name: 'Kyra', className: 'Cleric of Sarenrae' }), 'clerigo');
+  assert.equal(s({ name: 'Lem', className: 'Bard' }), 'bardo');
+  assert.equal(s({ name: 'Fumbus', className: 'Gunslinger' }), 'ct_pistoleiro');
+  assert.equal(s({ name: 'Voz', ancestry: 'Kitsune', faction: 'hero' }), 'ct_kitsune');
+  assert.equal(s({ name: 'Skeleton Guard', faction: 'enemy' }), 'esqueleto');
+  assert.equal(s({ name: 'Ladino' }), 'rogue', 'empate entre app e extra prefere o do app');
+  assert.equal(s({ name: 'Xyz' }), 'guerreiro');
+  assert.equal(s({ name: 'Xyz', faction: 'villain' }), 'bandido');
+  assert.equal(T.matchTokenKey({ name: 'Xyz' }), null);
+  // palavra inteira: "orchestra" não é orc
+  assert.equal(s({ name: 'Orchestra', faction: 'villain' }), 'bandido');
+});
+
+test('token de peça de fora: chave, nome por extenso, imagem e sugestão', () => {
+  const plainR = (p) => plain(T.resolvePieceToken(p));
+  assert.equal(plainR({ sculpt: 'cr_samurai' }).sculpt, 'cr_samurai');
+  assert.equal(plainR({ token: 'Lobo Sombrio' }).sculpt, 'vt_lobo_sombrio');
+  assert.equal(plainR({ sculpt: 'nao_existe', name: 'Orc Brutamontes', faction: 'villain' }).sculpt, 'orc');
+  const img = 'data:image/png;base64,iVBORw0KGgo=';
+  const r = plainR({ name: 'Herói', img });
+  assert.equal(r.customTokenDataUrl, img);
+  assert.equal(r.source, 'imagem');
+  assert.equal(plainR({ name: 'X', img: 'https://exemplo.com/a.png' }).customTokenDataUrl, null, 'URL externa não vira token');
+});
+
+test('peça importada vira modelo completo, respeita PV/CA e não repete id', () => {
+  const used = new Set(['t_guerreiro']);
+  const a = plain(T.normalizePieceTemplate({ id: 'guerreiro', name: '<b>Valeros</b>', className: 'Fighter', level: 3, hp: 47, ac: 21,
+    abilities: { str: 4, dex: 2, con: 3, int: 0, wis: 1, cha: 0 }, weapons: [{ name: 'Longsword', dmgDie: '1d8', dmgType: 'cortante' }],
+    spells: ['bola_de_fogo', 'nao_existe'], items: ['pocao_menor', { id: 'x' }] }, used).template);
+  assert.equal(a.id, 't_guerreiro_2');
+  assert.ok(!/[<>]/.test(a.name), 'nome sem HTML');
+  assert.equal(a.sculpt, 'guerreiro');
+  assert.equal(a.sheet.attrs.FOR, 4);
+  const u = { ...a, hp: 1 };
+  T.recalculateUnitFromSheet(u, true);
+  assert.ok(Math.abs(u.maxHp - 47) <= 3, `PV ${u.maxHp}`);
+  assert.equal(u.ac, 21);
+  assert.equal(a.spells.length, 1);
+  assert.equal(a.items.length, 1);
+  const b = plain(T.normalizePieceTemplate({ name: 'Coisa' }, used).template);
+  assert.ok(b.weapons.length === 1 && b.sheet.level === 1 && b.faction === 'hero');
+  assert.equal(T.extractPieceList([{ name: 'a' }]).length, 1);
+  assert.equal(T.extractPieceList({ pieces: [{}] }).length, 1);
+  assert.equal(T.extractPieceList({ templates: [{}], units: [] }), null, 'arquivo de tabuleiro não é lista de peças');
+});
+
+test('o pacote de JS do app compila (sem nomes globais repetidos entre módulos)', async () => {
+  const { readdirSync } = await import('node:fs');
+  const vm = await import('node:vm');
+  const dir = join(root, 'src/js');
+  const js = 'const EXTRA_TOKEN_GROUPS = [];\n' + readdirSync(dir).filter(f => f.endsWith('.js')).sort().map(f => readFileSync(join(dir, f), 'utf8')).join('\n');
+  assert.doesNotThrow(() => new vm.Script(js, { filename: 'bundle.js' }));
 });

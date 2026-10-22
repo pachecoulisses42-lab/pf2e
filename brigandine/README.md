@@ -8,6 +8,7 @@ Tabuleiro tático para Pathfinder 2e Remaster que abre direto no navegador, sem 
 
 - [`docs/GUIA-LAYOUT-E-TOKENS.md`](docs/GUIA-LAYOUT-E-TOKENS.md): como o layout, o design system e os tokens funcionam e como criar novos.
 - [`docs/PROMPT-novos-tokens.md`](docs/PROMPT-novos-tokens.md): prompts prontos para colar numa IA e gerar mais tokens no mesmo estilo (em código SVG ou em imagem).
+- [`docs/FORMATO-PECAS.md`](docs/FORMATO-PECAS.md): formato para importar peças de outros módulos e como o token é escolhido.
 - [`docs/exemplo-token-druida.js`](docs/exemplo-token-druida.js): exemplo completo de token novo.
 - `dist/design-system.html`: documentação visual (componentes e tokens).
 
@@ -52,6 +53,8 @@ src/
     01b-rules.js          Regras puras: dados, tipos de dano, runas, pacote de dano, defesas
     02-sheet-engine.js    Cálculo da ficha PF2e (CA, testes, ataque, CD, escudo)
     03-templates.js       22 modelos de peça
+    03b-templates-extras.js 34 peças dos tokens pintados (classes novas e vilões)
+    03c-piece-import.js   Token de peças novas/importadas (sugestão pelo nome) e normalização de peças de fora
     04-state.js           Estado global
     05-app-mode.js        Inicialização e modos Montagem/Combate
     06-grid-and-ranges.js Geometria hex/quadrada, movimento, alcance, áreas
@@ -62,6 +65,7 @@ src/
     10-sheet-ui.js        Ficha em abas (Atributos, Testes, Combate, Build)
     11-panels.js          Painéis de combate e inspetor, editores de arma e magia
     12-board-and-persistence.js Galeria, câmera, registro, salvar/carregar/exportar
+    12b-pieces-ui.js      Criar peça do zero, importar peças, API window.Brigandine
     13-ui-shell.js        Menus, gaveta de registro, painéis responsivos
     14-unit-tip.js        Tooltip do alvo: defesas e prévia do ataque
 scripts/build.mjs         Monta dist/ (embute src/tokens-extra/*.webp)
@@ -88,6 +92,8 @@ dist/                     Saída versionada: app, CSS do design system, document
 - **22 peças equipadas por classe** (novo): além dos 12 originais, entram Druida, Monge, Alquimista, Bruxa e Espadachim (heróis) e Esqueleto, Orc, Cultista, Zumbi e Kobold (vilões). Cada peça traz ficha, armas com tipo de dano (e runas quando cabe), magias, itens e escudo coerentes com a classe; mortos-vivos têm imunidades, resistências e fraqueza a vital.
 - **Tokens** (novo): 22 personagens chibi de corpo inteiro (estilo padrão: cabeça grande, contorno marrom, cores chapadas, base oval na cor da classe); em Peças → Estilo dos tokens há a **vista de cima**, que substituiu o medalhão: personagens vistos do alto, com volumes pintados, grão de tinta e sombra projetada, sem moldura, cada um equipado conforme a classe (prévia em `docs/token-preview/`).
 - **Tokens extras pintados** (novo): 90 imagens recortadas das folhas enviadas — 45 vistas de cima (24 classes e 21 vilões: goblins, lobos e ladrões) e 45 retratos com aro. Escolha na aba Base → *Galeria de tokens* (abas Do app, Vista de cima, Retratos) ou na lista *Ilustração*, também ao salvar um modelo. Valem em qualquer estilo; os vistos de cima giram com a direção da peça e os retratos usam o aro da facção. As imagens ficam em `src/tokens-extra/` e o build as embute no app (o arquivo passa de ~0,4 MB para ~2,4 MB).
+- **56 peças equipadas** (novo): além das 22, entram 13 classes dos tokens pintados (Explorador, Arqueiro, Cavaleiro, Cavaleiro da Liberdade, Ninja, Pistoleiro, Ranger de Batalha, Invocador, Kitsune, Kappa, Tengu, Ryu, Samurai) e 21 vilões (7 goblins, 7 lobos, 7 ladrões), com ficha, armas, magias e defesas da classe. A galeria tem filtro por nome/classe e facção.
+- **Peças do zero e importadas** (novo): *Peças → Criar peça do zero* (nome, classe, facção, nível e token — sugerido pelo nome ou escolhido na galeria) e *Peças → Importar peças (JSON)* para listas de outros módulos, sem apagar o tabuleiro. Peças sem token, com chave desconhecida ou de arquivos antigos recebem um token pelo nome, classe e facção (português ou inglês); imagens `data:image` viram token próprio. Módulos que rodam junto usam `window.Brigandine` (`importPieces`, `registerTokenGroup`, `suggestToken`, `listTokens`). Ver `docs/FORMATO-PECAS.md`.
 - **Direção das peças** (novo): a peça selecionada (montagem) ou a peça da vez (combate) mostra uma alça redonda na borda do token, apontando para onde ela está virada. Arraste a alça para girar (passos de 45° no quadriculado e 30° no hexágono; Shift gira livre); um toque/clique na alça gira um passo no sentido horário; Q e E também giram. No estilo vista de cima a arte gira junto; no chibi e em imagens próprias aparece uma seta na borda. Mover, atacar e lançar magia viram a peça para o alvo automaticamente. Heróis começam virados para o leste e vilões para o oeste; a direção vai no salvamento e na exportação.
 - Salvar no navegador, exportar e importar JSON. Arquivos antigos (v4) são aceitos; armas e magias são normalizadas ao importar.
 

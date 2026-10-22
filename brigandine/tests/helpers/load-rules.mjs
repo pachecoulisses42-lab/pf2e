@@ -45,11 +45,15 @@ export function makeUnit(overrides = {}) {
 /** Carrega catálogo, regras, ficha, modelos e os kits de token (sem DOM). */
 export function loadTemplates() {
   const ctx = vm.createContext({ console });
-  const files = ['01-catalog.js', '01b-rules.js', '02-sheet-engine.js', '03-templates.js'];
+  // tokens extras como o build embute, com a imagem trocada por um marcador
+  const manifest = JSON.parse(readFileSync(join(root, 'src/tokens-extra/manifest.json'), 'utf8'));
+  ctx.EXTRA_TOKEN_GROUPS = manifest.groups.map((g) => ({ ...g, items: g.items.map(({ file, ...it }) => ({ ...it, src: 'data:image/webp;base64,AA' })) }));
+  const files = ['01-catalog.js', '01b-rules.js', '02-sheet-engine.js', '03-templates.js', '03b-templates-extras.js', '03c-piece-import.js'];
   const tokenFiles = readdirSync(join(root, 'src/js')).filter((f) => /^00[a-y]/.test(f)).sort();
   for (const f of [...tokenFiles, ...files]) vm.runInContext(readFileSync(join(root, 'src/js', f), 'utf8'), ctx, { filename: f });
   return vm.runInContext(`({
     UNIT_TEMPLATES, SPELL_CATALOG, ITEM_CATALOG, CHIBI_SVGS, TOPDOWN_SVGS, TOKEN_STYLES, setTokenStyle, activeStyle: () => activeTokenStyle, VILLAIN_SCULPTS, DAMAGE_TYPES,
-    isValidDice, normalizeWeapon, normalizeSpell, normalizeDefenses, recalculateUnitFromSheet
+    isValidDice, normalizeWeapon, normalizeSpell, normalizeDefenses, recalculateUnitFromSheet,
+    EXTRA_TOKENS, suggestTokenKey, matchTokenKey, resolvePieceToken, normalizePieceTemplate, extractPieceList, isKnownTokenKey
   })`, ctx);
 }

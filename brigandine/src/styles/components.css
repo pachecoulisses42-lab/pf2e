@@ -307,3 +307,9 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .token-pick:hover { box-shadow: inset 0 0 0 1.5px var(--line-strong); }
 .token-pick.active { box-shadow: inset 0 0 0 2.5px var(--accent); background: var(--accent-soft); }
 .token-pick svg, .token-pick img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
+
+/* Filtro da galeria de peças e formulário de peça nova */
+.gallery-filter { display: grid; grid-template-columns: 1fr auto; gap: var(--s-2); }
+.np-token { display: grid; grid-template-columns: 64px 1fr; gap: var(--s-3); align-items: center; }
+.np-token-preview { width: 64px; height: 64px; }
+.np-token-preview svg { width: 100%; height: 100%; }

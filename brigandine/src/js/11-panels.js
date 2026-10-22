@@ -302,6 +302,11 @@ function syncInspectorUI() {
     if (u.id !== syncInspectorUI.lastUnitId) syncTokenPickerTab(u.sculpt);
     renderTokenPicker();
   }
+  if (u.id !== syncInspectorUI.lastUnitId) {
+    // "Salvar peça como modelo" já vem com o token e a facção desta peça
+    document.getElementById('newPieceSculpt').value = u.sculpt;
+    document.getElementById('newPieceFaction').value = u.faction;
+  }
   syncInspectorUI.lastUnitId = u.id;
   const hasCustom = !!u.customTokenDataUrl;
   document.getElementById('btnRemoveToken').classList.toggle('hidden', !hasCustom);

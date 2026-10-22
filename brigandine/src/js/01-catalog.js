@@ -72,6 +72,36 @@ const SPELL_CATALOG = {
     areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '2d4', dmgBonus: 3,
     desc: 'Lança de luz sagrada (18m | ◆ 1 Ação)'
   },
+  fogo_de_raposa: {
+    id: 'fogo_de_raposa', dmgType: 'fogo', name: 'Fogo de Raposa', cost: 1, range: 9,
+    areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '2d4', dmgBonus: 3,
+    desc: 'Chama espiritual da kitsune (9m | ◆ 1 Ação)'
+  },
+  jato_de_agua: {
+    id: 'jato_de_agua', dmgType: 'contundente', name: 'Jato d\'Água', cost: 2, range: 9,
+    areaType: 'line', areaSize: 9, atkBonus: 9, dmgDie: '3d6', dmgBonus: 0,
+    desc: 'Jorro de água em linha de 9m'
+  },
+  sopro_draconico: {
+    id: 'sopro_draconico', dmgType: 'fogo', name: 'Sopro Dracônico', cost: 2, range: 9,
+    areaType: 'burst', areaSize: 4.5, atkBonus: 9, dmgDie: '3d6', dmgBonus: 0,
+    desc: 'Chamas do sangue de dragão, raio 4,5m (alcance 9m)'
+  },
+  investida_eidolon: {
+    id: 'investida_eidolon', dmgType: 'força', name: 'Investida do Eidolon', cost: 2, range: 9,
+    areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '2d8', dmgBonus: 4,
+    desc: 'O eidolon vinculado golpeia o alvo (9m)'
+  },
+  fogueira_goblin: {
+    id: 'fogueira_goblin', dmgType: 'fogo', name: 'Fogueira Goblin', cost: 2, range: 18,
+    areaType: 'burst', areaSize: 3, atkBonus: 8, dmgDie: '2d6', dmgBonus: 0,
+    desc: 'Labaredas tribais, raio 3m (alcance 18m)'
+  },
+  uivo_espectral: {
+    id: 'uivo_espectral', dmgType: 'mental', name: 'Uivo Espectral', cost: 2, range: 1.5,
+    areaType: 'burst', areaSize: 4.5, atkBonus: 8, dmgDie: '2d6', dmgBonus: 0,
+    desc: 'Uivo que gela a alma ao redor (raio 4,5m)'
+  },
   misseis_magicos: {
     id: 'misseis_magicos', dmgType: 'força', name: 'Mísseis Mágicos', cost: 1, range: 18,
     areaType: 'single', areaSize: 0, atkBonus: 10, dmgDie: '2d4', dmgBonus: 2,

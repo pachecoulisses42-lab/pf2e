@@ -372,6 +372,59 @@ await check('tokens extras: galeria troca o token da peça, desenha no tabuleiro
   await page.evaluate(() => { changeSelectedUnitToken('guerreiro'); document.getElementById('tokenPickerDetails').open = false; });
 });
 
+await check('criar peça do zero: token sugerido pelo nome, troca manual e posiciona no tabuleiro', async () => {
+  const r = await page.evaluate(() => {
+    setAppMode('setup');
+    const det = document.getElementById('newPieceDetails'); det.open = true; syncNewPieceForm();
+    const name = document.getElementById('npName'); name.value = 'Goblin Xamã da Lua'; name.dispatchEvent(new Event('input'));
+    document.getElementById('npFaction').value = 'villain'; document.getElementById('npFaction').dispatchEvent(new Event('change'));
+    const suggested = newPieceDraft.sculpt;
+    const hint = document.getElementById('npTokenHint').textContent;
+    setTokenPickerTab('retrato', 'np');
+    Array.from(document.querySelectorAll('#npTokenPicker .token-pick')).find(b => b.title === 'Goblin Chefe').click();
+    const picked = newPieceDraft.sculpt;
+    document.getElementById('npLevel').value = '4';
+    const before = UNIT_TEMPLATES.length;
+    createPieceFromScratch();
+    const t = UNIT_TEMPLATES[UNIT_TEMPLATES.length - 1];
+    const n = STATE.units.length;
+    spawnUnitFromTemplate(STATE.selectedTemplateId, 0, 9);
+    const u = STATE.units[STATE.units.length - 1];
+    det.open = false;
+    return { suggested, hint, picked, added: UNIT_TEMPLATES.length - before, sculpt: t.sculpt, faction: t.faction, level: t.sheet.level, spawned: STATE.units.length - n, unitSculpt: u.sculpt, name: u.name };
+  });
+  assert.equal(r.suggested, 'vt_goblin_xama');
+  assert.match(r.hint, /Goblin Xamã · sugerido pelo nome/);
+  assert.equal(r.picked, 'vr_goblin_chefe');
+  assert.deepEqual([r.added, r.sculpt, r.faction, r.level, r.spawned, r.unitSculpt], [1, 'vr_goblin_chefe', 'villain', 4, 1, 'vr_goblin_chefe']);
+});
+
+await check('importar peças de outro módulo: escolhe token, respeita imagem e não apaga o tabuleiro', async () => {
+  const r = await page.evaluate(() => {
+    const units = STATE.units.length;
+    const res = importPieces({ pieces: [
+      { name: 'Amiri', className: 'Barbarian', level: 2, hp: 30, ac: 18 },
+      { name: 'Sentinela', token: 'Lobo de Guerra', faction: 'enemy' },
+      { name: 'Retrato próprio', img: 'data:image/png;base64,iVBORw0KGgo=' }
+    ] });
+    const last3 = UNIT_TEMPLATES.slice(-3).map(t => [t.sculpt, t.faction, !!t.customTokenDataUrl]);
+    document.getElementById('galleryFilterText').value = 'amiri'; renderPieceGallery();
+    const shown = Array.from(document.querySelectorAll('#pieceGalleryContainer .piece-card-name')).map(e => e.textContent);
+    document.getElementById('galleryFilterText').value = ''; renderPieceGallery();
+    // arquivo antigo com token que não existe mais
+    const payload = JSON.parse(JSON.stringify({ grid: STATE.grid, terrainMap: STATE.terrainMap, units: STATE.units, templates: UNIT_TEMPLATES, round: 1 }));
+    payload.units[0].sculpt = 'medalhao_que_sumiu'; payload.units[0].name = 'Zumbi Podre';
+    applyLoadedPayload(payload);
+    return { res, last3, shown, keptUnits: STATE.units.length === units, repaired: STATE.units[0].sculpt, api: typeof window.Brigandine.importPieces };
+  });
+  assert.deepEqual(r.res, { added: 3, suggested: 1 });
+  assert.deepEqual(r.last3, [['barbaro', 'hero', false], ['vt_lobo_guerra', 'villain', false], ['guerreiro', 'hero', true]]);
+  assert.deepEqual(r.shown, ['Amiri']);
+  assert.equal(r.keptUnits, true);
+  assert.equal(r.repaired, 'zumbi');
+  assert.equal(r.api, 'function');
+});
+
 await check('sem erros de JavaScript durante o fluxo', async () => {
   assert.deepEqual(errors, []);
 });

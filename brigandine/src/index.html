@@ -161,7 +161,43 @@
             </div>
           </div>
 
+          <div class="gallery-filter">
+            <input id="galleryFilterText" type="text" placeholder="Filtrar peças (nome ou classe)" aria-label="Filtrar peças" oninput="renderPieceGallery()">
+            <select id="galleryFilterFaction" aria-label="Facção" onchange="renderPieceGallery()"><option value="">Todas</option><option value="hero">Heróis</option><option value="villain">Vilões</option></select>
+          </div>
           <div id="pieceGalleryContainer" class="piece-gallery"></div>
+
+          <details id="newPieceDetails" class="more" ontoggle="if (this.open) syncNewPieceForm()">
+            <summary><svg class="icon"><use href="#i-plus"/></svg>Criar peça do zero<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <div class="grid-2">
+                <input id="npName" type="text" placeholder="Nome (ex.: Goblin Xamã)" oninput="syncNewPieceForm()">
+                <input id="npClass" type="text" placeholder="Classe (opcional)" oninput="syncNewPieceForm()">
+              </div>
+              <div class="grid-2">
+                <select id="npFaction" onchange="syncNewPieceForm()"><option value="hero">Herói</option><option value="villain">Vilão</option></select>
+                <select id="npLevel" aria-label="Nível"></select>
+              </div>
+              <div class="np-token">
+                <div id="npTokenPreview" class="np-token-preview"></div>
+                <div>
+                  <div class="field-label"><span>Token</span></div>
+                  <p id="npTokenHint" class="hint">Sugerido pelo nome</p>
+                  <button type="button" class="btn btn-sm btn-ghost" onclick="resetNewPieceToken()">Sugerir de novo</button>
+                </div>
+              </div>
+              <div id="npTokenPicker" class="token-picker"></div>
+              <button class="btn btn-primary btn-block" onclick="createPieceFromScratch()"><svg class="icon"><use href="#i-plus"/></svg>Criar e adicionar à galeria</button>
+            </div>
+          </details>
+
+          <details class="more">
+            <summary><svg class="icon"><use href="#i-upload"/></svg>Importar peças (JSON)<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <p class="hint">Lista de peças de outro módulo ou ferramenta. Sem token? O app escolhe um pelo nome, classe e facção — e você troca depois na aba Base. Formato em <code>docs/FORMATO-PECAS.md</code>.</p>
+              <label class="btn btn-block"><svg class="icon"><use href="#i-upload"/></svg>Escolher arquivo .json<input type="file" accept=".json,application/json" class="sr-only" onchange="importPiecesFile(event)"></label>
+            </div>
+          </details>
 
           <details class="more">
             <summary><svg class="icon"><use href="#i-image"/></svg>Importar imagens como modelos<svg class="icon chev"><use href="#i-chevron"/></svg></summary>

@@ -482,6 +482,12 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .token-pick.active { box-shadow: inset 0 0 0 2.5px var(--accent); background: var(--accent-soft); }
 .token-pick svg, .token-pick img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
 
+/* Filtro da galeria de peças e formulário de peça nova */
+.gallery-filter { display: grid; grid-template-columns: 1fr auto; gap: var(--s-2); }
+.np-token { display: grid; grid-template-columns: 64px 1fr; gap: var(--s-3); align-items: center; }
+.np-token-preview { width: 64px; height: 64px; }
+.np-token-preview svg { width: 100%; height: 100%; }
+
 /* --- layout.css --- */
 /* ==========================================================================
    Brigandine DS — Layout do app (shell, painéis, HUD)
@@ -1191,7 +1197,43 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
             </div>
           </div>
 
+          <div class="gallery-filter">
+            <input id="galleryFilterText" type="text" placeholder="Filtrar peças (nome ou classe)" aria-label="Filtrar peças" oninput="renderPieceGallery()">
+            <select id="galleryFilterFaction" aria-label="Facção" onchange="renderPieceGallery()"><option value="">Todas</option><option value="hero">Heróis</option><option value="villain">Vilões</option></select>
+          </div>
           <div id="pieceGalleryContainer" class="piece-gallery"></div>
+
+          <details id="newPieceDetails" class="more" ontoggle="if (this.open) syncNewPieceForm()">
+            <summary><svg class="icon"><use href="#i-plus"/></svg>Criar peça do zero<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <div class="grid-2">
+                <input id="npName" type="text" placeholder="Nome (ex.: Goblin Xamã)" oninput="syncNewPieceForm()">
+                <input id="npClass" type="text" placeholder="Classe (opcional)" oninput="syncNewPieceForm()">
+              </div>
+              <div class="grid-2">
+                <select id="npFaction" onchange="syncNewPieceForm()"><option value="hero">Herói</option><option value="villain">Vilão</option></select>
+                <select id="npLevel" aria-label="Nível"></select>
+              </div>
+              <div class="np-token">
+                <div id="npTokenPreview" class="np-token-preview"></div>
+                <div>
+                  <div class="field-label"><span>Token</span></div>
+                  <p id="npTokenHint" class="hint">Sugerido pelo nome</p>
+                  <button type="button" class="btn btn-sm btn-ghost" onclick="resetNewPieceToken()">Sugerir de novo</button>
+                </div>
+              </div>
+              <div id="npTokenPicker" class="token-picker"></div>
+              <button class="btn btn-primary btn-block" onclick="createPieceFromScratch()"><svg class="icon"><use href="#i-plus"/></svg>Criar e adicionar à galeria</button>
+            </div>
+          </details>
+
+          <details class="more">
+            <summary><svg class="icon"><use href="#i-upload"/></svg>Importar peças (JSON)<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <p class="hint">Lista de peças de outro módulo ou ferramenta. Sem token? O app escolhe um pelo nome, classe e facção — e você troca depois na aba Base. Formato em <code>docs/FORMATO-PECAS.md</code>.</p>
+              <label class="btn btn-block"><svg class="icon"><use href="#i-upload"/></svg>Escolher arquivo .json<input type="file" accept=".json,application/json" class="sr-only" onchange="importPiecesFile(event)"></label>
+            </div>
+          </details>
 
           <details class="more">
             <summary><svg class="icon"><use href="#i-image"/></svg>Importar imagens como modelos<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
@@ -3174,8 +3216,7 @@ function extraTokenSVG(key, faction) {
 /** Nome de qualquer token (do app ou extra) para listas e dicas. */
 function tokenDisplayName(key) {
   if (isExtraToken(key)) return EXTRA_TOKENS[key].name;
-  const opt = document.querySelector(`#inspTokenSelect option[value="${key}"]`);
-  return opt ? opt.textContent : key;
+  return (TOKEN_ALIASES[key] || [key])[0];
 }
 
 /** Acrescenta os extras, em grupos, a um <select> de token que já lista os do app. */
@@ -3199,44 +3240,83 @@ function appendExtraTokenOptions(select) {
   }
 }
 
-/* ---------------- Galeria visual (aba Base) ---------------- */
+/* ---------------- Galeria visual de tokens ----------------
+   Usada em dois lugares: aba Base (token da peça selecionada) e "Criar peça do zero"
+   (token do rascunho). Cada galeria lembra a própria aba. */
 
-let tokenPickerTab = 'app';
+const TOKEN_PICKERS = {
+  insp: {
+    box: 'tokenPicker', tab: 'app',
+    current: () => { const u = STATE.units.find(x => x.id === STATE.selectedUnitId); return u && !u.customTokenDataUrl ? u.sculpt : null; },
+    pick: (key) => changeSelectedUnitToken(key)
+  },
+  np: {
+    box: 'npTokenPicker', tab: 'app',
+    current: () => newPieceDraft.sculpt,
+    pick: (key) => pickNewPieceToken(key)
+  }
+};
 
 function tokenPickerTabs() {
   return [{ id: 'app', label: 'Do app' }, { id: 'topo', label: 'Vista de cima' }, { id: 'retrato', label: 'Retratos' }];
 }
 
-/** Desenha a grade de miniaturas da aba atual, marcando o token da peça selecionada. */
-function renderTokenPicker() {
-  const box = document.getElementById('tokenPicker');
+/** Lista [key, nome] dos tokens do app (os que seguem o estilo ativo). */
+function appTokenList() {
+  return Object.keys(SCULPT_SVGS).map(k => [k, (TOKEN_ALIASES[k] || [k])[0]]);
+}
+
+/** Desenha a grade de miniaturas da aba atual, marcando o token em uso. */
+function renderTokenPicker(id = 'insp') {
+  const cfg = TOKEN_PICKERS[id];
+  const box = cfg && document.getElementById(cfg.box);
   if (!box) return;
-  const u = STATE.units.find(x => x.id === STATE.selectedUnitId);
-  const current = u && !u.customTokenDataUrl ? u.sculpt : null;
+  const current = cfg.current();
   const tabs = tokenPickerTabs().map(t =>
-    `<button type="button" class="seg-btn${t.id === tokenPickerTab ? ' active' : ''}" onclick="setTokenPickerTab('${t.id}')">${t.label}</button>`).join('');
+    `<button type="button" class="seg-btn${t.id === cfg.tab ? ' active' : ''}" onclick="setTokenPickerTab('${t.id}', '${id}')">${t.label}</button>`).join('');
   const cell = (key, name, inner) =>
-    `<button type="button" class="token-pick${key === current ? ' active' : ''}" title="${escapeHtml(name)}" aria-label="${escapeHtml(name)}" onclick="changeSelectedUnitToken('${key}')">${inner}</button>`;
+    `<button type="button" class="token-pick${key === current ? ' active' : ''}" title="${escapeHtml(name)}" aria-label="${escapeHtml(name)}" onclick="TOKEN_PICKERS['${id}'].pick('${key}')">${inner}</button>`;
   let body = '';
-  if (tokenPickerTab === 'app') {
-    const opts = Array.from(document.querySelectorAll('#inspTokenSelect optgroup:first-child option, #inspTokenSelect > option'));
-    body = `<div class="token-pick-grid">${opts.map(o => cell(o.value, o.textContent, getTokenPreviewHTML(o.value))).join('')}</div>`;
+  if (cfg.tab === 'app') {
+    body = `<div class="token-pick-grid">${appTokenList().map(([k, name]) => cell(k, name, getTokenPreviewHTML(k))).join('')}</div>`;
   } else {
-    body = EXTRA_TOKEN_GROUP_LIST.filter(g => g.kind === tokenPickerTab).map(g =>
+    body = EXTRA_TOKEN_GROUP_LIST.filter(g => g.kind === cfg.tab).map(g =>
       `<div class="token-pick-label">${escapeHtml(g.label)}</div><div class="token-pick-grid">${g.items.map(it =>
         cell(it.key, it.name, `<img src="${it.src}" alt="" loading="lazy" draggable="false">`)).join('')}</div>`).join('');
   }
   box.innerHTML = `<div class="seg seg-sm">${tabs}</div>${body}`;
 }
 
-function setTokenPickerTab(id) {
-  tokenPickerTab = id;
-  renderTokenPicker();
+function setTokenPickerTab(tab, id = 'insp') {
+  TOKEN_PICKERS[id].tab = tab;
+  renderTokenPicker(id);
 }
 
-/** Abre a galeria já na aba do token atual. */
-function syncTokenPickerTab(key) {
-  tokenPickerTab = isExtraToken(key) ? EXTRA_TOKENS[key].kind : 'app';
+/** Abre a galeria na aba do token atual. */
+function syncTokenPickerTab(key, id = 'insp') {
+  TOKEN_PICKERS[id].tab = isExtraToken(key) ? EXTRA_TOKENS[key].kind : 'app';
+}
+
+/**
+ * Acrescenta um grupo de tokens em tempo de execução (para módulos futuros).
+ * group = { id, label, kind: 'topo' | 'retrato', faction, items: [{ key, name, src }] } com src data:image/...
+ */
+function registerTokenGroup(group) {
+  if (!group || !Array.isArray(group.items) || !['topo', 'retrato'].includes(group.kind)) throw new Error('grupo de tokens inválido');
+  const items = group.items.filter(it => it && /^[a-z][a-z0-9_]*$/.test(it.key) && !isKnownTokenKey(it.key) && /^data:image\//.test(it.src))
+    .map(it => ({ key: it.key, name: cleanText(it.name) || it.key, src: it.src }));
+  const g = { id: String(group.id || `grupo_${EXTRA_TOKEN_GROUP_LIST.length + 1}`), label: cleanText(group.label) || 'Tokens de módulo', kind: group.kind, faction: group.faction === 'villain' ? 'villain' : 'hero', items };
+  EXTRA_TOKEN_GROUP_LIST.push(g);
+  for (const it of items) EXTRA_TOKENS[it.key] = { ...it, kind: g.kind, faction: g.faction, group: g.id };
+  for (const sel of ['inspTokenSelect', 'newPieceSculpt']) {
+    const el = document.getElementById(sel);
+    if (!el) continue;
+    const og = document.createElement('optgroup');
+    og.label = g.label;
+    for (const it of items) { const o = document.createElement('option'); o.value = it.key; o.textContent = it.name; og.appendChild(o); }
+    el.appendChild(og);
+  }
+  return items.length;
 }
 
 /* ===== 00y-token-styles.js ===== */
@@ -3445,6 +3525,36 @@ const SPELL_CATALOG = {
     id: 'lanca_divina', dmgType: 'espiritual', name: 'Lança Divina', cost: 1, range: 18,
     areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '2d4', dmgBonus: 3,
     desc: 'Lança de luz sagrada (18m | ◆ 1 Ação)'
+  },
+  fogo_de_raposa: {
+    id: 'fogo_de_raposa', dmgType: 'fogo', name: 'Fogo de Raposa', cost: 1, range: 9,
+    areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '2d4', dmgBonus: 3,
+    desc: 'Chama espiritual da kitsune (9m | ◆ 1 Ação)'
+  },
+  jato_de_agua: {
+    id: 'jato_de_agua', dmgType: 'contundente', name: 'Jato d\'Água', cost: 2, range: 9,
+    areaType: 'line', areaSize: 9, atkBonus: 9, dmgDie: '3d6', dmgBonus: 0,
+    desc: 'Jorro de água em linha de 9m'
+  },
+  sopro_draconico: {
+    id: 'sopro_draconico', dmgType: 'fogo', name: 'Sopro Dracônico', cost: 2, range: 9,
+    areaType: 'burst', areaSize: 4.5, atkBonus: 9, dmgDie: '3d6', dmgBonus: 0,
+    desc: 'Chamas do sangue de dragão, raio 4,5m (alcance 9m)'
+  },
+  investida_eidolon: {
+    id: 'investida_eidolon', dmgType: 'força', name: 'Investida do Eidolon', cost: 2, range: 9,
+    areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '2d8', dmgBonus: 4,
+    desc: 'O eidolon vinculado golpeia o alvo (9m)'
+  },
+  fogueira_goblin: {
+    id: 'fogueira_goblin', dmgType: 'fogo', name: 'Fogueira Goblin', cost: 2, range: 18,
+    areaType: 'burst', areaSize: 3, atkBonus: 8, dmgDie: '2d6', dmgBonus: 0,
+    desc: 'Labaredas tribais, raio 3m (alcance 18m)'
+  },
+  uivo_espectral: {
+    id: 'uivo_espectral', dmgType: 'mental', name: 'Uivo Espectral', cost: 2, range: 1.5,
+    areaType: 'burst', areaSize: 4.5, atkBonus: 8, dmgDie: '2d6', dmgBonus: 0,
+    desc: 'Uivo que gela a alma ao redor (raio 4,5m)'
   },
   misseis_magicos: {
     id: 'misseis_magicos', dmgType: 'força', name: 'Mísseis Mágicos', cost: 1, range: 18,
@@ -4222,6 +4332,610 @@ UNIT_TEMPLATES.push(
     items: []
   }
 );
+
+/* ===== 03b-templates-extras.js ===== */
+/* ============================================================================
+   4b. PEÇAS DOS TOKENS EXTRAS — classes novas e variações de vilões
+   Cada peça usa o token pintado visto de cima (ct_/vt_); o retrato (cr_/vr_)
+   fica na Galeria de tokens. PV e CA saem da ficha (recalculados abaixo).
+   Classes que já existiam (Bárbaro, Bardo, Mago…) não ganham peça repetida:
+   o token pintado delas pode ser aplicado às peças existentes.
+   ============================================================================ */
+(() => {
+  /** Monta a peça a partir do essencial; o resto vem de padrões coerentes com a ficha. */
+  const piece = ({ id, name, sculpt, faction = 'hero', moveSpeed = 9, sheet, weapons, spells = [], items = [], resistances, weaknesses, immunities }) => {
+    const t = {
+      id, name, sculpt, faction, moveSpeed, maxHp: 1, ac: 10,
+      sheet: { level: 3, shieldBonus: 0, dexCap: 5, armorItemBonus: 0, skills: [], feats: [], ...sheet },
+      weapons, spells, items
+    };
+    if (resistances) t.resistances = resistances;
+    if (weaknesses) t.weaknesses = weaknesses;
+    if (immunities) t.immunities = immunities;
+    const probe = JSON.parse(JSON.stringify(t));
+    recalculateUnitFromSheet(probe, true);
+    t.maxHp = probe.maxHp;
+    t.ac = probe.ac;
+    return t;
+  };
+  const attrs = (FOR, DES, CON, INT, SAB, CAR) => ({ FOR, DES, CON, INT, SAB, CAR });
+  const prof = (armor, weapon, spell, perception, fort, ref, will) => ({ armor, weapon, spell, perception, fort, ref, will });
+  const S = (key) => ({ ...SPELL_CATALOG[key] });
+  const I = (key, qty) => ({ ...ITEM_CATALOG[key], ...(qty ? { qty } : {}) });
+
+  UNIT_TEMPLATES.push(
+    /* ------------------------------ CLASSES ------------------------------ */
+    piece({
+      id: 't_explorador', name: 'Explorador', sculpt: 'ct_explorador',
+      sheet: { ancestry: 'Meio-elfo', background: 'Batedor de Fronteira', className: 'Patrulheiro (Companheiro Animal)', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 10, armorItemBonus: 2, dexCap: 3, attrs: attrs(1, 4, 2, 0, 2, 0), prof: prof(2, 4, 0, 4, 4, 4, 2),
+        skills: ['Sobrevivência (E)', 'Natureza (T)', 'Furtividade (T)'], feats: ['Caçar Presa (◆)', 'Companheiro Animal (Falcão)', 'Rastreador'] },
+      weapons: [
+        { name: 'Arco Curto', dmgDie: '1d6', reach: 18, dmgType: 'perfurante' },
+        { name: 'Machadinha', dmgDie: '1d6', reach: 1.5, dmgType: 'cortante' },
+        { name: 'Garras do Falcão', dmgDie: '1d4', reach: 1.5, dmgType: 'cortante', manual: true, atkBonus: 8, dmgBonus: 0 }
+      ],
+      items: [I('pocao_menor', 2)]
+    }),
+    piece({
+      id: 't_arqueiro', name: 'Arqueiro', sculpt: 'ct_arqueiro',
+      sheet: { ancestry: 'Elfo', background: 'Caçador', className: 'Guerreiro (Arqueiro)', keyAttr: 'DES',
+        ancestryHp: 6, classHp: 10, armorItemBonus: 2, dexCap: 3, attrs: attrs(1, 4, 2, 0, 2, 0), prof: prof(2, 4, 0, 4, 4, 4, 2),
+        skills: ['Acrobacia (T)', 'Sobrevivência (T)'], feats: ['Tiro Duplo (◆◆)', 'Ponto Cego', 'Disparo Preciso'] },
+      weapons: [
+        { name: 'Arco Longo Élfico', dmgDie: '1d8', reach: 30, dmgType: 'perfurante' },
+        { name: 'Espada Curta', dmgDie: '1d6', reach: 1.5, dmgType: 'cortante' }
+      ],
+      items: [I('pocao_menor', 2)]
+    }),
+    piece({
+      id: 't_cavaleiro', name: 'Cavaleiro', sculpt: 'ct_cavaleiro',
+      sheet: { ancestry: 'Humano', background: 'Escudeiro', className: 'Guerreiro (Cavaleiro)', keyAttr: 'FOR',
+        ancestryHp: 8, classHp: 10, armorItemBonus: 6, dexCap: 0, shieldBonus: 2, attrs: attrs(4, 0, 3, 0, 1, 1), prof: prof(4, 4, 0, 2, 4, 2, 2),
+        skills: ['Atletismo (E)', 'Diplomacia (T)', 'Sociedade (T)'], feats: ['Bloqueio com Escudo', 'Investida Montada', 'Golpe Poderoso'] },
+      weapons: [
+        { name: 'Espada Longa', dmgDie: '1d8', reach: 1.5, dmgType: 'cortante' },
+        { name: 'Lança de Cavalaria', dmgDie: '1d8', reach: 3, dmgType: 'perfurante' }
+      ],
+      items: [I('pocao_moderada', 1)]
+    }),
+    piece({
+      id: 't_cavaleiro_liberdade', name: 'Cavaleiro da Liberdade', sculpt: 'ct_cavaleiro_liberdade',
+      sheet: { ancestry: 'Humano', background: 'Libertador', className: 'Campeão (Libertador)', keyAttr: 'FOR',
+        ancestryHp: 8, classHp: 10, armorItemBonus: 5, dexCap: 1, shieldBonus: 0, attrs: attrs(4, 1, 2, 0, 1, 2), prof: prof(4, 2, 2, 2, 4, 2, 4),
+        skills: ['Religião (T)', 'Atletismo (T)', 'Diplomacia (T)'], feats: ['Libertar (Reação)', 'Imposição de Mãos', 'Aura da Coragem'] },
+      weapons: [
+        { name: 'Espada Bastarda', dmgDie: '1d12', reach: 1.5, dmgType: 'cortante', extra: [{ ...RUNE_PRESETS.sagrada }] },
+        { name: 'Adaga de Cinto', dmgDie: '1d4', reach: 3, dmgType: 'perfurante' }
+      ],
+      spells: [S('lanca_divina')],
+      items: [I('pocao_menor', 1), I('perg_cura', 1)]
+    }),
+    piece({
+      id: 't_ninja', name: 'Ninja', sculpt: 'ct_ninja',
+      sheet: { ancestry: 'Humano (Tian)', background: 'Clã das Sombras', className: 'Ladino (Ninja)', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 8, armorItemBonus: 1, dexCap: 4, attrs: attrs(1, 4, 1, 1, 2, 0), prof: prof(2, 2, 0, 4, 2, 4, 4),
+        skills: ['Furtividade (E)', 'Acrobacia (E)', 'Enganação (T)'], feats: ['Ataque Furtivo (+1d6)', 'Desaparecer na Fumaça', 'Passo Esquivo'] },
+      weapons: [
+        { name: 'Wakizashi', dmgDie: '1d6', reach: 1.5, dmgType: 'cortante', extra: [{ ...RUNE_PRESETS.furtivo }] },
+        { name: 'Shuriken', dmgDie: '1d4', reach: 6, dmgType: 'perfurante' }
+      ],
+      items: [I('pocao_menor', 2)]
+    }),
+    piece({
+      id: 't_pistoleiro', name: 'Pistoleiro', sculpt: 'ct_pistoleiro',
+      sheet: { ancestry: 'Humano', background: 'Caçador de Recompensas', className: 'Pistoleiro (Duelista)', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 8, armorItemBonus: 2, dexCap: 3, attrs: attrs(1, 4, 2, 0, 2, 1), prof: prof(2, 4, 0, 4, 4, 4, 2),
+        skills: ['Acrobacia (T)', 'Intimidação (T)', 'Manufatura (T)'], feats: ['Saque Rápido', 'Tiro de Dois Canos', 'Recarga Ágil'] },
+      weapons: [
+        { name: 'Pistola de Pederneira', dmgDie: '1d6', reach: 12, dmgType: 'perfurante' },
+        { name: 'Pistola Gêmea', dmgDie: '1d6', reach: 12, dmgType: 'perfurante' },
+        { name: 'Coronhada', dmgDie: '1d4', reach: 1.5, dmgType: 'contundente' }
+      ],
+      items: [I('pocao_menor', 2)]
+    }),
+    piece({
+      id: 't_ranger_batalha', name: 'Ranger de Batalha', sculpt: 'ct_ranger_batalha',
+      sheet: { ancestry: 'Humano', background: 'Veterano de Guerra', className: 'Patrulheiro (Lâmina Dupla)', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 10, armorItemBonus: 3, dexCap: 2, attrs: attrs(2, 4, 2, 0, 2, -1), prof: prof(2, 4, 0, 4, 4, 4, 2),
+        skills: ['Sobrevivência (E)', 'Atletismo (T)', 'Natureza (T)'], feats: ['Caçar Presa (◆)', 'Golpe Gêmeo (◆)', 'Precisão do Caçador'] },
+      weapons: [
+        { name: 'Espada Curta', dmgDie: '1d6', reach: 1.5, dmgType: 'cortante' },
+        { name: 'Arco Curto', dmgDie: '1d6', reach: 18, dmgType: 'perfurante' }
+      ],
+      items: [I('pocao_menor', 2)]
+    }),
+    piece({
+      id: 't_invocador', name: 'Invocador', sculpt: 'ct_invocador',
+      sheet: { ancestry: 'Humano', background: 'Vinculado', className: 'Invocador (Eidolon Dracônico)', keyAttr: 'CAR',
+        ancestryHp: 8, classHp: 10, armorItemBonus: 1, dexCap: 3, attrs: attrs(0, 2, 2, 1, 1, 4), prof: prof(2, 2, 2, 2, 4, 2, 4),
+        skills: ['Arcanismo (E)', 'Natureza (T)', 'Intimidação (T)'], feats: ['Eidolon Vinculado', 'Agir Juntos (◆)', 'Vínculo Compartilhado'] },
+      weapons: [{ name: 'Cajado do Vínculo', dmgDie: '1d6', reach: 1.5, dmgType: 'contundente' }],
+      spells: [S('investida_eidolon'), S('raio_arcano')],
+      items: [I('pocao_menor', 2)]
+    }),
+    piece({
+      id: 't_kitsune', name: 'Kitsune', sculpt: 'ct_kitsune',
+      sheet: { ancestry: 'Kitsune', background: 'Sacerdotisa do Santuário', className: 'Feiticeira (Linhagem Feérica)', keyAttr: 'CAR',
+        ancestryHp: 8, classHp: 6, armorItemBonus: 0, dexCap: 5, attrs: attrs(0, 3, 1, 1, 1, 4), prof: prof(2, 2, 2, 2, 2, 2, 4),
+        skills: ['Enganação (E)', 'Ocultismo (T)', 'Diplomacia (T)'], feats: ['Fogo de Raposa', 'Mudança de Forma', 'Truque Encantador'] },
+      weapons: [{ name: 'Tantō', dmgDie: '1d4', reach: 1.5, dmgType: 'perfurante' }],
+      spells: [S('fogo_de_raposa'), S('chama_cristalina')],
+      items: [I('pocao_menor', 2)]
+    }),
+    piece({
+      id: 't_kappa', name: 'Kappa', sculpt: 'ct_kappa',
+      sheet: { ancestry: 'Kappa', background: 'Guardião do Rio', className: 'Monge (Correnteza)', keyAttr: 'SAB',
+        ancestryHp: 8, classHp: 10, armorItemBonus: 0, dexCap: 5, attrs: attrs(3, 3, 3, 0, 3, 0), prof: prof(2, 4, 2, 4, 4, 4, 4),
+        skills: ['Atletismo (E)', 'Natureza (T)', 'Acrobacia (T)'], feats: ['Fluxo de Golpes (◆◆)', 'Nado Veloz', 'Postura da Correnteza'] },
+      weapons: [
+        { name: 'Bastão Kappa', dmgDie: '1d8', reach: 3, dmgType: 'contundente' },
+        { name: 'Punhos', dmgDie: '1d6', reach: 1.5, dmgType: 'contundente' }
+      ],
+      spells: [S('jato_de_agua')],
+      items: [I('pocao_menor', 2)],
+      resistances: [{ type: 'fogo', value: 3 }]
+    }),
+    piece({
+      id: 't_tengu', name: 'Tengu', sculpt: 'ct_tengu',
+      sheet: { ancestry: 'Tengu', background: 'Andarilho da Montanha', className: 'Espadachim (Lâmina Ventosa)', keyAttr: 'DES',
+        ancestryHp: 6, classHp: 10, armorItemBonus: 1, dexCap: 4, attrs: attrs(1, 4, 2, 0, 1, 2), prof: prof(2, 4, 0, 2, 2, 4, 2),
+        skills: ['Acrobacia (E)', 'Atletismo (T)', 'Intimidação (T)'], feats: ['Bico Afiado', 'Ousadia (◆)', 'Planar'] },
+      weapons: [
+        { name: 'Katana Tengu', dmgDie: '1d6', reach: 1.5, dmgType: 'cortante' },
+        { name: 'Bico', dmgDie: '1d6', reach: 1.5, dmgType: 'perfurante' }
+      ],
+      items: [I('pocao_menor', 2)]
+    }),
+    piece({
+      id: 't_ryu', name: 'Ryu', sculpt: 'ct_ryu',
+      sheet: { ancestry: 'Sangue de Dragão', background: 'Herdeiro do Dragão', className: 'Guerreiro (Samurai Dracônico)', keyAttr: 'FOR',
+        ancestryHp: 10, classHp: 10, armorItemBonus: 4, dexCap: 1, attrs: attrs(4, 1, 3, 0, 1, 1), prof: prof(2, 4, 0, 4, 4, 2, 2),
+        skills: ['Atletismo (E)', 'Intimidação (T)'], feats: ['Golpe Duplo', 'Sopro Dracônico', 'Escamas'] },
+      weapons: [
+        { name: 'Katana Dupla', dmgDie: '1d8', reach: 1.5, dmgType: 'cortante', extra: [{ ...RUNE_PRESETS.flamejante }] },
+        { name: 'Wakizashi', dmgDie: '1d6', reach: 1.5, dmgType: 'cortante' }
+      ],
+      spells: [S('sopro_draconico')],
+      items: [I('pocao_menor', 1)],
+      resistances: [{ type: 'fogo', value: 3 }]
+    }),
+    piece({
+      id: 't_samurai', name: 'Samurai', sculpt: 'ct_samurai',
+      sheet: { ancestry: 'Humano (Tian)', background: 'Vassalo', className: 'Guerreiro (Samurai)', keyAttr: 'FOR',
+        ancestryHp: 8, classHp: 10, armorItemBonus: 5, dexCap: 1, attrs: attrs(4, 1, 2, 0, 2, 0), prof: prof(4, 4, 0, 4, 4, 2, 2),
+        skills: ['Atletismo (E)', 'Sociedade (T)'], feats: ['Golpe Preciso', 'Postura do Guerreiro', 'Ataque de Oportunidade'] },
+      weapons: [
+        { name: 'Katana', dmgDie: '1d8', reach: 1.5, dmgType: 'cortante' },
+        { name: 'Daikyu', dmgDie: '1d8', reach: 24, dmgType: 'perfurante' }
+      ],
+      items: [I('pocao_moderada', 1)]
+    }),
+
+    /* ------------------------------ GOBLINS ------------------------------ */
+    piece({
+      id: 't_goblin_comum', name: 'Goblin Comum', sculpt: 'vt_goblin_comum', faction: 'villain',
+      sheet: { level: 1, ancestry: 'Goblin', background: 'Saqueador', className: 'Guerreiro Goblin', keyAttr: 'DES',
+        ancestryHp: 6, classHp: 8, armorItemBonus: 1, dexCap: 4, attrs: attrs(1, 3, 1, 0, 0, 1), prof: prof(2, 2, 0, 2, 2, 4, 2),
+        skills: ['Furtividade (T)', 'Acrobacia (T)'], feats: ['Deslocamento Goblin'] },
+      weapons: [{ name: 'Cimitarra Goblin', dmgDie: '1d6', reach: 1.5, dmgType: 'cortante' }, { name: 'Escudo de Tábuas', dmgDie: '1d4', reach: 1.5, dmgType: 'contundente' }]
+    }),
+    piece({
+      id: 't_goblin_atirador', name: 'Goblin Atirador', sculpt: 'vt_goblin_atirador', faction: 'villain',
+      sheet: { level: 1, ancestry: 'Goblin', background: 'Franco-atirador', className: 'Atirador Goblin', keyAttr: 'DES',
+        ancestryHp: 6, classHp: 8, armorItemBonus: 1, dexCap: 4, attrs: attrs(0, 4, 1, 0, 1, 0), prof: prof(2, 2, 0, 4, 2, 4, 2),
+        skills: ['Furtividade (E)'], feats: ['Tiro Furtivo'] },
+      weapons: [{ name: 'Besta Leve', dmgDie: '1d8', reach: 18, dmgType: 'perfurante' }, { name: 'Faca', dmgDie: '1d4', reach: 1.5, dmgType: 'perfurante' }]
+    }),
+    piece({
+      id: 't_goblin_lancador', name: 'Goblin Lançador', sculpt: 'vt_goblin_lancador', faction: 'villain',
+      sheet: { level: 1, ancestry: 'Goblin', background: 'Caçador da Tribo', className: 'Lanceiro Goblin', keyAttr: 'DES',
+        ancestryHp: 6, classHp: 8, armorItemBonus: 1, dexCap: 4, attrs: attrs(2, 3, 1, 0, 0, 0), prof: prof(2, 2, 0, 2, 2, 4, 2),
+        skills: ['Atletismo (T)'], feats: ['Arremesso Rápido'] },
+      weapons: [{ name: 'Azagaia', dmgDie: '1d6', reach: 9, dmgType: 'perfurante' }, { name: 'Lança Curta', dmgDie: '1d6', reach: 1.5, dmgType: 'perfurante' }]
+    }),
+    piece({
+      id: 't_goblin_xama', name: 'Goblin Xamã', sculpt: 'vt_goblin_xama', faction: 'villain',
+      sheet: { level: 2, ancestry: 'Goblin', background: 'Vidente da Tribo', className: 'Xamã Goblin (Bruxo)', keyAttr: 'SAB',
+        ancestryHp: 6, classHp: 6, armorItemBonus: 0, dexCap: 5, attrs: attrs(0, 2, 1, 1, 4, 1), prof: prof(2, 2, 2, 2, 2, 2, 4),
+        skills: ['Ocultismo (T)', 'Natureza (T)'], feats: ['Patrono Sombrio', 'Fetiche de Ossos'] },
+      weapons: [{ name: 'Cajado de Ossos', dmgDie: '1d6', reach: 1.5, dmgType: 'contundente' }],
+      spells: [S('fogueira_goblin'), S('maldicao_sombria')],
+      items: [I('pocao_menor', 1)]
+    }),
+    piece({
+      id: 't_goblin_chefe', name: 'Goblin Chefe', sculpt: 'vt_goblin_chefe', faction: 'villain',
+      sheet: { level: 3, ancestry: 'Goblin', background: 'Chefe de Guerra', className: 'Chefe Goblin', keyAttr: 'FOR',
+        ancestryHp: 6, classHp: 10, armorItemBonus: 3, dexCap: 2, attrs: attrs(3, 3, 2, 0, 1, 2), prof: prof(2, 4, 0, 2, 4, 2, 2),
+        skills: ['Intimidação (E)', 'Atletismo (T)'], feats: ['Grito de Guerra', 'Golpe Brutal'] },
+      weapons: [{ name: 'Machado do Chefe', dmgDie: '1d8', reach: 1.5, dmgType: 'cortante' }, { name: 'Cajado de Caveiras', dmgDie: '1d6', reach: 1.5, dmgType: 'contundente' }],
+      items: [I('pocao_menor', 2)]
+    }),
+    piece({
+      id: 't_goblin_arqueiro', name: 'Goblin Arqueiro', sculpt: 'vt_goblin_arqueiro', faction: 'villain',
+      sheet: { level: 1, ancestry: 'Goblin', background: 'Batedor', className: 'Arqueiro Goblin', keyAttr: 'DES',
+        ancestryHp: 6, classHp: 8, armorItemBonus: 1, dexCap: 4, attrs: attrs(0, 4, 1, 0, 1, 0), prof: prof(2, 2, 0, 4, 2, 4, 2),
+        skills: ['Furtividade (T)', 'Sobrevivência (T)'], feats: ['Disparo Rápido'] },
+      weapons: [{ name: 'Arco Curto Goblin', dmgDie: '1d6', reach: 18, dmgType: 'perfurante' }, { name: 'Faca', dmgDie: '1d4', reach: 1.5, dmgType: 'perfurante' }]
+    }),
+    piece({
+      id: 't_goblin_escudo', name: 'Goblin com Escudo', sculpt: 'vt_goblin_escudo', faction: 'villain',
+      sheet: { level: 2, ancestry: 'Goblin', background: 'Muralha da Tribo', className: 'Defensor Goblin', keyAttr: 'FOR',
+        ancestryHp: 6, classHp: 10, armorItemBonus: 3, dexCap: 2, shieldBonus: 2, attrs: attrs(2, 2, 2, 0, 0, 0), prof: prof(2, 2, 0, 2, 4, 2, 2),
+        skills: ['Atletismo (T)'], feats: ['Bloqueio com Escudo'] },
+      weapons: [{ name: 'Lança Curta', dmgDie: '1d6', reach: 1.5, dmgType: 'perfurante' }, { name: 'Pancada de Escudo', dmgDie: '1d4', reach: 1.5, dmgType: 'contundente' }]
+    }),
+
+    /* ------------------------------ LOBOS ------------------------------ */
+    piece({
+      id: 't_lobo_comum', name: 'Lobo Comum', sculpt: 'vt_lobo_comum', faction: 'villain', moveSpeed: 12,
+      sheet: { level: 1, ancestry: 'Fera', background: 'Alcateia', className: 'Lobo', keyAttr: 'FOR',
+        ancestryHp: 6, classHp: 8, armorItemBonus: 2, dexCap: 4, attrs: attrs(2, 3, 2, -4, 1, -2), prof: prof(2, 2, 0, 4, 2, 4, 2),
+        skills: ['Sobrevivência (T)'], feats: ['Derrubar', 'Faro Aguçado'] },
+      weapons: [{ name: 'Mandíbulas', dmgDie: '1d6', reach: 1.5, dmgType: 'perfurante' }]
+    }),
+    piece({
+      id: 't_lobo_alfa', name: 'Lobo Alfa', sculpt: 'vt_lobo_alfa', faction: 'villain', moveSpeed: 12,
+      sheet: { level: 3, ancestry: 'Fera', background: 'Líder da Alcateia', className: 'Lobo Alfa', keyAttr: 'FOR',
+        ancestryHp: 8, classHp: 10, armorItemBonus: 2, dexCap: 3, attrs: attrs(4, 3, 3, -4, 2, 0), prof: prof(2, 4, 0, 4, 4, 4, 2),
+        skills: ['Atletismo (E)', 'Sobrevivência (E)'], feats: ['Uivo do Alfa', 'Derrubar da Alcateia'] },
+      weapons: [{ name: 'Mandíbulas do Alfa', dmgDie: '1d8', reach: 1.5, dmgType: 'perfurante' }, { name: 'Garras', dmgDie: '1d6', reach: 1.5, dmgType: 'cortante' }]
+    }),
+    piece({
+      id: 't_lobo_feroz', name: 'Lobo Feroz', sculpt: 'vt_lobo_feroz', faction: 'villain', moveSpeed: 12,
+      sheet: { level: 2, ancestry: 'Fera', background: 'Sedento de Sangue', className: 'Lobo Feroz', keyAttr: 'FOR',
+        ancestryHp: 8, classHp: 10, armorItemBonus: 1, dexCap: 4, attrs: attrs(3, 3, 2, -4, 1, -2), prof: prof(2, 2, 0, 4, 4, 4, 2),
+        skills: ['Atletismo (T)'], feats: ['Fúria Bestial'] },
+      weapons: [{ name: 'Mandíbulas Rasgadoras', dmgDie: '1d8', reach: 1.5, dmgType: 'perfurante' }]
+    }),
+    piece({
+      id: 't_lobo_sombrio', name: 'Lobo Sombrio', sculpt: 'vt_lobo_sombrio', faction: 'villain', moveSpeed: 12,
+      sheet: { level: 3, ancestry: 'Fera das Sombras', background: 'Caçador Noturno', className: 'Lobo Sombrio', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 8, armorItemBonus: 2, dexCap: 4, attrs: attrs(2, 4, 2, -3, 2, 0), prof: prof(2, 2, 0, 4, 2, 4, 4),
+        skills: ['Furtividade (E)'], feats: ['Mesclar-se às Sombras', 'Visão no Escuro'] },
+      weapons: [{ name: 'Mordida das Sombras', dmgDie: '1d6', reach: 1.5, dmgType: 'perfurante', extra: [{ name: 'Sombra', die: '1d4', bonus: 0, type: 'mental' }] }],
+      weaknesses: [{ type: 'espiritual', value: 3 }]
+    }),
+    piece({
+      id: 't_lobo_matilha', name: 'Lobo da Matilha', sculpt: 'vt_lobo_matilha', faction: 'villain', moveSpeed: 12,
+      sheet: { level: 1, ancestry: 'Fera', background: 'Matilha', className: 'Lobo de Matilha', keyAttr: 'FOR',
+        ancestryHp: 6, classHp: 6, armorItemBonus: 1, dexCap: 4, attrs: attrs(2, 3, 1, -4, 1, -2), prof: prof(2, 2, 0, 4, 2, 4, 2),
+        skills: ['Sobrevivência (T)'], feats: ['Tática de Matilha'] },
+      weapons: [{ name: 'Mandíbulas', dmgDie: '1d6', reach: 1.5, dmgType: 'perfurante' }]
+    }),
+    piece({
+      id: 't_lobo_espectral', name: 'Lobo Espectral', sculpt: 'vt_lobo_espectral', faction: 'villain', moveSpeed: 12,
+      sheet: { level: 3, ancestry: 'Espírito', background: 'Alma Errante', className: 'Lobo Espectral', keyAttr: 'SAB',
+        ancestryHp: 6, classHp: 8, armorItemBonus: 0, dexCap: 5, attrs: attrs(1, 4, 1, -2, 3, 1), prof: prof(2, 2, 2, 4, 2, 4, 4),
+        skills: ['Furtividade (E)'], feats: ['Incorpóreo', 'Toque Gélido'] },
+      weapons: [{ name: 'Mordida Espectral', dmgDie: '1d6', reach: 1.5, dmgType: 'gélido' }],
+      spells: [S('uivo_espectral')],
+      resistances: [{ type: 'físico', value: 5 }],
+      weaknesses: [{ type: 'vital', value: 5 }],
+      immunities: ['veneno']
+    }),
+    piece({
+      id: 't_lobo_guerra', name: 'Lobo de Guerra', sculpt: 'vt_lobo_guerra', faction: 'villain', moveSpeed: 9,
+      sheet: { level: 3, ancestry: 'Fera', background: 'Montaria de Guerra', className: 'Lobo de Guerra Blindado', keyAttr: 'FOR',
+        ancestryHp: 10, classHp: 10, armorItemBonus: 4, dexCap: 1, attrs: attrs(4, 1, 3, -4, 1, -2), prof: prof(2, 4, 0, 4, 4, 2, 2),
+        skills: ['Atletismo (E)'], feats: ['Couraça com Espinhos', 'Investida'] },
+      weapons: [{ name: 'Mandíbulas', dmgDie: '1d8', reach: 1.5, dmgType: 'perfurante' }, { name: 'Espinhos da Couraça', dmgDie: '1d4', reach: 1.5, dmgType: 'perfurante' }]
+    }),
+
+    /* ------------------------------ LADRÕES ------------------------------ */
+    piece({
+      id: 't_ladrao_comum', name: 'Ladrão Comum', sculpt: 'vt_ladrao_comum', faction: 'villain',
+      sheet: { level: 1, ancestry: 'Humano', background: 'Batedor de Carteiras', className: 'Ladino (Ladrão)', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 8, armorItemBonus: 1, dexCap: 4, attrs: attrs(1, 3, 1, 0, 1, 1), prof: prof(2, 2, 0, 2, 2, 4, 2),
+        skills: ['Ladroagem (E)', 'Furtividade (T)'], feats: ['Ataque Furtivo (+1d6)'] },
+      weapons: [{ name: 'Adaga', dmgDie: '1d4', reach: 1.5, dmgType: 'perfurante', extra: [{ ...RUNE_PRESETS.furtivo }] }, { name: 'Adaga Arremessada', dmgDie: '1d4', reach: 3, dmgType: 'perfurante' }]
+    }),
+    piece({
+      id: 't_ladrao_arco', name: 'Ladrão com Arco', sculpt: 'vt_ladrao_arco', faction: 'villain',
+      sheet: { level: 2, ancestry: 'Meio-elfo', background: 'Salteador', className: 'Ladino (Atirador)', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 8, armorItemBonus: 1, dexCap: 4, attrs: attrs(0, 4, 1, 0, 2, 0), prof: prof(2, 2, 0, 4, 2, 4, 2),
+        skills: ['Furtividade (E)', 'Sobrevivência (T)'], feats: ['Tiro Furtivo'] },
+      weapons: [{ name: 'Arco Curto', dmgDie: '1d6', reach: 18, dmgType: 'perfurante' }, { name: 'Faca', dmgDie: '1d4', reach: 1.5, dmgType: 'perfurante' }]
+    }),
+    piece({
+      id: 't_ladrao_adaga', name: 'Ladrão com Adaga', sculpt: 'vt_ladrao_adaga', faction: 'villain',
+      sheet: { level: 2, ancestry: 'Humano', background: 'Degolador', className: 'Ladino (Lâminas Gêmeas)', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 8, armorItemBonus: 1, dexCap: 4, attrs: attrs(1, 4, 1, 0, 1, 0), prof: prof(2, 2, 0, 2, 2, 4, 2),
+        skills: ['Acrobacia (T)', 'Furtividade (T)'], feats: ['Ataque Furtivo (+1d6)', 'Golpe Gêmeo'] },
+      weapons: [{ name: 'Adagas Gêmeas', dmgDie: '1d4', reach: 1.5, dmgType: 'perfurante', extra: [{ ...RUNE_PRESETS.furtivo }] }]
+    }),
+    piece({
+      id: 't_ladra', name: 'Ladrona', sculpt: 'vt_ladra', faction: 'villain',
+      sheet: { level: 2, ancestry: 'Humana', background: 'Trapaceira', className: 'Ladina (Trapaceira)', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 8, armorItemBonus: 1, dexCap: 4, attrs: attrs(0, 4, 1, 1, 1, 2), prof: prof(2, 2, 0, 4, 2, 4, 2),
+        skills: ['Enganação (E)', 'Ladroagem (T)'], feats: ['Ataque Furtivo (+1d6)', 'Finta Rápida'] },
+      weapons: [{ name: 'Facas Curvas', dmgDie: '1d4', reach: 1.5, dmgType: 'cortante', extra: [{ ...RUNE_PRESETS.furtivo }] }, { name: 'Faca de Arremesso', dmgDie: '1d4', reach: 6, dmgType: 'perfurante' }]
+    }),
+    piece({
+      id: 't_lider_ladroes', name: 'Líder de Ladrões', sculpt: 'vt_lider_ladroes', faction: 'villain',
+      sheet: { level: 4, ancestry: 'Humano', background: 'Chefe da Guilda', className: 'Ladino (Mestre da Guilda)', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 8, armorItemBonus: 2, dexCap: 3, attrs: attrs(2, 4, 2, 1, 1, 3), prof: prof(2, 4, 0, 4, 2, 4, 4),
+        skills: ['Intimidação (E)', 'Enganação (E)', 'Furtividade (T)'], feats: ['Ataque Furtivo (+2d6)', 'Comandar o Bando', 'Esquiva Oportuna'] },
+      weapons: [{ name: 'Sabre do Líder', dmgDie: '1d6', reach: 1.5, dmgType: 'cortante', extra: [{ name: 'Ataque furtivo', die: '2d6', bonus: 0, type: 'precisão' }] }, { name: 'Besta de Mão', dmgDie: '1d6', reach: 9, dmgType: 'perfurante' }],
+      items: [I('pocao_moderada', 1)]
+    }),
+    piece({
+      id: 't_ladra_sombria', name: 'Ladra Sombria', sculpt: 'vt_ladra_sombria', faction: 'villain',
+      sheet: { level: 3, ancestry: 'Humana', background: 'Irmandade da Noite', className: 'Ladina (Arcana das Sombras)', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 8, armorItemBonus: 1, dexCap: 4, attrs: attrs(0, 4, 1, 2, 1, 2), prof: prof(2, 2, 2, 4, 2, 4, 2),
+        skills: ['Furtividade (E)', 'Ocultismo (T)'], feats: ['Ataque Furtivo (+1d6)', 'Truque Sombrio'] },
+      weapons: [{ name: 'Adaga Sombria', dmgDie: '1d4', reach: 1.5, dmgType: 'perfurante', extra: [{ ...RUNE_PRESETS.furtivo }] }],
+      spells: [S('maldicao_sombria')]
+    }),
+    piece({
+      id: 't_assassino', name: 'Assassino', sculpt: 'vt_assassino', faction: 'villain',
+      sheet: { level: 4, ancestry: 'Humano', background: 'Lâmina Contratada', className: 'Ladino (Assassino)', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 8, armorItemBonus: 2, dexCap: 4, attrs: attrs(1, 4, 2, 1, 2, 0), prof: prof(2, 4, 0, 4, 2, 4, 4),
+        skills: ['Furtividade (L)', 'Medicina (T)'], feats: ['Ataque Furtivo (+2d6)', 'Lâmina Envenenada', 'Golpe Mortal'] },
+      weapons: [
+        { name: 'Adagas Envenenadas', dmgDie: '1d4', reach: 1.5, dmgType: 'perfurante', extra: [{ name: 'Ataque furtivo', die: '2d6', bonus: 0, type: 'precisão' }, { name: 'Veneno', die: '1d6', bonus: 0, type: 'veneno' }] },
+        { name: 'Zarabatana', dmgDie: '1d4', reach: 6, dmgType: 'perfurante', extra: [{ name: 'Veneno', die: '1d4', bonus: 0, type: 'veneno' }] }
+      ]
+    })
+  );
+})();
+
+/* ===== 03c-piece-import.js ===== */
+/* ============================================================================
+   4c. PEÇAS DE FORA — token para peças criadas do zero ou importadas
+   Qualquer peça (nova, de JSON antigo ou de um módulo futuro) passa por aqui:
+   - um token conhecido (do app ou extra) é mantido;
+   - uma imagem data:image/... vira token próprio;
+   - senão, o token é sugerido pelo nome, classe e ancestralidade (português ou
+     inglês) e, na falta de tudo, pela facção.
+   Funções puras (sem DOM) para poderem ser testadas em Node.
+   ============================================================================ */
+
+/** Nomes e sinônimos (pt/en) dos tokens do app. Extras usam o próprio nome. */
+const TOKEN_ALIASES = {
+  guerreiro: ['Guerreiro', 'fighter', 'warrior', 'soldado', 'soldier'],
+  paladino: ['Paladino', 'paladin', 'campeao', 'champion'],
+  barbaro: ['Bárbaro', 'barbarian', 'berserker'],
+  clerigo: ['Clérigo', 'cleric', 'sacerdote', 'priest'],
+  bardo: ['Bardo', 'bard', 'menestrel'],
+  feiticeiro: ['Feiticeiro', 'sorcerer', 'feiticeira'],
+  mago: ['Mago', 'wizard', 'mage', 'maga', 'arcanista'],
+  ranger: ['Ranger', 'patrulheiro', 'patrulheira', 'cacador', 'hunter'],
+  rogue: ['Ladino', 'rogue', 'ladina', 'gatuno'],
+  druida: ['Druida', 'druid'],
+  monge: ['Monge', 'monk'],
+  alquimista: ['Alquimista', 'alchemist'],
+  bruxa: ['Bruxa', 'witch', 'bruxo', 'feiticeira das sombras'],
+  espadachim: ['Espadachim', 'swashbuckler', 'duelista', 'duelist'],
+  goblin: ['Goblin'],
+  lobo: ['Lobo', 'wolf', 'lobo atroz', 'dire wolf', 'warg'],
+  bandido: ['Bandido', 'bandit', 'salteador', 'brigand', 'mercenario', 'mercenary', 'thug'],
+  esqueleto: ['Esqueleto', 'skeleton'],
+  orc: ['Orc', 'orque'],
+  cultista: ['Cultista', 'cultist', 'culto'],
+  zumbi: ['Zumbi', 'zombie'],
+  kobold: ['Kobold']
+};
+
+/** Sinônimos em inglês e variações para os extras (além do nome em português). */
+const EXTRA_TOKEN_ALIASES = {
+  ct_pistoleiro: ['gunslinger', 'pistoleira'],
+  ct_invocador: ['summoner', 'invocadora'],
+  ct_explorador: ['explorer', 'exploradora'],
+  ct_arqueiro: ['archer', 'arqueira'],
+  ct_cavaleiro: ['knight', 'cavaleira'],
+  ct_cavaleiro_liberdade: ['liberator', 'libertador'],
+  ct_ninja: ['ninja', 'shinobi'],
+  ct_ranger_batalha: ['battle ranger'],
+  ct_kitsune: ['kitsune', 'fox'],
+  ct_kappa: ['kappa'],
+  ct_tengu: ['tengu'],
+  ct_ryu: ['ryu', 'dragonblood', 'sangue de dragao'],
+  ct_samurai: ['samurai'],
+  vt_goblin_xama: ['goblin shaman', 'goblin xama'],
+  vt_goblin_chefe: ['goblin boss', 'goblin chief', 'goblin warchief'],
+  vt_goblin_arqueiro: ['goblin archer'],
+  vt_goblin_atirador: ['goblin sniper', 'goblin crossbow'],
+  vt_goblin_lancador: ['goblin spear', 'goblin thrower'],
+  vt_goblin_escudo: ['goblin shield'],
+  vt_lobo_alfa: ['alpha wolf', 'lobo alfa'],
+  vt_lobo_sombrio: ['shadow wolf'],
+  vt_lobo_espectral: ['spectral wolf', 'ghost wolf'],
+  vt_lobo_guerra: ['war wolf', 'warg de guerra'],
+  vt_assassino: ['assassin', 'assassina'],
+  vt_ladrao_comum: ['thief', 'ladrao'],
+  vt_ladra: ['ladra', 'ladrona'],
+  vt_lider_ladroes: ['thief leader', 'guildmaster', 'lider'],
+  vt_ladra_sombria: ['shadow thief']
+};
+
+/** minúsculas, sem acento, só letras/números separados por espaço. */
+function normalizeSearchText(s) {
+  return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function appTokenKeys() {
+  return typeof CHIBI_SVGS !== 'undefined' ? Object.keys(CHIBI_SVGS) : Object.keys(TOKEN_ALIASES);
+}
+
+function extraTokenMap() {
+  return typeof EXTRA_TOKENS !== 'undefined' ? EXTRA_TOKENS : {};
+}
+
+/** O token existe (do app ou extra)? */
+function isKnownTokenKey(key) {
+  return typeof key === 'string' && (appTokenKeys().includes(key) || Object.prototype.hasOwnProperty.call(extraTokenMap(), key));
+}
+
+/** Facção natural do token (para desempate da sugestão). */
+function tokenFaction(key) {
+  const extra = extraTokenMap()[key];
+  if (extra) return extra.faction;
+  return typeof VILLAIN_SCULPTS !== 'undefined' && VILLAIN_SCULPTS.has(key) ? 'villain' : 'hero';
+}
+
+/** Índice [key, alias normalizado] de todos os tokens. */
+function tokenAliasIndex() {
+  const out = [];
+  for (const key of appTokenKeys()) for (const a of (TOKEN_ALIASES[key] || [key])) out.push([key, normalizeSearchText(a), false]);
+  for (const [key, t] of Object.entries(extraTokenMap())) {
+    for (const a of [t.name, ...(EXTRA_TOKEN_ALIASES[key] || [])]) out.push([key, normalizeSearchText(a), true]);
+  }
+  return out.filter(([, a]) => a);
+}
+
+/**
+ * Token cujo nome/sinônimo aparece na peça, ou null. O campo decide primeiro (nome > classe >
+ * ancestralidade/tipo > origem); no mesmo campo, alias mais longo ganha; empate prefere a facção
+ * da peça e depois o token do app.
+ */
+function matchTokenKey(piece = {}) {
+  const sheet = piece.sheet || {};
+  const faction = normalizeFaction(piece.faction ?? piece.alliance ?? piece.disposition);
+  const fields = [
+    [piece.name, 4],
+    [piece.className ?? piece.class ?? sheet.className, 3],
+    [piece.ancestry ?? sheet.ancestry, 2],
+    [Array.isArray(piece.traits) ? piece.traits.join(' ') : piece.traits, 2],
+    [piece.type ?? piece.creatureType, 2],
+    [sheet.background, 1]
+  ].map(([t, w]) => [` ${normalizeSearchText(t)} `, w]).filter(([t]) => t.trim());
+  let best = null;
+  for (const [key, alias, extra] of tokenAliasIndex()) {
+    for (const [text, w] of fields) {
+      if (!text.includes(` ${alias} `)) continue;
+      const score = w * 10000 + alias.length * 10 + (tokenFaction(key) === faction ? 3 : 0) + (extra ? 0 : 1);
+      if (!best || score > best.score) best = { key, score };
+    }
+  }
+  return best ? best.key : null;
+}
+
+/** Como matchTokenKey, mas sempre devolve um token: sem pista, cai no padrão da facção. */
+function suggestTokenKey(piece = {}) {
+  return matchTokenKey(piece) || (normalizeFaction(piece.faction ?? piece.alliance ?? piece.disposition) === 'villain' ? 'bandido' : 'guerreiro');
+}
+
+/** Aceita hero/villain e sinônimos comuns (pt/en, Foundry: -1 hostil). */
+function normalizeFaction(f) {
+  if (f === -1) return 'villain';
+  const s = normalizeSearchText(f);
+  return /^(villain|vilao|inimigo|enemy|hostile|hostil|monster|monstro|npc hostil)$/.test(s) ? 'villain' : 'hero';
+}
+
+const TOKEN_IMAGE_DATA_URL = /^data:image\/(png|jpe?g|webp|gif|svg\+xml)[;,]/i;
+
+/**
+ * Decide o token de uma peça vinda de fora. Campos aceitos, em ordem:
+ * sculpt / token / tokenKey (chave ou nome), customTokenDataUrl / img / image (data URL).
+ * Devolve { sculpt, customTokenDataUrl, customTokenFrame, source } — source: 'chave' | 'nome' | 'imagem' | 'sugestão'.
+ */
+function resolvePieceToken(raw = {}) {
+  const frame = raw.customTokenFrame !== false && raw.tokenFrame !== false;
+  const img = [raw.customTokenDataUrl, raw.img, raw.image, raw.token, raw.prototypeToken?.texture?.src]
+    .find((v) => typeof v === 'string' && TOKEN_IMAGE_DATA_URL.test(v));
+  const named = [raw.sculpt, raw.tokenKey, raw.token].find((v) => typeof v === 'string' && v && !TOKEN_IMAGE_DATA_URL.test(v));
+  if (isKnownTokenKey(named)) {
+    return { sculpt: named, customTokenDataUrl: img || null, customTokenFrame: frame, source: img ? 'imagem' : 'chave' };
+  }
+  // nome de token escrito por extenso ("Goblin Xamã") também vale
+  const byName = named && matchTokenKey({ name: named, faction: raw.faction });
+  const sculpt = byName || suggestTokenKey(raw);
+  return { sculpt, customTokenDataUrl: img || null, customTokenFrame: frame, source: img ? 'imagem' : (byName ? 'nome' : 'sugestão') };
+}
+
+const IMPORT_ATTR_KEYS = ['FOR', 'DES', 'CON', 'INT', 'SAB', 'CAR'];
+const IMPORT_ATTR_ALIASES = { FOR: ['for', 'str', 'strength', 'forca'], DES: ['des', 'dex', 'dexterity', 'destreza'], CON: ['con', 'constitution', 'constituicao'], INT: ['int', 'intelligence', 'inteligencia'], SAB: ['sab', 'wis', 'wisdom', 'sabedoria'], CAR: ['car', 'cha', 'charisma', 'carisma'] };
+
+function readAttrs(src) {
+  const out = { FOR: 0, DES: 0, CON: 0, INT: 0, SAB: 0, CAR: 0 };
+  if (!src || typeof src !== 'object') return out;
+  for (const [k, v] of Object.entries(src)) {
+    const nk = normalizeSearchText(k);
+    const target = IMPORT_ATTR_KEYS.find((a) => IMPORT_ATTR_ALIASES[a].includes(nk));
+    const n = Number(typeof v === 'object' && v ? (v.mod ?? v.value) : v);
+    if (target && Number.isFinite(n)) out[target] = Math.max(-5, Math.min(7, Math.round(n)));
+  }
+  return out;
+}
+
+const clampInt = (v, lo, hi, dflt) => {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : dflt;
+};
+
+/**
+ * Converte uma peça de fora num modelo completo do Brigandine. Só `name` é obrigatório;
+ * PV e CA informados são respeitados ajustando a ficha (PV de classe e bônus de armadura).
+ */
+function normalizePieceTemplate(raw = {}, usedIds = new Set()) {
+  const name = cleanText(raw.name) || 'Peça importada';
+  const faction = normalizeFaction(raw.faction ?? raw.alliance ?? raw.disposition);
+  const src = raw.sheet && typeof raw.sheet === 'object' ? raw.sheet : {};
+  const level = clampInt(raw.level ?? src.level, 1, 20, 1);
+  const attrs = src.attrs ? readAttrs(src.attrs) : readAttrs(raw.attrs || raw.abilities);
+  const prof = { armor: 2, weapon: 2, spell: 0, perception: 2, fort: 2, ref: 2, will: 2, ...(src.prof || {}) };
+  const sheet = {
+    ancestry: cleanText(raw.ancestry ?? src.ancestry) || (faction === 'villain' ? 'Criatura' : 'Humano'),
+    background: cleanText(src.background ?? raw.background) || 'Importado',
+    className: cleanText(raw.className ?? raw.class ?? src.className) || 'Aventureiro',
+    level, keyAttr: IMPORT_ATTR_KEYS.includes(src.keyAttr) ? src.keyAttr : IMPORT_ATTR_KEYS.reduce((a, b) => (attrs[b] > attrs[a] ? b : a), 'FOR'),
+    ancestryHp: clampInt(src.ancestryHp, 0, 20, 8),
+    classHp: clampInt(src.classHp, 1, 20, 8),
+    armorItemBonus: clampInt(src.armorItemBonus, 0, 10, 1),
+    dexCap: clampInt(src.dexCap, 0, 10, 3),
+    shieldBonus: clampInt(src.shieldBonus ?? raw.shieldBonus, 0, 5, 0),
+    attrs, prof,
+    skills: (Array.isArray(src.skills ?? raw.skills) ? (src.skills ?? raw.skills) : []).map(cleanText).filter(Boolean),
+    feats: (Array.isArray(src.feats ?? raw.feats) ? (src.feats ?? raw.feats) : []).map(cleanText).filter(Boolean)
+  };
+  // PV/CA declarados (sem ficha própria): ajusta a ficha para reproduzi-los
+  const hp = Number(raw.maxHp ?? raw.hp);
+  if (!src.classHp && Number.isFinite(hp) && hp > 0) sheet.classHp = Math.max(1, Math.min(20, Math.round((hp - sheet.ancestryHp) / level - attrs.CON)));
+  const ac = Number(raw.ac);
+  if (src.armorItemBonus === undefined && Number.isFinite(ac) && ac > 0) {
+    sheet.armorItemBonus = Math.max(0, Math.min(10, Math.round(ac - 10 - calcProfBonus(prof.armor, level) - Math.min(attrs.DES, sheet.dexCap))));
+  }
+
+  const asList = (v) => (Array.isArray(v) ? v : []);
+  let weapons = asList(raw.weapons ?? raw.attacks).filter((w) => w && typeof w === 'object').map(normalizeWeapon);
+  if (weapons.length === 0) weapons = [normalizeWeapon({ name: faction === 'villain' ? 'Garras' : 'Punhos', dmgDie: '1d4', reach: 1.5, dmgType: faction === 'villain' ? 'cortante' : 'contundente' })];
+  const spells = asList(raw.spells).map((s) => (typeof s === 'string' ? SPELL_CATALOG[s] : s)).filter((s) => s && typeof s === 'object').map((s) => normalizeSpell({ ...s }));
+  const items = asList(raw.items).map((it) => (typeof it === 'string' ? ITEM_CATALOG[it] : it))
+    .filter((it) => it && typeof it === 'object' && ITEM_CATALOG[it.id]).map((it) => ({ ...ITEM_CATALOG[it.id], qty: clampInt(it.qty, 1, 99, ITEM_CATALOG[it.id].qty) }));
+
+  let id = /^[\w-]{1,60}$/.test(raw.id || '') ? raw.id : `t_imp_${normalizeSearchText(name).replace(/ /g, '_').slice(0, 30) || 'peca'}`;
+  if (!id.startsWith('t_')) id = `t_${id}`;
+  let n = 2;
+  const base = id;
+  while (usedIds.has(id)) id = `${base}_${n++}`;
+  usedIds.add(id);
+
+  const token = resolvePieceToken({ ...raw, faction });
+  const tpl = {
+    id, name, faction,
+    sculpt: token.sculpt,
+    customTokenDataUrl: token.customTokenDataUrl,
+    customTokenFrame: token.customTokenFrame,
+    moveSpeed: clampInt(raw.moveSpeed ?? raw.speed, 1, 30, 9),
+    maxHp: 1, ac: 10, sheet, weapons, spells, items,
+    resistances: raw.resistances, weaknesses: raw.weaknesses, immunities: raw.immunities
+  };
+  normalizeDefenses(tpl);
+  const probe = JSON.parse(JSON.stringify(tpl));
+  recalculateUnitFromSheet(probe, true);
+  tpl.maxHp = probe.maxHp;
+  tpl.ac = probe.ac;
+  return { template: tpl, tokenSource: token.source };
+}
+
+/** Lê o formato de peças: lista, { pieces: [...] } ou { templates: [...] } sem tabuleiro. */
+function extractPieceList(data) {
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.pieces)) return data.pieces;
+  if (data && Array.isArray(data.templates) && !data.units && !data.grid) return data.templates;
+  return null;
+}
 
 /* ===== 04-state.js ===== */
 /* ============================================================================
@@ -6364,6 +7078,11 @@ function syncInspectorUI() {
     if (u.id !== syncInspectorUI.lastUnitId) syncTokenPickerTab(u.sculpt);
     renderTokenPicker();
   }
+  if (u.id !== syncInspectorUI.lastUnitId) {
+    // "Salvar peça como modelo" já vem com o token e a facção desta peça
+    document.getElementById('newPieceSculpt').value = u.sculpt;
+    document.getElementById('newPieceFaction').value = u.faction;
+  }
   syncInspectorUI.lastUnitId = u.id;
   const hasCustom = !!u.customTokenDataUrl;
   document.getElementById('btnRemoveToken').classList.toggle('hidden', !hasCustom);
@@ -6940,7 +7659,12 @@ function renderPieceGallery() {
   const heroes = UNIT_TEMPLATES.filter(t => t.faction === 'hero').length;
   document.getElementById('galleryCount').textContent = `${heroes} heróis · ${UNIT_TEMPLATES.length - heroes} vilões`;
   container.innerHTML = '';
-  for (const t of UNIT_TEMPLATES) {
+  const q = normalizeSearchText(document.getElementById('galleryFilterText')?.value);
+  const fac = document.getElementById('galleryFilterFaction')?.value || '';
+  const shown = UNIT_TEMPLATES.filter(t => (!fac || t.faction === fac) &&
+    (!q || normalizeSearchText(`${t.name} ${t.sheet?.className || ''} ${t.sheet?.ancestry || ''}`).includes(q)));
+  if (shown.length === 0) container.innerHTML = '<p class="hint" style="grid-column:1/-1">Nenhuma peça com esse filtro.</p>';
+  for (const t of shown) {
     const card = document.createElement('div');
     card.className = `piece-card ${t.id === STATE.selectedTemplateId ? 'selected' : ''}`;
     card.onclick = () => {
@@ -6950,8 +7674,8 @@ function renderPieceGallery() {
     };
     card.innerHTML = `
       ${getTokenPreviewHTML(t.sculpt, t.customTokenDataUrl, customTokenOptions(t))}
-      <div class="piece-card-name">${t.name}</div>
-      <div class="piece-card-meta">Nív ${t.sheet?.level || 1} | ${t.moveSpeed}m</div>
+      <div class="piece-card-name">${escapeHtml(t.name)}</div>
+      <div class="piece-card-meta">Nív ${Number(t.sheet?.level) || 1} | ${Number(t.moveSpeed) || 0}m</div>
     `;
     container.appendChild(card);
   }
@@ -6999,6 +7723,7 @@ function spawnUnitFromTemplate(templateId, col, row) {
 
 function registerCustomTemplate() {
   const sculpt = document.getElementById('newPieceSculpt').value;
+  if (!isKnownTokenKey(sculpt)) return;
   const faction = document.getElementById('newPieceFaction').value;
   const current = STATE.units.find(u => u.id === STATE.selectedUnitId);
   const fallbackSheet = UNIT_TEMPLATES[0].sheet;
@@ -7187,7 +7912,14 @@ function importJSON(event) {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      applyLoadedPayload(JSON.parse(e.target.result));
+      const data = JSON.parse(e.target.result);
+      // só peças (lista ou { pieces }) entram na galeria sem apagar o tabuleiro
+      if (extractPieceList(data)) {
+        const r = importPieces(data);
+        addLog(`⬆️ ${r.added} peça(s) importada(s) para a galeria${r.suggested ? ` (${r.suggested} com token escolhido pelo nome/classe)` : ''}.`);
+        return;
+      }
+      applyLoadedPayload(data);
       addLog('⬆️ Arquivo JSON importado com sucesso!');
     } catch (err) {
       addLog('⚠️ Erro ao ler o arquivo JSON.');
@@ -7204,9 +7936,15 @@ function applyLoadedPayload(data) {
     setCellScale(STATE.grid.cellScale);
   }
   if (data.terrainMap) STATE.terrainMap = data.terrainMap;
-  if (data.templates) UNIT_TEMPLATES = data.templates;
+  if (Array.isArray(data.templates)) {
+    UNIT_TEMPLATES = data.templates.filter(t => t && typeof t === 'object' && t.sheet);
+    const fixed = UNIT_TEMPLATES.filter(repairPieceToken).length;
+    if (fixed) addLog(`🎭 ${fixed} modelo(s) sem token conhecido receberam um token pelo nome/classe.`);
+  }
   if (data.units) {
     STATE.units = data.units;
+    const fixedUnits = STATE.units.filter(repairPieceToken).length;
+    if (fixedUnits) addLog(`🎭 ${fixedUnits} peça(s) sem token conhecido receberam um token pelo nome/classe.`);
     STATE.units.forEach(u => {
       u.name = cleanText(u.name);
       u.weapons = (u.weapons || []).map(normalizeWeapon);
@@ -7228,6 +7966,143 @@ function applyLoadedPayload(data) {
 }
 
 window.addEventListener('DOMContentLoaded', initApp);
+
+/* ===== 12b-pieces-ui.js ===== */
+/* ============================================================================
+   15b. PEÇAS NOVAS E IMPORTADAS — criar do zero, importar lista, API de módulos
+   ============================================================================ */
+
+/** Rascunho do formulário "Criar peça do zero". manual = o usuário escolheu o token. */
+const newPieceDraft = { sculpt: 'guerreiro', manual: false };
+
+function syncNewPieceForm() {
+  const lvl = document.getElementById('npLevel');
+  if (lvl && !lvl.options.length) {
+    for (let i = 1; i <= 20; i++) lvl.add(new Option(`Nível ${i}`, String(i)));
+    lvl.value = '1';
+  }
+  const draft = readNewPieceForm();
+  if (!newPieceDraft.manual) newPieceDraft.sculpt = suggestTokenKey(draft);
+  const hint = document.getElementById('npTokenHint');
+  if (hint) hint.textContent = `${tokenDisplayName(newPieceDraft.sculpt)} · ${newPieceDraft.manual ? 'escolhido por você' : (matchTokenKey(draft) ? 'sugerido pelo nome' : 'padrão da facção')}`;
+  const prev = document.getElementById('npTokenPreview');
+  if (prev) prev.innerHTML = getTokenPreviewHTML(newPieceDraft.sculpt, null, { faction: draft.faction });
+  renderTokenPicker('np');
+}
+
+function readNewPieceForm() {
+  return {
+    name: document.getElementById('npName').value,
+    className: document.getElementById('npClass').value,
+    faction: document.getElementById('npFaction').value,
+    level: parseInt(document.getElementById('npLevel').value, 10) || 1
+  };
+}
+
+function pickNewPieceToken(key) {
+  newPieceDraft.sculpt = key;
+  newPieceDraft.manual = true;
+  syncNewPieceForm();
+}
+
+function resetNewPieceToken() {
+  newPieceDraft.manual = false;
+  syncNewPieceForm();
+}
+
+/** Cria um modelo com ficha básica do nível escolhido e o token do rascunho. */
+function createPieceFromScratch() {
+  const draft = readNewPieceForm();
+  if (!cleanText(draft.name)) {
+    addLog('⚠️ Dê um nome à peça antes de criar.');
+    document.getElementById('npName').focus();
+    return;
+  }
+  const { template } = normalizePieceTemplate({
+    ...draft, sculpt: newPieceDraft.sculpt,
+    sheet: { level: draft.level, classHp: 8, attrs: { FOR: 2, DES: 2, CON: 1, INT: 0, SAB: 1, CAR: 0 }, prof: { armor: 2, weapon: 2, spell: 0, perception: 2, fort: 2, ref: 2, will: 2 } },
+    weapons: [{ name: 'Espada Curta', dmgDie: '1d6', reach: 1.5, dmgType: 'cortante' }]
+  }, new Set(UNIT_TEMPLATES.map(t => t.id)));
+  UNIT_TEMPLATES.push(template);
+  STATE.selectedTemplateId = template.id;
+  setSetupTool('piece');
+  renderPieceGallery();
+  addLog(`✨ Peça <strong>${escapeHtml(template.name)}</strong> criada com o token ${escapeHtml(tokenDisplayName(template.sculpt))}. Clique no tabuleiro para posicionar; ficha, armas e token se editam no inspetor.`);
+  document.getElementById('npName').value = '';
+  document.getElementById('npClass').value = '';
+  newPieceDraft.manual = false;
+  syncNewPieceForm();
+}
+
+/**
+ * Acrescenta peças de fora à galeria. Aceita lista, { pieces } ou { templates } (sem tabuleiro).
+ * Devolve { added, suggested } — suggested = peças cujo token o app escolheu.
+ */
+function importPieces(data) {
+  const list = extractPieceList(data);
+  if (!list) throw new Error('formato não reconhecido: esperado uma lista de peças ou { "pieces": [...] }');
+  const used = new Set(UNIT_TEMPLATES.map(t => t.id));
+  let added = 0, suggested = 0;
+  for (const raw of list) {
+    if (!raw || typeof raw !== 'object') continue;
+    const { template, tokenSource } = normalizePieceTemplate(raw, used);
+    UNIT_TEMPLATES.push(template);
+    added++;
+    if (tokenSource === 'sugestão') suggested++;
+  }
+  if (added) {
+    STATE.selectedTemplateId = UNIT_TEMPLATES[UNIT_TEMPLATES.length - 1].id;
+    renderPieceGallery();
+  }
+  return { added, suggested };
+}
+
+function importPiecesFile(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const r = importPieces(JSON.parse(e.target.result));
+      addLog(`⬆️ ${r.added} peça(s) importada(s) para a galeria${r.suggested ? ` (${r.suggested} com token escolhido pelo nome/classe — troque na aba Base se quiser)` : ''}.`);
+    } catch (err) {
+      addLog(`⚠️ ${escapeHtml(file.name)}: ${escapeHtml(err.message)}`);
+    }
+  };
+  reader.readAsText(file);
+}
+
+/**
+ * Garante token válido em peças/modelos carregados (arquivos antigos ou de outros módulos):
+ * chave desconhecida vira sugestão pelo nome; imagem própria é mantida.
+ */
+function repairPieceToken(p) {
+  if (!p || typeof p !== 'object') return false;
+  p.name = cleanText(p.name) || 'Peça';
+  const hasImage = typeof p.customTokenDataUrl === 'string' && TOKEN_IMAGE_DATA_URL.test(p.customTokenDataUrl);
+  if (!hasImage) p.customTokenDataUrl = null;
+  if (isKnownTokenKey(p.sculpt)) return false;
+  const r = resolvePieceToken(p);
+  p.sculpt = r.sculpt;
+  if (r.customTokenDataUrl) p.customTokenDataUrl = r.customTokenDataUrl;
+  return true;
+}
+
+/* API para módulos futuros (outra aba, extensão ou script colado no console). */
+window.Brigandine = Object.freeze({
+  /** Acrescenta peças à galeria; mesmo formato do arquivo (docs/FORMATO-PECAS.md). */
+  importPieces,
+  /** Registra um grupo de imagens de token: { id, label, kind: 'topo'|'retrato', faction, items: [{ key, name, src }] }. */
+  registerTokenGroup: (group) => { const n = registerTokenGroup(group); renderPieceGallery(); return n; },
+  /** Chave de token sugerida para uma peça ({ name, className, ancestry, faction }). */
+  suggestToken: (piece) => suggestTokenKey(piece),
+  /** Todas as chaves de token disponíveis, com nome e origem. */
+  listTokens: () => [
+    ...appTokenList().map(([key, name]) => ({ key, name, source: 'app' })),
+    ...Object.values(EXTRA_TOKENS).map(t => ({ key: t.key, name: t.name, source: t.kind }))
+  ]
+});
 
 /* ===== 13-ui-shell.js ===== */
 /* ============================================================================

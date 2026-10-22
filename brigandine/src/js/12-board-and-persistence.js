@@ -115,7 +115,12 @@ function renderPieceGallery() {
   const heroes = UNIT_TEMPLATES.filter(t => t.faction === 'hero').length;
   document.getElementById('galleryCount').textContent = `${heroes} heróis · ${UNIT_TEMPLATES.length - heroes} vilões`;
   container.innerHTML = '';
-  for (const t of UNIT_TEMPLATES) {
+  const q = normalizeSearchText(document.getElementById('galleryFilterText')?.value);
+  const fac = document.getElementById('galleryFilterFaction')?.value || '';
+  const shown = UNIT_TEMPLATES.filter(t => (!fac || t.faction === fac) &&
+    (!q || normalizeSearchText(`${t.name} ${t.sheet?.className || ''} ${t.sheet?.ancestry || ''}`).includes(q)));
+  if (shown.length === 0) container.innerHTML = '<p class="hint" style="grid-column:1/-1">Nenhuma peça com esse filtro.</p>';
+  for (const t of shown) {
     const card = document.createElement('div');
     card.className = `piece-card ${t.id === STATE.selectedTemplateId ? 'selected' : ''}`;
     card.onclick = () => {
@@ -125,8 +130,8 @@ function renderPieceGallery() {
     };
     card.innerHTML = `
       ${getTokenPreviewHTML(t.sculpt, t.customTokenDataUrl, customTokenOptions(t))}
-      <div class="piece-card-name">${t.name}</div>
-      <div class="piece-card-meta">Nív ${t.sheet?.level || 1} | ${t.moveSpeed}m</div>
+      <div class="piece-card-name">${escapeHtml(t.name)}</div>
+      <div class="piece-card-meta">Nív ${Number(t.sheet?.level) || 1} | ${Number(t.moveSpeed) || 0}m</div>
     `;
     container.appendChild(card);
   }
@@ -174,6 +179,7 @@ function spawnUnitFromTemplate(templateId, col, row) {
 
 function registerCustomTemplate() {
   const sculpt = document.getElementById('newPieceSculpt').value;
+  if (!isKnownTokenKey(sculpt)) return;
   const faction = document.getElementById('newPieceFaction').value;
   const current = STATE.units.find(u => u.id === STATE.selectedUnitId);
   const fallbackSheet = UNIT_TEMPLATES[0].sheet;
@@ -362,7 +368,14 @@ function importJSON(event) {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      applyLoadedPayload(JSON.parse(e.target.result));
+      const data = JSON.parse(e.target.result);
+      // só peças (lista ou { pieces }) entram na galeria sem apagar o tabuleiro
+      if (extractPieceList(data)) {
+        const r = importPieces(data);
+        addLog(`⬆️ ${r.added} peça(s) importada(s) para a galeria${r.suggested ? ` (${r.suggested} com token escolhido pelo nome/classe)` : ''}.`);
+        return;
+      }
+      applyLoadedPayload(data);
       addLog('⬆️ Arquivo JSON importado com sucesso!');
     } catch (err) {
       addLog('⚠️ Erro ao ler o arquivo JSON.');
@@ -379,9 +392,15 @@ function applyLoadedPayload(data) {
     setCellScale(STATE.grid.cellScale);
   }
   if (data.terrainMap) STATE.terrainMap = data.terrainMap;
-  if (data.templates) UNIT_TEMPLATES = data.templates;
+  if (Array.isArray(data.templates)) {
+    UNIT_TEMPLATES = data.templates.filter(t => t && typeof t === 'object' && t.sheet);
+    const fixed = UNIT_TEMPLATES.filter(repairPieceToken).length;
+    if (fixed) addLog(`🎭 ${fixed} modelo(s) sem token conhecido receberam um token pelo nome/classe.`);
+  }
   if (data.units) {
     STATE.units = data.units;
+    const fixedUnits = STATE.units.filter(repairPieceToken).length;
+    if (fixedUnits) addLog(`🎭 ${fixedUnits} peça(s) sem token conhecido receberam um token pelo nome/classe.`);
     STATE.units.forEach(u => {
       u.name = cleanText(u.name);
       u.weapons = (u.weapons || []).map(normalizeWeapon);
