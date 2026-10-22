@@ -55,6 +55,7 @@ src/
     05-app-mode.js        Inicialização e modos Montagem/Combate
     06-grid-and-ranges.js Geometria hex/quadrada, movimento, alcance, áreas
     07-render.js          Desenho do tabuleiro em canvas
+    07b-facing.js         Direção das peças: alça de giro, seta na borda, virar para o alvo
     08-input.js           Ponteiro, arrasto, pintura de terreno
     09-combat-and-turns.js Ações, ataques, magias, itens, Erguer Escudo, turnos
     10-sheet-ui.js        Ficha em abas (Atributos, Testes, Combate, Build)
@@ -83,6 +84,7 @@ dist/                     Saída versionada: app, CSS do design system, document
 - **Importar vários tokens de uma vez**: Peças → *Importar imagens como modelos* cria um modelo por imagem (nome do arquivo), herdando a ficha do modelo selecionado.
 - **22 peças equipadas por classe** (novo): além dos 12 originais, entram Druida, Monge, Alquimista, Bruxa e Espadachim (heróis) e Esqueleto, Orc, Cultista, Zumbi e Kobold (vilões). Cada peça traz ficha, armas com tipo de dano (e runas quando cabe), magias, itens e escudo coerentes com a classe; mortos-vivos têm imunidades, resistências e fraqueza a vital.
 - **Tokens** (novo): 22 personagens chibi de corpo inteiro (estilo padrão: cabeça grande, contorno marrom, cores chapadas, base oval na cor da classe); em Peças → Estilo dos tokens há a **vista de cima**, que substituiu o medalhão: personagens vistos do alto, com volumes pintados, grão de tinta e sombra projetada, sem moldura, cada um equipado conforme a classe (prévia em `docs/token-preview/`).
+- **Direção das peças** (novo): a peça selecionada (montagem) ou a peça da vez (combate) mostra uma alça redonda na borda do token, apontando para onde ela está virada. Arraste a alça para girar (passos de 45° no quadriculado e 30° no hexágono; Shift gira livre); um toque/clique na alça gira um passo no sentido horário; Q e E também giram. No estilo vista de cima a arte gira junto; no chibi e em imagens próprias aparece uma seta na borda. Mover, atacar e lançar magia viram a peça para o alvo automaticamente. Heróis começam virados para o leste e vilões para o oeste; a direção vai no salvamento e na exportação.
 - Salvar no navegador, exportar e importar JSON. Arquivos antigos (v4) são aceitos; armas e magias são normalizadas ao importar.
 
 ## Decisões

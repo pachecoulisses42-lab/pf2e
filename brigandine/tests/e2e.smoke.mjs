@@ -287,6 +287,64 @@ await check('exportar/importar mantém armas com runas', async () => {
   assert.equal(r, 'espiritual');
 });
 
+await check('girar a peça pela alça no tabuleiro: arrastar, tocar, mover e salvar', async () => {
+  const handle = await page.evaluate(() => {
+    setAppMode('setup');
+    setGridType('square');
+    const u = STATE.units[0];
+    u.facing = 0;
+    STATE.selectedUnitId = u.id;
+    renderBoard();
+    const h = STATE.interaction.facingHandle;
+    const r = document.getElementById('battleCanvas').getBoundingClientRect();
+    return { id: u.id, x: r.left + h.x, y: r.top + h.y, cx: r.left + h.cx, cy: r.top + h.cy, unitId: h.unitId };
+  });
+  assert.equal(handle.unitId, handle.id, 'a alça aparece na peça selecionada');
+  assert.ok(handle.y > handle.cy, 'facing 0 = alça ao sul da peça');
+  // arrasta a alça para cima (norte) da peça
+  await page.mouse.move(handle.x, handle.y);
+  await page.mouse.down();
+  await page.mouse.move(handle.cx + 3, handle.cy - 40, { steps: 6 });
+  await page.mouse.move(handle.cx + 2, handle.cy - 60, { steps: 3 });
+  await page.mouse.up();
+  let facing = await page.evaluate((id) => STATE.units.find(u => u.id === id).facing, handle.id);
+  assert.equal(facing, 180, 'arrastar para o norte vira para 180°, já arredondado ao passo de 45°');
+  // um clique sem arrastar gira um passo no sentido horário
+  const h2 = await page.evaluate(() => { renderBoard(); const h = STATE.interaction.facingHandle; const r = document.getElementById('battleCanvas').getBoundingClientRect(); return { x: r.left + h.x, y: r.top + h.y }; });
+  await page.mouse.click(h2.x, h2.y);
+  facing = await page.evaluate((id) => STATE.units.find(u => u.id === id).facing, handle.id);
+  assert.equal(facing, 225);
+  // teclado: Q volta um passo
+  await page.keyboard.press('q');
+  facing = await page.evaluate((id) => STATE.units.find(u => u.id === id).facing, handle.id);
+  assert.equal(facing, 180);
+  // salvar/carregar mantém; valor inválido vira sul
+  const r = await page.evaluate((id) => {
+    const payload = JSON.parse(JSON.stringify({ grid: STATE.grid, terrainMap: STATE.terrainMap, units: STATE.units, templates: UNIT_TEMPLATES, round: 1 }));
+    payload.units[1].facing = 'xyz';
+    applyLoadedPayload(payload);
+    return { kept: STATE.units.find(u => u.id === id).facing, bad: STATE.units[1].facing };
+  }, handle.id);
+  assert.deepEqual(r, { kept: 180, bad: 0 });
+  // no combate, mover vira a peça para o destino
+  const moved = await page.evaluate(() => {
+    setAppMode('combat');
+    const u = STATE.units.find(x => x.hp > 0);
+    selectActiveTurnUnit(u.id); u.actions = 3; u.facing = 123;
+    selectCombatMainMenu('move');
+    const reach = computeReachableCells(u);
+    const key = Object.keys(reach).find(k => { const [c, rr] = k.split(',').map(Number); return reach[k].canAfford && !(c === u.col && rr === u.row) && !STATE.units.some(o => o.col === c && o.row === rr); });
+    const [c, rr] = key.split(',').map(Number);
+    const a = getCellPixelCenter(u.col, u.row), b = getCellPixelCenter(c, rr);
+    const expected = facingFromVector(b.x - a.x, b.y - a.y);
+    handleCombatBoardClick({ col: c, row: rr }, null);
+    return u.facing === expected ? 'ok' : `${u.facing} vs ${expected}`;
+    return u.facing;
+  });
+  assert.equal(moved, 'ok', 'mover vira a peça para o destino');
+  await page.evaluate(() => { setAppMode('setup'); setGridType('hex'); });
+});
+
 await check('sem erros de JavaScript durante o fluxo', async () => {
   assert.deepEqual(errors, []);
 });

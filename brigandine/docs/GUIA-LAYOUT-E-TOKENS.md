@@ -425,6 +425,11 @@ Geometria (viewBox 256): cabeça em (128, 112) raio 29; ombros em x 86/170, y 12
 y 150 e 190. Cada token é `art('<chave>', (p) => ...)` em `00j-topdown-tokens.js`; `p.paint(cor)` devolve
 o gradiente pintado da cor. Prévia completa: `docs/token-preview/zenite-tokens-preview.png`.
 
+
+**Direção.** Cada peça guarda `facing` em graus (0 = sul, sentido horário: 90 oeste, 180 norte, 270 leste).
+Como a arte da vista de cima é desenhada virada para o sul, o tabuleiro só gira a imagem; não desenhe a
+figura em outra direção. Regras puras em `01b-rules.js` (`normalizeFacing`, `snapFacing`, `facingFromVector`,
+`facingLabel`); a alça de giro e a seta da borda ficam em `07b-facing.js`.
 ---
 
 ## 8. Como adicionar um token novo

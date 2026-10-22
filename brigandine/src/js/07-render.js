@@ -241,6 +241,7 @@ function renderBoard() {
 
     drawUnitToken(unit, isTargetable);
   }
+  drawFacingHandle();
 
   // 6. Draw Free Ruler
   if (STATE.ruler.active && STATE.ruler.startCell && STATE.ruler.endCell) {
@@ -390,9 +391,18 @@ function drawUnitToken(unit, isTargetable) {
   const img = getUnitTokenImage(unit.sculpt, unit.customTokenDataUrl, customTokenOptions(unit));
   if (img && img.complete) {
     if (isDead) ctx.filter = 'grayscale(100%) brightness(38%)';
-    ctx.drawImage(img, center.x - tokenR, center.y - tokenR, tokenR * 2, tokenR * 2);
+    if (tokenArtRotates(unit)) {
+      ctx.save();
+      ctx.translate(center.x, center.y);
+      ctx.rotate(normalizeFacing(unit.facing) * Math.PI / 180);
+      ctx.drawImage(img, -tokenR, -tokenR, tokenR * 2, tokenR * 2);
+      ctx.restore();
+    } else {
+      ctx.drawImage(img, center.x - tokenR, center.y - tokenR, tokenR * 2, tokenR * 2);
+    }
     ctx.filter = 'none';
   }
+  if (!isDead && !tokenArtRotates(unit)) drawFacingMarker(unit, center, tokenR);
 
   if (isDead) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';

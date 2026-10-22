@@ -62,6 +62,7 @@ function handleCombatBoardClick(cell, clickedUnit) {
       return;
     }
 
+    faceTowardCell(activeUnit, cell.col, cell.row);
     activeUnit.col = cell.col;
     activeUnit.row = cell.row;
     activeUnit.actions = Math.max(0, activeUnit.actions - destInfo.actionsNeeded);
@@ -78,6 +79,7 @@ function handleCombatBoardClick(cell, clickedUnit) {
       addLog(`⚠️ ${activeUnit.name} não possui magias cadastradas.`);
       return;
     }
+    faceTowardCell(activeUnit, cell.col, cell.row);
     executeSpellCastOnCell(activeUnit, spell, cell, clickedUnit, false);
     return;
   }
@@ -100,6 +102,7 @@ function handleCombatBoardClick(cell, clickedUnit) {
 }
 
 function executeWeaponAttackAndDamage(attacker, target, weapon) {
+  faceTowardCell(attacker, target.col, target.row);
   attacker.actions -= 1;
   const mapPenalty = attacker.strikesMade === 0 ? 0 : (attacker.strikesMade === 1 ? -5 : -10);
   attacker.strikesMade += 1;

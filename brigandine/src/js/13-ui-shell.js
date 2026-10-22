@@ -62,6 +62,11 @@ document.addEventListener('keydown', (e) => {
     document.getElementById('sidebarLeft').classList.remove('open');
     toggleSheet(false);
   }
+  // Q / E giram a peça selecionada (montagem) ou a da vez (combate), fora de campos de texto
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
+  if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'q' || e.key === 'e' || e.key === 'Q' || e.key === 'E')) {
+    rotateControlledUnit(e.key.toLowerCase() === 'e' ? 1 : -1);
+  }
 });
 
 /* ============================================================================

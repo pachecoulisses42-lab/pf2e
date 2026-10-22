@@ -16,7 +16,8 @@ export function loadRules() {
     formatDamageParts, describeDamage, shieldBonusOf, normalizeWeapon, normalizeSpell,
     escapeHtml, cleanText, recalculateUnitFromSheet,
     applyDefenses, describeDefenseEffects, normalizeDefenses, defenseMatches, DEFENSE_TYPES,
-    averageRoll, averageDamage, attackOdds
+    averageRoll, averageDamage, attackOdds,
+    normalizeFacing, snapFacing, facingFromVector, facingLabel
   })`, ctx);
 }
 

@@ -49,7 +49,10 @@ const STATE = {
     draggingUnitId: null,
     isPanning: false,
     panStart: { x: 0, y: 0 },
-    paintingTerrain: false
+    paintingTerrain: false,
+    rotatingUnitId: null,   // peça sendo girada pela alça
+    rotateStart: null,
+    facingHandle: null      // posição da alça desenhada no último quadro
   }
 };
 

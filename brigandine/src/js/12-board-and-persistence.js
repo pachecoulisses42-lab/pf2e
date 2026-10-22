@@ -144,6 +144,7 @@ function spawnUnitFromTemplate(templateId, col, row) {
     faction: tpl.faction,
     col,
     row,
+    facing: tpl.faction === 'villain' ? 90 : 270,
     moveSpeed: tpl.moveSpeed,
     hp: tpl.maxHp,
     maxHp: tpl.maxHp,
@@ -386,6 +387,7 @@ function applyLoadedPayload(data) {
       u.weapons = (u.weapons || []).map(normalizeWeapon);
       u.spells = (u.spells || []).map(normalizeSpell);
       u.shieldRaised = !!u.shieldRaised;
+      u.facing = normalizeFacing(u.facing);
       normalizeDefenses(u);
       recalculateUnitFromSheet(u, false);
     });

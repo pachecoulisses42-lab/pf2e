@@ -257,3 +257,25 @@ test('attackOdds segue as regras do motor (1 erra, 20 critica, +10 critica)', ()
   assert.equal(lo.hit, 1 / 20);
   assert.equal(lo.crit, 1 / 20);
 });
+
+test('direção da peça: normaliza, arredonda e aponta para o vetor', () => {
+  assert.equal(R.normalizeFacing(undefined), 0);
+  assert.equal(R.normalizeFacing('abc'), 0);
+  assert.equal(R.normalizeFacing(-90), 270);
+  assert.equal(R.normalizeFacing(725), 5);
+  assert.equal(R.snapFacing(100, 45), 90);
+  assert.equal(R.snapFacing(350, 45), 0);
+  assert.equal(R.snapFacing(44, 30), 30);
+  assert.equal(R.snapFacing(123, 1), 123);
+  // 0 = sul (arte desenhada virada para baixo); sentido horário na tela
+  assert.equal(R.facingFromVector(0, 1), 0);
+  assert.equal(R.facingFromVector(-1, 0), 90);
+  assert.equal(R.facingFromVector(0, -1), 180);
+  assert.equal(R.facingFromVector(1, 0), 270);
+  assert.equal(R.facingFromVector(0, 0), 0);
+  assert.equal(R.facingLabel(0), 'sul');
+  assert.equal(R.facingLabel(180), 'norte');
+  assert.equal(R.facingLabel(270), 'leste');
+  assert.equal(R.facingLabel(315), 'sudeste');
+  assert.equal(R.facingLabel(350), 'sul');
+});

@@ -54,11 +54,15 @@ function onCanvasPointerDown(e) {
       STATE.interaction.isPanning = false;
       STATE.interaction.draggingUnitId = null;
       STATE.interaction.paintingTerrain = false;
+      STATE.interaction.rotatingUnitId = null;
+      STATE.interaction.rotateStart = null;
       touchState.pinchDist = touchPinchDistance();
       return;
     }
   }
   const pt = getCanvasRelativeCoords(e);
+  // a alça de giro fica na borda da peça e pode estar fora da grade: vem antes de tudo
+  if (e.button === 0 && startFacingDrag(pt, isTouch)) return;
   const cell = pixelToCell(pt.x, pt.y);
 
   if (e.button === 1 || e.button === 2 || !cell) {
@@ -116,6 +120,12 @@ function onCanvasPointerMove(e) {
       touchState.pinchDist = dist;
       return;
     }
+  }
+  if (STATE.interaction.rotatingUnitId) {
+    updateFacingDrag(pt, e.shiftKey);
+    return;
+  }
+  if (e.pointerType === 'touch' && touchState.pointers.has(e.pointerId)) {
     const pend = touchState.pending;
     if (pend && pend.pointerId === e.pointerId) {
       if (Math.hypot(pt.x - pend.startPt.x, pt.y - pend.startPt.y) < TOUCH_MOVE_THRESHOLD) return;
@@ -131,6 +141,10 @@ function onCanvasPointerMove(e) {
     requestRender();
     return;
   }
+
+  const overHandle = e.pointerType !== 'touch' && hitFacingHandle(pt, false);
+  canvas.style.cursor = overHandle ? 'grab' : '';
+  if (overHandle) { hideUnitTip(); return; }
 
   const cell = pixelToCell(pt.x, pt.y);
   STATE.interaction.hoverCell = cell;
@@ -182,6 +196,9 @@ function onCanvasPointerUp(e) {
       }
     }
   }
+  if (STATE.interaction.rotatingUnitId && (!e || e.type === 'pointerup')) endFacingDrag();
+  STATE.interaction.rotatingUnitId = null;
+  STATE.interaction.rotateStart = null;
   STATE.interaction.isPanning = false;
   STATE.interaction.draggingUnitId = null;
   STATE.interaction.paintingTerrain = false;

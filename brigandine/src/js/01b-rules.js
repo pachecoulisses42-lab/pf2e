@@ -248,3 +248,32 @@ function attackOdds(toHit, ac) {
   }
   return { hit: (hit + crit) / 20, crit: crit / 20 };
 }
+
+/* ---------------- Direção da peça ----------------
+   Graus no sentido horário da tela; 0 = virada para o sul (para baixo), como a arte
+   dos tokens é desenhada. 90 = oeste, 180 = norte, 270 = leste. */
+
+/** Ângulo válido entre 0 e 359 (valores ausentes ou inválidos viram 0 = sul). */
+function normalizeFacing(deg) {
+  const n = Number(deg);
+  if (!Number.isFinite(n)) return 0;
+  return ((Math.round(n) % 360) + 360) % 360;
+}
+
+/** Arredonda para o passo mais próximo (45° na grade quadrada, 30° no hexágono). */
+function snapFacing(deg, step) {
+  if (!(step > 1)) return normalizeFacing(deg);
+  return normalizeFacing(Math.round(deg / step) * step);
+}
+
+/** Direção que aponta do centro da peça para o vetor (dx, dy) em pixels de tela. */
+function facingFromVector(dx, dy) {
+  if (!dx && !dy) return 0;
+  return normalizeFacing(Math.atan2(-dx, dy) * 180 / Math.PI);
+}
+
+const FACING_NAMES = ['sul', 'sudoeste', 'oeste', 'noroeste', 'norte', 'nordeste', 'leste', 'sudeste'];
+/** Nome do ponto cardeal mais próximo. */
+function facingLabel(deg) {
+  return FACING_NAMES[Math.round(normalizeFacing(deg) / 45) % 8];
+}
