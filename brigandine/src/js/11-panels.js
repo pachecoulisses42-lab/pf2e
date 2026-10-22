@@ -94,13 +94,12 @@ function syncCombatUI() {
     const card = document.createElement('div');
     card.className = `option-card ${idx === STATE.combat.selectedWeaponIdx ? 'selected-attack' : ''}`;
     card.onclick = () => { STATE.combat.selectedWeaponIdx = idx; syncCombatUI(); requestRender(); };
+    card.classList.add('has-cost');
     card.innerHTML = `
-      <div class="option-main">
-        <div class="option-title">${escapeHtml(w.name)}</div>
-        <div class="option-sub">${reachLabel(w.reach)} · ${escapeHtml(describeDamage(w))}</div>
-        ${(w.extra || []).length ? `<div class="chip-row">${extraTagsHTML(w)}</div>` : ''}
-      </div>
-      <div class="option-side"><span class="option-stat num" style="color:var(--strike)">${signed(w.atkBonus)}</span><span class="option-sub">◆</span></div>`;
+      <div class="card-ribbon">${escapeHtml(w.name)}</div>
+      <div class="card-art"><svg class="icon"><use href="#i-swords"/></svg></div>
+      <div class="card-text"><b class="num">${escapeHtml(describeDamage(w))}</b><span>${reachLabel(w.reach)} · ${signed(w.atkBonus)} acerto</span>${(w.extra || []).length ? `<div class="chip-row" style="justify-content:center">${extraTagsHTML(w)}</div>` : ''}</div>
+      <div class="card-cost"><span class="cost-badge">1</span></div>`;
     wBox.appendChild(card);
   });
 
@@ -126,13 +125,12 @@ function syncCombatUI() {
       const card = document.createElement('div');
       card.className = `option-card ${idx === STATE.combat.selectedSpellIdx ? 'selected-magic' : ''}`;
       card.onclick = () => { STATE.combat.selectedSpellIdx = idx; syncCombatUI(); requestRender(); };
+      card.classList.add('has-cost', 'spell-card');
       card.innerHTML = `
-        <div class="option-main">
-          <div class="option-title">${escapeHtml(sp.name)}</div>
-          <div class="option-sub">${escapeHtml(spellSummary(sp))}</div>
-          <div class="chip-row"><span class="tag">${escapeHtml(describeDamage(sp))}</span>${extraTagsHTML(sp)}</div>
-        </div>
-        <div class="option-side"><span class="option-stat num" style="color:var(--arcane)">${signed(sp.atkBonus)}</span><span class="option-sub">${'◆'.repeat(sp.cost || 2)}</span></div>`;
+        <div class="card-ribbon">${escapeHtml(sp.name)}</div>
+        <div class="card-art"><svg class="icon"><use href="#i-sparkles"/></svg></div>
+        <div class="card-text"><b class="num">${escapeHtml(describeDamage(sp))}</b><span>${escapeHtml(spellSummary(sp))} · ${signed(sp.atkBonus)}</span>${(sp.extra || []).length ? `<div class="chip-row" style="justify-content:center">${extraTagsHTML(sp)}</div>` : ''}</div>
+        <div class="card-cost"><span class="cost-badge">${sp.cost || 2}</span></div>`;
       sBox.appendChild(card);
     });
   }
@@ -149,12 +147,12 @@ function syncCombatUI() {
       const card = document.createElement('div');
       card.className = `option-card ${idx === STATE.combat.selectedItemIdx ? 'selected-item' : ''}`;
       card.onclick = () => { STATE.combat.selectedItemIdx = idx; syncCombatUI(); requestRender(); };
+      card.classList.add('has-cost', 'item-card');
       card.innerHTML = `
-        <div class="option-main">
-          <div class="option-title">${escapeHtml(it.name)}</div>
-          <div class="option-sub">${escapeHtml(it.desc)}</div>
-        </div>
-        <div class="option-side"><span class="option-stat num" style="color:var(--supply)">×${it.qty}</span><span class="option-sub">◆◆</span></div>`;
+        <div class="card-ribbon">${escapeHtml(it.name)}</div>
+        <div class="card-art"><svg class="icon"><use href="#i-${it.kind === 'potion' ? 'flask' : 'scroll'}"/></svg></div>
+        <div class="card-text"><b>×${it.qty}</b><span>${escapeHtml(it.desc)}</span></div>
+        <div class="card-cost"><span class="cost-badge">2</span></div>`;
       iBox.appendChild(card);
     });
   }

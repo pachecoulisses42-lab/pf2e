@@ -55,6 +55,15 @@ function renderBoard() {
     drawProceduralMap(boardX, boardY, boardW, boardH);
   }
   ctx.restore();
+  if (!bgImageObj && STATE.grid.proceduralTheme === 'parchment') {
+    ctx.save();
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = '#3b2a1c';
+    ctx.beginPath();
+    ctx.roundRect(boardX, boardY, boardW, boardH, 10);
+    ctx.stroke();
+    ctx.restore();
+  }
 
   const activeUnit = STATE.mode === 'combat'
     ? STATE.units.find(u => u.id === STATE.combat.activeUnitId)
@@ -172,9 +181,10 @@ function renderBoard() {
         ctx.fill();
       }
 
+      const onParchment = !bgImageObj && STATE.grid.proceduralTheme === 'parchment';
       ctx.strokeStyle = redRangeSet.has(key)
-        ? 'rgba(252, 165, 165, 0.55)'
-        : `rgba(203, 213, 225, ${STATE.grid.alpha * 0.40})`;
+        ? (onParchment ? 'rgba(178, 58, 48, 0.8)' : 'rgba(252, 165, 165, 0.55)')
+        : (onParchment ? `rgba(84, 56, 28, ${STATE.grid.alpha * 0.75})` : `rgba(203, 213, 225, ${STATE.grid.alpha * 0.40})`);
       ctx.lineWidth = aoePreviewSet.has(key) ? 2 : 1;
       ctx.stroke();
 
@@ -295,7 +305,11 @@ function spawnFloatingText(col, row, text, color = '#fca5a5') {
 function drawProceduralMap(x, y, w, h) {
   const theme = STATE.grid.proceduralTheme;
   const grad = ctx.createLinearGradient(x, y, x + w, y + h);
-  if (theme === 'river') {
+  if (theme === 'parchment') {
+    grad.addColorStop(0, '#e0cb9c');
+    grad.addColorStop(0.5, '#d2ba88');
+    grad.addColorStop(1, '#c4a870');
+  } else if (theme === 'river') {
     grad.addColorStop(0, '#122219');
     grad.addColorStop(0.5, '#192f23');
     grad.addColorStop(1, '#0f2027');
@@ -314,6 +328,19 @@ function drawProceduralMap(x, y, w, h) {
   }
   ctx.fillStyle = grad;
   ctx.fillRect(x, y, w, h);
+  if (theme === 'parchment') {
+    // manchas e bordas queimadas de papel envelhecido
+    const stain = ctx.createRadialGradient(x + w * 0.3, y + h * 0.35, 0, x + w * 0.3, y + h * 0.35, Math.max(w, h) * 0.5);
+    stain.addColorStop(0, 'rgba(150, 100, 50, 0.14)');
+    stain.addColorStop(1, 'rgba(150, 100, 50, 0)');
+    ctx.fillStyle = stain;
+    ctx.fillRect(x, y, w, h);
+    const burn = ctx.createRadialGradient(x + w / 2, y + h / 2, Math.min(w, h) * 0.35, x + w / 2, y + h / 2, Math.max(w, h) * 0.75);
+    burn.addColorStop(0, 'rgba(90, 55, 20, 0)');
+    burn.addColorStop(1, 'rgba(90, 55, 20, 0.45)');
+    ctx.fillStyle = burn;
+    ctx.fillRect(x, y, w, h);
+  }
 }
 
 function drawUnitToken(unit, isTargetable) {

@@ -63,3 +63,48 @@ document.addEventListener('keydown', (e) => {
     toggleSheet(false);
   }
 });
+
+/* ============================================================================
+   21. PREFERÊNCIAS — tema da interface e estilo dos tokens (guardados no navegador)
+   ============================================================================ */
+const PREFS_KEY = 'brigandine_prefs_v1';
+const THEMES = { parchment: 'Pergaminho', modern: 'Moderno' };
+
+function readPrefs() {
+  try { return JSON.parse(localStorage.getItem(PREFS_KEY)) || {}; } catch (e) { return {}; }
+}
+
+function savePrefs(patch) {
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify({ ...readPrefs(), ...patch })); } catch (e) { /* armazenamento indisponível */ }
+}
+
+function setTheme(theme) {
+  const t = THEMES[theme] ? theme : 'parchment';
+  document.body.classList.toggle('theme-parchment', t === 'parchment');
+  const label = document.getElementById('themeMenuLabel');
+  if (label) label.textContent = `Tema: ${THEMES[t]} (trocar)`;
+  savePrefs({ theme: t });
+  if (typeof resizeCanvas === 'function' && document.getElementById('battleCanvas')) requestRender();
+}
+
+function toggleTheme() {
+  setTheme(document.body.classList.contains('theme-parchment') ? 'modern' : 'parchment');
+}
+
+/** Troca o estilo dos tokens (chibi/medalhão) e redesenha tudo. */
+function chooseTokenStyle(style) {
+  setTokenStyle(style);
+  document.getElementById('styleChibi').classList.toggle('active', activeTokenStyle === 'chibi');
+  document.getElementById('styleMedalhao').classList.toggle('active', activeTokenStyle === 'medalhao');
+  savePrefs({ tokenStyle: activeTokenStyle });
+  renderPieceGallery();
+  syncInspectorUI();
+  syncCombatUI();
+  requestRender();
+}
+
+function applyPrefs() {
+  const prefs = readPrefs();
+  setTheme(prefs.theme || 'parchment');
+  if (prefs.tokenStyle && TOKEN_STYLES[prefs.tokenStyle]) chooseTokenStyle(prefs.tokenStyle);
+}

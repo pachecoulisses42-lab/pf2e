@@ -6,12 +6,12 @@
 <title>Brigandine — Motor Tático PF2e</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Cinzel:wght@600;800;900&family=Figtree:wght@400..800&family=Patrick+Hand&display=swap">
 <style>
 /*@css*/
 </style>
 </head>
-<body class="mode-setup">
+<body class="theme-parchment mode-setup">
 
 <!--@icons-->
 
@@ -42,6 +42,7 @@
         <button class="menu-item" onclick="saveStateToLocal(); closeMenus()"><svg class="icon"><use href="#i-save"/></svg>Salvar no navegador</button>
         <button class="menu-item" onclick="loadStateFromLocal(); closeMenus()"><svg class="icon"><use href="#i-folder"/></svg>Carregar do navegador</button>
         <button class="menu-item" onclick="exportJSON(); closeMenus()"><svg class="icon"><use href="#i-download"/></svg>Exportar JSON</button>
+        <button class="menu-item" onclick="toggleTheme(); closeMenus()"><svg class="icon"><use href="#i-scroll"/></svg><span id="themeMenuLabel">Tema: Pergaminho</span></button>
         <label class="menu-item"><svg class="icon"><use href="#i-upload"/></svg>Importar JSON<input type="file" accept=".json" class="sr-only" onchange="importJSON(event); closeMenus()"></label>
       </div>
     </details>
@@ -125,6 +126,7 @@
           <div class="field">
             <div class="field-label"><span>Cenários prontos</span></div>
             <div class="chip-row">
+              <button class="chip" onclick="setProceduralMap('parchment')">Pergaminho</button>
               <button class="chip" onclick="setProceduralMap('river')">Rio</button>
               <button class="chip" onclick="setProceduralMap('dungeon')">Masmorra</button>
               <button class="chip" onclick="setProceduralMap('throne')">Salão</button>
@@ -151,7 +153,26 @@
             </div>
           </div>
 
+          <div class="field">
+            <div class="field-label"><span>Estilo dos tokens</span></div>
+            <div class="seg">
+              <button id="styleChibi" class="seg-btn active" onclick="chooseTokenStyle('chibi')">Chibi</button>
+              <button id="styleMedalhao" class="seg-btn" onclick="chooseTokenStyle('medalhao')">Medalhão</button>
+            </div>
+          </div>
+
           <div id="pieceGalleryContainer" class="piece-gallery"></div>
+
+          <details class="more">
+            <summary><svg class="icon"><use href="#i-image"/></svg>Importar imagens como modelos<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <p class="hint">Escolha várias imagens de uma vez (seu pacote de tokens). Cada uma vira um modelo na galeria, com o nome do arquivo.</p>
+              <div class="grid-2">
+                <select id="bulkFaction"><option value="hero">Herói</option><option value="villain">Vilão</option></select>
+                <label class="btn"><svg class="icon"><use href="#i-upload"/></svg>Escolher imagens<input type="file" accept="image/*,.svg" multiple onchange="importImagesAsTemplates(event)"></label>
+              </div>
+            </div>
+          </details>
 
           <div class="row">
             <button class="btn btn-primary" style="flex:1" onclick="populateDemoBattle()"><svg class="icon"><use href="#i-bolt"/></svg>Montar batalha de exemplo</button>

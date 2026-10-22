@@ -13,7 +13,7 @@ const STATE = {
     rows: 10,
     cellScale: 1.5,
     alpha: 0.65,
-    proceduralTheme: 'river',
+    proceduralTheme: 'parchment',
     bgImageData: null
   },
   camera: {

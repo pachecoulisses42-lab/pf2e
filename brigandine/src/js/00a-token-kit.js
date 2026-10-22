@@ -247,4 +247,5 @@ const TK = (() => {
   return { lin, rad, mix, lighten, darken, cloth, skinDefs, face, pauldron, frame, gl, TORSO };
 })();
 
-const SCULPT_SVGS = {};
+/** Estilo "medalhão" (retrato em aro). O estilo ativo é escolhido em 00y-token-styles.js. */
+const MEDALLION_SVGS = {};

@@ -3,7 +3,7 @@
    ============================================================================ */
 const T = TK;
 
-SCULPT_SVGS.guerreiro = () => T.frame('guerreiro', {
+MEDALLION_SVGS.guerreiro = () => T.frame('guerreiro', {
   faction: 'hero', accent: '#4fa3e0', bg: ['#2b4a68', '#0d1a28'],
   art: (id) => {
     const f = T.face(id, { skin: '#e3b48c', eye: '#3f78a8', brow: '#3a2615', smile: 0.2, h: 36, chin: 0.5, tilt: 0.45, stubble: true, browW: 1.25 });
@@ -50,7 +50,7 @@ SCULPT_SVGS.guerreiro = () => T.frame('guerreiro', {
   }
 });
 
-SCULPT_SVGS.paladino = () => T.frame('paladino', {
+MEDALLION_SVGS.paladino = () => T.frame('paladino', {
   faction: 'hero', accent: '#f4d36a', bg: ['#6b5a2a', '#1c1608'],
   art: (id) => {
     const f = T.face(id, { skin: '#efc7a2', eye: '#5aa0d8', brow: '#b58a3a', smile: 0.7, h: 36, chin: 0.3, tilt: -0.05, lashes: true });
@@ -97,7 +97,7 @@ SCULPT_SVGS.paladino = () => T.frame('paladino', {
   }
 });
 
-SCULPT_SVGS.barbaro = () => T.frame('barbaro', {
+MEDALLION_SVGS.barbaro = () => T.frame('barbaro', {
   faction: 'hero', accent: '#e0703a', bg: ['#6a3a22', '#1a0d07'],
   art: (id) => {
     const skin = '#86a066';
@@ -141,7 +141,7 @@ SCULPT_SVGS.barbaro = () => T.frame('barbaro', {
   }
 });
 
-SCULPT_SVGS.clerigo = () => T.frame('clerigo', {
+MEDALLION_SVGS.clerigo = () => T.frame('clerigo', {
   faction: 'hero', accent: '#f0c64a', bg: ['#6a5a30', '#17120a'],
   art: (id) => {
     const skin = '#dc9f7a';
@@ -187,7 +187,7 @@ SCULPT_SVGS.clerigo = () => T.frame('clerigo', {
   }
 });
 
-SCULPT_SVGS.bardo = () => T.frame('bardo', {
+MEDALLION_SVGS.bardo = () => T.frame('bardo', {
   faction: 'hero', accent: '#d85fb0', bg: ['#5a2a56', '#140a16'],
   art: (id) => {
     const skin = '#eab793';
@@ -235,7 +235,7 @@ SCULPT_SVGS.bardo = () => T.frame('bardo', {
   }
 });
 
-SCULPT_SVGS.feiticeiro = () => T.frame('feiticeiro', {
+MEDALLION_SVGS.feiticeiro = () => T.frame('feiticeiro', {
   faction: 'hero', accent: '#f0587f', bg: ['#6a1f3c', '#180610'],
   art: (id) => {
     const skin = '#eebfa8';
@@ -274,7 +274,7 @@ SCULPT_SVGS.feiticeiro = () => T.frame('feiticeiro', {
   }
 });
 
-SCULPT_SVGS.mago = () => T.frame('mago', {
+MEDALLION_SVGS.mago = () => T.frame('mago', {
   faction: 'hero', accent: '#8d76e8', bg: ['#2f2a66', '#0b0a20'],
   art: (id) => {
     const skin = '#e6c2a0';
@@ -322,7 +322,7 @@ SCULPT_SVGS.mago = () => T.frame('mago', {
   }
 });
 
-SCULPT_SVGS.ranger = () => T.frame('ranger', {
+MEDALLION_SVGS.ranger = () => T.frame('ranger', {
   faction: 'hero', accent: '#6fc45a', bg: ['#25472c', '#07140a'],
   art: (id) => {
     const skin = '#d4a47c';
@@ -362,7 +362,7 @@ SCULPT_SVGS.ranger = () => T.frame('ranger', {
   }
 });
 
-SCULPT_SVGS.rogue = () => T.frame('rogue', {
+MEDALLION_SVGS.rogue = () => T.frame('rogue', {
   faction: 'hero', accent: '#5fd0b4', bg: ['#1f3c3a', '#060f10'],
   art: (id) => {
     const skin = '#c9a384';

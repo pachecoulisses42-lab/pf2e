@@ -1,7 +1,7 @@
 /* ============================================================================
    1b. TOKENS — VILÕES
    ============================================================================ */
-SCULPT_SVGS.goblin = () => T.frame('goblin', {
+MEDALLION_SVGS.goblin = () => T.frame('goblin', {
   faction: 'villain', accent: '#e24b3a', bg: ['#4a2a1c', '#0e0806'],
   art: (id) => {
     const skin = '#7fae4c';
@@ -42,7 +42,7 @@ SCULPT_SVGS.goblin = () => T.frame('goblin', {
   }
 });
 
-SCULPT_SVGS.lobo = () => T.frame('lobo', {
+MEDALLION_SVGS.lobo = () => T.frame('lobo', {
   faction: 'villain', accent: '#f0a020', bg: ['#3a3f4a', '#0a0c10'],
   art: (id) => ({
     defs: `${T.cloth(id, 'fur', '#aeb6c4', '#3a4252')}${T.cloth(id, 'furl', '#eef1f6', '#9aa4b4')}${T.cloth(id, 'furd', '#5a6272', '#1c212c')}${T.rad(`eye_${id}`, [[0, '#fff3a0'], [0.5, '#ffb81c'], [1, '#c25a08']], [0.4, 0.4, 0.7])}`,
@@ -88,7 +88,7 @@ SCULPT_SVGS.lobo = () => T.frame('lobo', {
   })
 });
 
-SCULPT_SVGS.bandido = () => T.frame('bandido', {
+MEDALLION_SVGS.bandido = () => T.frame('bandido', {
   faction: 'villain', accent: '#d8283e', bg: ['#4a1620', '#0d0507'],
   art: (id) => {
     const skin = '#c79a74';

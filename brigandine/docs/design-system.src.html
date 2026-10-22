@@ -6,7 +6,7 @@
 <title>Brigandine DS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400..800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Cinzel:wght@600;800;900&family=Figtree:wght@400..800&family=Patrick+Hand&display=swap">
 <style>
 /*@css*/
 body { overflow: auto; display: block; user-select: text; -webkit-user-select: text; }
@@ -42,16 +42,22 @@ td:first-child { font-family: ui-monospace, Menlo, monospace; color: var(--text-
 .mode-toggle { position: sticky; top: var(--s-3); align-self: flex-end; z-index: 5; }
 </style>
 </head>
-<body class="mode-setup">
+<body class="theme-parchment mode-setup">
 <div class="doc">
-  <div class="mode-toggle seg" style="width:240px">
-    <button class="seg-btn active" id="m1" onclick="setMode('setup')">Montagem</button>
-    <button class="seg-btn" id="m2" onclick="setMode('combat')">Combate</button>
+  <div class="mode-toggle" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+    <div class="seg" style="width:220px">
+      <button class="seg-btn active" id="t1" onclick="setTheme2('parchment')">Pergaminho</button>
+      <button class="seg-btn" id="t2" onclick="setTheme2('modern')">Moderno</button>
+    </div>
+    <div class="seg" style="width:220px">
+      <button class="seg-btn active" id="m1" onclick="setMode('setup')">Montagem</button>
+      <button class="seg-btn" id="m2" onclick="setMode('combat')">Combate</button>
+    </div>
   </div>
 
   <header>
     <h1>Brigandine DS</h1>
-    <p class="lede" style="margin-top:12px">Sistema visual do motor tático Brigandine. Grafite frio como base, uma cor de acento por modo (latão na montagem, gelo no combate) e cores de jogo reservadas: cada uma significa uma coisa só.</p>
+    <p class="lede" style="margin-top:12px">Sistema visual do motor tático Brigandine, com dois temas. <b>Pergaminho</b> (padrão): interface de RPG com papel envelhecido, contorno marrom grosso, plaquinhas de madeira, botões verde/vermelho e dicas escuras. <b>Moderno</b>: grafite frio com acento por modo. Nos dois, as cores de jogo são reservadas: cada uma significa uma coisa só.</p>
     <p style="margin-top:12px">Alterne o modo no canto superior para ver o acento mudar. Todos os valores vêm de <code>src/styles/tokens.css</code>.</p>
   </header>
 
@@ -211,9 +217,12 @@ td:first-child { font-family: ui-monospace, Menlo, monospace; color: var(--text-
   </section>
 
   <section>
-    <h2>Tokens de peça</h2>
-    <p style="margin-bottom:var(--s-4)">Medalhões 256×256 em SVG com acabamento de quadrinhos: contorno grosso de nanquim, sombra em cel shading com luz de cima-esquerda, luz de recorte na cor de acento, retícula no fundo e brilhos de metal. Aro de ouro para heróis e de ferro com gemas vermelhas para vilões; armas ultrapassam o aro. O busto inclina levemente (heróis para a esquerda, vilões para a direita) e a gema inferior identifica a classe. Tudo vem de filtros reutilizáveis em <code>00a-token-kit.js</code>.</p>
+    <h2>Tokens de peça — Chibi (padrão)</h2>
+    <p style="margin-bottom:var(--s-4)">Personagens de corpo inteiro com cabeça grande, contorno marrom grosso, cores chapadas com um tom de sombra e expressões fortes. Cada um fica sobre uma base oval na cor da classe (anel claro para heróis, vermelho para vilões). Desenhados com o kit de <code>00d-chibi-kit.js</code>. Você também pode importar suas próprias imagens (uma a uma ou várias de uma vez como modelos).</p>
     <div class="tok-grid"><!--@tokens--></div>
+    <h3 style="margin-top:32px">Estilo alternativo: medalhão</h3>
+    <p style="margin-bottom:var(--s-4)">Retratos em aro metálico com acabamento de quadrinhos (nanquim, cel shading, retícula). Selecionável em Peças → Estilo dos tokens.</p>
+    <div class="tok-grid"><!--@tokens-medallion--></div>
   </section>
 
   <section>
@@ -225,8 +234,14 @@ td:first-child { font-family: ui-monospace, Menlo, monospace; color: var(--text-
 </div>
 <script>
 /*@icons-js*/
+function setTheme2(t) {
+  document.body.classList.toggle('theme-parchment', t === 'parchment');
+  document.getElementById('t1').classList.toggle('active', t === 'parchment');
+  document.getElementById('t2').classList.toggle('active', t === 'modern');
+}
 function setMode(m) {
-  document.body.className = 'mode-' + m;
+  document.body.classList.toggle('mode-combat', m === 'combat');
+  document.body.classList.toggle('mode-setup', m !== 'combat');
   document.getElementById('m1').classList.toggle('active', m === 'setup');
   document.getElementById('m2').classList.toggle('active', m === 'combat');
 }

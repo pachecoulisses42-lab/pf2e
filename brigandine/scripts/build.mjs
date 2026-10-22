@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (...p) => readFileSync(join(root, ...p), 'utf8');
 
-const CSS_ORDER = ['tokens', 'base', 'components', 'layout'];
+const CSS_ORDER = ['tokens', 'base', 'components', 'layout', 'theme-parchment'];
 const css = CSS_ORDER.map((n) => `/* --- ${n}.css --- */\n${read('src/styles', `${n}.css`)}`).join('\n');
 
 const jsFiles = readdirSync(join(root, 'src/js')).filter((f) => f.endsWith('.js')).sort();
@@ -33,17 +33,20 @@ writeFileSync(join(root, 'dist/brigandine_pf2e_tatico_v5.html'), html);
 writeFileSync(join(root, 'dist/brigandine-ds.css'), css);
 // --- página do design system (renderiza os 12 tokens em tempo de build) ---
 const tokenCtx = vm.createContext({});
-for (const f of jsFiles.filter((n) => /^00[abc]-/.test(n))) vm.runInContext(read('src/js', f), tokenCtx, { filename: f });
+for (const f of jsFiles.filter((n) => /^00[a-y]/.test(n))) vm.runInContext(read('src/js', f), tokenCtx, { filename: f });
 const NAMES = {
   guerreiro: 'Guerreiro', paladino: 'Paladino', barbaro: 'Bárbaro', clerigo: 'Clérigo', bardo: 'Bardo', feiticeiro: 'Feiticeiro',
   mago: 'Mago', ranger: 'Ranger', rogue: 'Rogue', goblin: 'Goblin', lobo: 'Lobo Atroz', bandido: 'Bandido'
 };
-const tokens = vm.runInContext(`Object.keys(SCULPT_SVGS).map(k => [k, SCULPT_SVGS[k]()])`, tokenCtx)
+const gallery = (style) => vm.runInContext(`Object.keys(TOKEN_STYLES['${style}'].svgs).map(k => [k, TOKEN_STYLES['${style}'].svgs[k]()])`, tokenCtx)
   .map(([k, svg]) => `<div class="tok">${svg}<b>${NAMES[k] ?? k}</b><span>${['goblin', 'lobo', 'bandido'].includes(k) ? 'vilão' : 'herói'}</span></div>`)
   .join('');
+const tokens = gallery('chibi');
+const tokensMedallion = gallery('medalhao');
 const docHtml = read('docs/design-system.src.html')
   .replace('/*@css*/', () => css)
   .replace('<!--@tokens-->', () => tokens)
+  .replace('<!--@tokens-medallion-->', () => tokensMedallion)
   .replace('<!--@icons-->', () => icons)
   .replace('/*@icons-js*/', '');
 writeFileSync(join(root, 'dist/design-system.html'), docHtml);

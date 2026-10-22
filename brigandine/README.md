@@ -31,9 +31,13 @@ src/
     base.css              Reset, foco, utilitários
     components.css        Botões, segmentado, chips, campos, acordeão, cartões, pips, abas…
     layout.css            Casca do app, painéis, HUD do tabuleiro, gaveta de registro
+    theme-parchment.css   Tema Pergaminho (sobrepõe tokens e componentes em body.theme-parchment)
   js/                     Concatenados em ordem alfabética
     00a-token-kit.js      Kit de ilustração dos tokens (filtros de quadrinhos, rosto, pauldron, moldura)
-    00b-tokens-heroes.js  9 heróis
+    00d-chibi-kit.js      Kit chibi (cabeça, tronco, membros, moldura com base oval)
+    00e/00f-chibi-*.js    12 personagens chibi (heróis e vilões)
+    00y-token-styles.js   Estilos de token (chibi, medalhão) e seleção do ativo
+    00b-tokens-heroes.js  9 heróis (medalhão)
     00c-tokens-villains.js 3 vilões
     00z-token-loader.js   Cache de imagens, token com imagem do usuário, pré-visualização (ids de SVG únicos)
     01-catalog.js         Catálogo de magias e itens
@@ -68,7 +72,9 @@ dist/                     Saída versionada: app, CSS do design system, document
 - **Tooltip do alvo** (novo): ao passar o cursor sobre uma peça aparecem PV, CA e as defesas dela. No combate, com Ação ou Magias aberto, mostra também a prévia da arma/magia selecionada contra aquele alvo: chance de acerto e de crítico (já com MAP), dano médio depois das defesas, dano no crítico e o que mudou (`cortante: resistência −3 · fogo: fraqueza +5`).
 - **Imagem própria como token** (novo): aba Base → *Importar imagem* (PNG, JPG, WebP, GIF ou SVG, até 10 MB), ou arraste a imagem sobre a peça no tabuleiro. Imagens raster são reduzidas para 384 px. Por padrão a imagem é recortada em círculo com a moldura (ouro para heróis, ferro para vilões); desmarque a moldura para usar PNG transparente. *Usar padrão* volta à ilustração. A imagem vai junto no salvamento, na exportação JSON e no modelo salvo na galeria.
 - **Celular e tablet em pé** (até 960 px): o painel da direita vira uma gaveta inferior sempre visível. No combate ela mostra a peça, as ações e os 5 comandos (Ação, Mover, Magias, Itens, Ficha) com o botão *Encerrar turno*; tocar em um comando abre as opções (Mover mantém o tabuleiro livre). Na montagem a alça "Editar · peça" abre o inspetor. A lista de iniciativa fica na gaveta lateral (ícone no canto superior esquerdo). Gestos: toque simples age ao soltar o dedo, arrastar com um dedo move o tabuleiro e pinça dá zoom.
-- **Tokens** (novo): 12 medalhões em SVG com acabamento de quadrinhos — contorno de nanquim, sombra em cel shading, luz de recorte na cor do personagem, retícula, brilhos de metal e expressões próprias (ver `dist/design-system.html`).
+- **Tema Pergaminho** (novo, padrão): interface de RPG com papel envelhecido, contorno marrom grosso, plaquinhas de madeira com pregos, botões verde/vermelho, cartas de arma/magia/item com faixa colorida e selo de custo, lista de iniciativa em madeira, dica escura sobre o alvo e mapa de pergaminho. O tema Moderno continua disponível em Arquivo → Tema.
+- **Importar vários tokens de uma vez**: Peças → *Importar imagens como modelos* cria um modelo por imagem (nome do arquivo), herdando a ficha do modelo selecionado.
+- **Tokens** (novo): 12 personagens chibi de corpo inteiro (estilo padrão: cabeça grande, contorno marrom, cores chapadas, base oval na cor da classe); o estilo anterior em medalhão continua em Peças → Estilo dos tokens. O medalhão tem acabamento de quadrinhos — contorno de nanquim, sombra em cel shading, luz de recorte na cor do personagem, retícula, brilhos de metal e expressões próprias (ver `dist/design-system.html`).
 - Salvar no navegador, exportar e importar JSON. Arquivos antigos (v4) são aceitos; armas e magias são normalizadas ao importar.
 
 ## Decisões

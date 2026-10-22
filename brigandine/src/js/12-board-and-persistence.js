@@ -198,6 +198,38 @@ function registerCustomTemplate() {
   addLog(`✨ Modelo "${newTpl.name}" salvo na galeria com sua Ficha PF2e (Build), armas, magias e itens.`);
 }
 
+/**
+ * Importa várias imagens de uma vez: cada uma vira um modelo na galeria (nome = arquivo),
+ * herdando ficha, armas e magias do modelo selecionado. Serve para usar pacotes de tokens próprios.
+ */
+async function importImagesAsTemplates(event) {
+  const files = Array.from(event.target.files || []);
+  event.target.value = '';
+  if (files.length === 0) return;
+  const faction = document.getElementById('bulkFaction').value;
+  const base = UNIT_TEMPLATES.find(t => t.id === STATE.selectedTemplateId) || UNIT_TEMPLATES[0];
+  let added = 0;
+  for (const file of files) {
+    try {
+      const dataUrl = await prepareTokenImage(file);
+      const name = cleanText(file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ')) || `Modelo ${UNIT_TEMPLATES.length + 1}`;
+      UNIT_TEMPLATES.push({
+        ...JSON.parse(JSON.stringify(base)),
+        id: 't_img_' + Date.now() + '_' + added,
+        name, faction, customTokenDataUrl: dataUrl, customTokenFrame: true
+      });
+      added++;
+    } catch (err) {
+      addLog(`⚠️ ${escapeHtml(file.name)}: ${escapeHtml(err.message)}`);
+    }
+  }
+  if (added > 0) {
+    STATE.selectedTemplateId = UNIT_TEMPLATES[UNIT_TEMPLATES.length - 1].id;
+    renderPieceGallery();
+    addLog(`🖼️ ${added} imagem(ns) adicionada(s) à galeria como modelos. Clique no tabuleiro para posicionar.`);
+  }
+}
+
 function populateDemoBattle() {
   STATE.units = [];
   STATE.terrainMap = {

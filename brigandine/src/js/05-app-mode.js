@@ -9,6 +9,7 @@ function initApp() {
   renderPieceGallery();
   populateDemoBattle();
   resetCamera();
+  applyPrefs();
   addLog('📜 <strong>Brigandine v5 pronto.</strong> Monte o tabuleiro e as peças, depois inicie o combate.');
 }
 
@@ -26,7 +27,8 @@ function resizeCanvas() {
    ============================================================================ */
 function setAppMode(mode) {
   STATE.mode = mode;
-  document.body.className = mode === 'combat' ? 'mode-combat' : 'mode-setup';
+  document.body.classList.toggle('mode-combat', mode === 'combat');
+  document.body.classList.toggle('mode-setup', mode !== 'combat');
 
   document.getElementById('btnModeSetup').className = mode === 'setup' ? 'mode-btn active-setup' : 'mode-btn';
   document.getElementById('btnModeCombat').className = mode === 'combat' ? 'mode-btn active-combat' : 'mode-btn';

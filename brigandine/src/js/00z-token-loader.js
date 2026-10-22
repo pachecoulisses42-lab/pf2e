@@ -56,9 +56,10 @@ function getUnitTokenImage(unitOrSculpt, customDataUrl = null, options = {}) {
     SVG_IMAGE_CACHE[key] = img;
     return img;
   }
-  const key = typeof unitOrSculpt === 'string' ? unitOrSculpt : unitOrSculpt.sculpt;
+  const sculpt = typeof unitOrSculpt === 'string' ? unitOrSculpt : unitOrSculpt.sculpt;
+  const key = `${activeTokenStyle}:${sculpt}`;
   if (SVG_IMAGE_CACHE[key]) return SVG_IMAGE_CACHE[key];
-  const svgFn = SCULPT_SVGS[key] || SCULPT_SVGS.guerreiro;
+  const svgFn = SCULPT_SVGS[sculpt] || SCULPT_SVGS.guerreiro;
   const img = new Image();
   img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svgFn());
   img.onload = () => requestRender();
