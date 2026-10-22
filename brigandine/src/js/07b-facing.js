@@ -14,7 +14,8 @@ function facingStep() {
 /** A arte do token gira junto? Só a vista de cima (do app ou extra); chibi, retratos e imagens próprias ganham uma seta na borda. */
 function tokenArtRotates(unit) {
   if (unit.customTokenDataUrl) return false;
-  if (isExtraToken(unit.sculpt)) return EXTRA_TOKENS[unit.sculpt].kind === 'topo';
+  const key = effectiveTokenKey(unit.sculpt);
+  if (isExtraToken(key)) return EXTRA_TOKENS[key].kind === 'topo';
   return activeTokenStyle === 'topo';
 }
 

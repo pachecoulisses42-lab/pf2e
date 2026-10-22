@@ -54,6 +54,6 @@ export function loadTemplates() {
   return vm.runInContext(`({
     UNIT_TEMPLATES, SPELL_CATALOG, ITEM_CATALOG, CHIBI_SVGS, TOPDOWN_SVGS, TOKEN_STYLES, setTokenStyle, activeStyle: () => activeTokenStyle, VILLAIN_SCULPTS, DAMAGE_TYPES,
     isValidDice, normalizeWeapon, normalizeSpell, normalizeDefenses, recalculateUnitFromSheet,
-    EXTRA_TOKENS, suggestTokenKey, matchTokenKey, resolvePieceToken, normalizePieceTemplate, extractPieceList, isKnownTokenKey
+    EXTRA_TOKENS, effectiveTokenKey, sameTokenFigure, suggestTokenKey, matchTokenKey, resolvePieceToken, normalizePieceTemplate, extractPieceList, isKnownTokenKey
   })`, ctx);
 }

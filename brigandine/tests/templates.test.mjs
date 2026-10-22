@@ -206,3 +206,19 @@ test('o pacote de JS do app compila (sem nomes globais repetidos entre módulos)
   const js = 'const EXTRA_TOKEN_GROUPS = [];\n' + readdirSync(dir).filter(f => f.endsWith('.js')).sort().map(f => readFileSync(join(dir, f), 'utf8')).join('\n');
   assert.doesNotThrow(() => new vm.Script(js, { filename: 'bundle.js' }));
 });
+
+test('tokens pintados em par (vista de cima ↔ retrato) acompanham o estilo dos tokens', () => {
+  for (const t of Object.values(T.EXTRA_TOKENS)) {
+    assert.ok(t.pair, `${t.key} sem par`);
+    assert.equal(T.EXTRA_TOKENS[t.pair].pair, t.key);
+    assert.notEqual(T.EXTRA_TOKENS[t.pair].kind, t.kind);
+  }
+  T.setTokenStyle('topo');
+  assert.equal(T.effectiveTokenKey('cr_samurai'), 'ct_samurai');
+  assert.equal(T.effectiveTokenKey('vt_lobo_alfa'), 'vt_lobo_alfa');
+  assert.equal(T.effectiveTokenKey('guerreiro'), 'guerreiro');
+  T.setTokenStyle('chibi');
+  assert.equal(T.effectiveTokenKey('ct_samurai'), 'cr_samurai');
+  assert.equal(T.effectiveTokenKey('vr_lobo_alfa'), 'vr_lobo_alfa');
+  assert.ok(T.sameTokenFigure('ct_ninja', 'cr_ninja') && !T.sameTokenFigure('ct_ninja', 'cr_samurai'));
+});

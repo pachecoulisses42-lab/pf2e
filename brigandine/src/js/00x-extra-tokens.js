@@ -1,8 +1,11 @@
 /* ============================================================================
    1f. TOKENS EXTRAS — imagens pintadas (vista de cima e retratos)
    As imagens ficam em src/tokens-extra/ e o build as embute em EXTRA_TOKEN_GROUPS
-   (data URLs). Valem para qualquer estilo: escolher um extra numa peça troca só
-   aquela peça. Vista de cima gira com a direção da peça; retrato ganha o aro.
+   (data URLs). Escolher um extra numa peça troca só aquela peça. Vista de cima gira
+   com a direção da peça; retrato ganha o aro.
+   Pares: a mesma figura em vista de cima e em retrato (ct_x ↔ cr_x, vt_x ↔ vr_x, ou
+   `pair` explícito) acompanha o estilo dos tokens — Vista de cima mostra a versão de
+   cima; Chibi mostra o retrato frontal.
    ============================================================================ */
 const EXTRA_TOKEN_GROUP_LIST = typeof EXTRA_TOKEN_GROUPS !== 'undefined' ? EXTRA_TOKEN_GROUPS : [];
 
@@ -14,6 +17,34 @@ for (const g of EXTRA_TOKEN_GROUP_LIST) {
 
 function isExtraToken(key) {
   return Object.prototype.hasOwnProperty.call(EXTRA_TOKENS, key);
+}
+
+/** Liga as duas versões da mesma figura: `pair` explícito ou prefixo trocado (ct_↔cr_, vt_↔vr_). */
+function linkExtraTokenPairs() {
+  for (const t of Object.values(EXTRA_TOKENS)) {
+    if (t.pair && isExtraToken(t.pair)) continue;
+    const m = t.key.match(/^([a-z]+)(t|r)_(.+)$/);
+    const other = m && EXTRA_TOKENS[`${m[1]}${m[2] === 't' ? 'r' : 't'}_${m[3]}`];
+    t.pair = other && other.kind !== t.kind ? other.key : null;
+  }
+  for (const t of Object.values(EXTRA_TOKENS)) if (t.pair) EXTRA_TOKENS[t.pair].pair = t.key;
+}
+linkExtraTokenPairs();
+
+/**
+ * Token que aparece de fato: para um extra com par, a versão do estilo ativo
+ * (vista de cima no estilo "topo", retrato nos demais). Outros tokens: a própria chave.
+ */
+function effectiveTokenKey(key) {
+  const t = isExtraToken(key) && EXTRA_TOKENS[key];
+  if (!t || !t.pair) return key;
+  const want = typeof activeTokenStyle !== 'undefined' && activeTokenStyle === 'topo' ? 'topo' : 'retrato';
+  return t.kind === want ? key : t.pair;
+}
+
+/** As duas chaves representam a mesma figura? */
+function sameTokenFigure(a, b) {
+  return a === b || (isExtraToken(a) && EXTRA_TOKENS[a].pair === b);
 }
 
 /** SVG do token extra: vista de cima inteira (sem moldura) ou retrato dentro do aro. */
@@ -84,7 +115,7 @@ function renderTokenPicker(id = 'insp') {
   const tabs = tokenPickerTabs().map(t =>
     `<button type="button" class="seg-btn${t.id === cfg.tab ? ' active' : ''}" onclick="setTokenPickerTab('${t.id}', '${id}')">${t.label}</button>`).join('');
   const cell = (key, name, inner) =>
-    `<button type="button" class="token-pick${key === current ? ' active' : ''}" title="${escapeHtml(name)}" aria-label="${escapeHtml(name)}" onclick="TOKEN_PICKERS['${id}'].pick('${key}')">${inner}</button>`;
+    `<button type="button" class="token-pick${current && sameTokenFigure(key, current) ? ' active' : ''}" title="${escapeHtml(name)}" aria-label="${escapeHtml(name)}" onclick="TOKEN_PICKERS['${id}'].pick('${key}')">${inner}</button>`;
   let body = '';
   if (cfg.tab === 'app') {
     body = `<div class="token-pick-grid">${appTokenList().map(([k, name]) => cell(k, name, getTokenPreviewHTML(k))).join('')}</div>`;
@@ -93,7 +124,8 @@ function renderTokenPicker(id = 'insp') {
       `<div class="token-pick-label">${escapeHtml(g.label)}</div><div class="token-pick-grid">${g.items.map(it =>
         cell(it.key, it.name, `<img src="${it.src}" alt="" loading="lazy" draggable="false">`)).join('')}</div>`).join('');
   }
-  box.innerHTML = `<div class="seg seg-sm">${tabs}</div>${body}`;
+  const note = cfg.tab === 'app' ? '' : '<p class="hint">Cada figura tem vista de cima e retrato: a peça mostra a versão que combina com o Estilo dos tokens.</p>';
+  box.innerHTML = `<div class="seg seg-sm">${tabs}</div>${note}${body}`;
 }
 
 function setTokenPickerTab(tab, id = 'insp') {
@@ -113,10 +145,11 @@ function syncTokenPickerTab(key, id = 'insp') {
 function registerTokenGroup(group) {
   if (!group || !Array.isArray(group.items) || !['topo', 'retrato'].includes(group.kind)) throw new Error('grupo de tokens inválido');
   const items = group.items.filter(it => it && /^[a-z][a-z0-9_]*$/.test(it.key) && !isKnownTokenKey(it.key) && /^data:image\//.test(it.src))
-    .map(it => ({ key: it.key, name: cleanText(it.name) || it.key, src: it.src }));
+    .map(it => ({ key: it.key, name: cleanText(it.name) || it.key, src: it.src, ...(typeof it.pair === 'string' ? { pair: it.pair } : {}) }));
   const g = { id: String(group.id || `grupo_${EXTRA_TOKEN_GROUP_LIST.length + 1}`), label: cleanText(group.label) || 'Tokens de módulo', kind: group.kind, faction: group.faction === 'villain' ? 'villain' : 'hero', items };
   EXTRA_TOKEN_GROUP_LIST.push(g);
   for (const it of items) EXTRA_TOKENS[it.key] = { ...it, kind: g.kind, faction: g.faction, group: g.id };
+  linkExtraTokenPairs();
   for (const sel of ['inspTokenSelect', 'newPieceSculpt']) {
     const el = document.getElementById(sel);
     if (!el) continue;

@@ -445,6 +445,9 @@ Além dos estilos desenhados em código, o app traz tokens pintados em imagem, e
 - `kind: "topo"` = figura vista de cima, virada para o sul, sem moldura (gira com a direção da peça).
 - `kind: "retrato"` = imagem quadrada que o app recorta em círculo dentro do aro da facção.
 - As chaves (`ct_`, `vt_`, `cr_`, `vr_`) não podem repetir as dos estilos do app; um teste confere.
+- **Pares:** a mesma figura em vista de cima e em retrato fica ligada pelo prefixo (`ct_x` ↔ `cr_x`, `vt_x` ↔ `vr_x`)
+  ou por `"pair": "outra_chave"` no item. A peça guarda uma das chaves, mas mostra a versão do estilo ativo:
+  vista de cima no estilo *Vista de cima*, retrato nos demais (`effectiveTokenKey` em `00x-extra-tokens.js`).
 
 Para acrescentar uma folha nova: recorte com `scripts/recortar-tokens-extras.py` (ou exporte cada token
 em PNG/WebP 256×256 transparente), copie para `src/tokens-extra/`, acrescente as entradas no manifesto e rode

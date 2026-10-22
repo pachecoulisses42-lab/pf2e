@@ -71,4 +71,5 @@ Brigandine.registerTokenGroup({                      // novas imagens de token
 ```
 
 `kind: "topo"` = figura vista de cima (gira com a direção da peça); `"retrato"` = imagem recortada em
-círculo com o aro da facção. Chaves que já existem são ignoradas.
+círculo com o aro da facção. Chaves que já existem são ignoradas. Para ligar as duas versões da mesma figura
+(e fazê-las trocar com o Estilo dos tokens), use prefixos `xt_`/`xr_` iguais no resto da chave ou `"pair": "outra_chave"`.

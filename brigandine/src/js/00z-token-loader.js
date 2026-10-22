@@ -56,7 +56,7 @@ function getUnitTokenImage(unitOrSculpt, customDataUrl = null, options = {}) {
     SVG_IMAGE_CACHE[key] = img;
     return img;
   }
-  const sculpt = typeof unitOrSculpt === 'string' ? unitOrSculpt : unitOrSculpt.sculpt;
+  const sculpt = effectiveTokenKey(typeof unitOrSculpt === 'string' ? unitOrSculpt : unitOrSculpt.sculpt);
   if (isExtraToken(sculpt)) {
     // extras não dependem do estilo; o retrato usa o aro da facção da peça
     const faction = options.faction || EXTRA_TOKENS[sculpt].faction;
@@ -96,6 +96,7 @@ function getTokenPreviewHTML(sculptKey, customDataUrl = null, options = {}) {
   if (customDataUrl) {
     return uniquifySvgIds(buildCustomTokenSVG(customDataUrl, { faction: 'hero', framed: true, ...options }));
   }
+  sculptKey = effectiveTokenKey(sculptKey);
   if (isExtraToken(sculptKey)) return uniquifySvgIds(extraTokenSVG(sculptKey, options.faction));
   const svgFn = SCULPT_SVGS[sculptKey] || SCULPT_SVGS.guerreiro;
   return uniquifySvgIds(svgFn());

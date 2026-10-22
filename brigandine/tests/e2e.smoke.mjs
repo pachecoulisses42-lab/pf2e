@@ -357,18 +357,23 @@ await check('tokens extras: galeria troca o token da peça, desenha no tabuleiro
     const afterClick = u.sculpt;
     const active = document.querySelector('#tokenPicker .token-pick.active')?.title;
     const selectVal = document.getElementById('inspTokenSelect').value;
-    // vista de cima: a arte gira; retrato não
+    // o par acompanha o estilo: chibi mostra o retrato (não gira), vista de cima mostra a figura de cima (gira)
+    chooseTokenStyle('chibi');
     const rotRetrato = tokenArtRotates(u);
-    changeSelectedUnitToken('vt_lobo_alfa');
+    const chibiSrc = getUnitTokenImage(u.sculpt, null, customTokenOptions(u)).src.slice(0, 20);
+    chooseTokenStyle('topo');
     const rotTopo = tokenArtRotates(u);
+    const topoIsRaw = getUnitTokenImage(u.sculpt, null, customTokenOptions(u)).src === EXTRA_TOKENS.ct_samurai.src;
+    chooseTokenStyle('chibi');
+    changeSelectedUnitToken('vt_lobo_alfa');
     const img = getUnitTokenImage(u.sculpt, null, customTokenOptions(u));
     await new Promise(res => (img.complete && img.naturalWidth) ? res() : (img.onload = res, img.onerror = res));
     const payload = JSON.parse(JSON.stringify({ grid: STATE.grid, terrainMap: STATE.terrainMap, units: STATE.units, templates: UNIT_TEMPLATES, round: 1 }));
     applyLoadedPayload(payload);
-    return { afterClick, active, selectVal, rotRetrato, rotTopo, w: img.naturalWidth, kept: STATE.units[0].sculpt,
+    return { afterClick, active, selectVal, rotRetrato, rotTopo, topoIsRaw, chibiSvg: chibiSrc.startsWith('data:image/svg'), loaded: img.naturalWidth > 0, kept: STATE.units[0].sculpt,
       groups: document.querySelectorAll('#inspTokenSelect optgroup').length, extras: Object.keys(EXTRA_TOKENS).length };
   });
-  assert.deepEqual(r, { afterClick: 'cr_samurai', active: 'Samurai', selectVal: 'cr_samurai', rotRetrato: false, rotTopo: true, w: 256, kept: 'vt_lobo_alfa', groups: 5, extras: 90 });
+  assert.deepEqual(r, { afterClick: 'cr_samurai', active: 'Samurai', selectVal: 'cr_samurai', rotRetrato: false, rotTopo: true, topoIsRaw: true, chibiSvg: true, loaded: true, kept: 'vt_lobo_alfa', groups: 5, extras: 90 });
   await page.evaluate(() => { changeSelectedUnitToken('guerreiro'); document.getElementById('tokenPickerDetails').open = false; });
 });
 
