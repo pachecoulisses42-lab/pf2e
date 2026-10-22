@@ -539,6 +539,20 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
   .scene-chip .dirty-dot { position: absolute; top: 4px; right: 4px; }
 }
 
+/* Campanhas (pastas) na janela de cenas */
+.campaign-bar { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: thin; }
+.camp-chip { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; padding: 6px 10px; border: 0; border-radius: 999px; background: var(--ink-900); box-shadow: inset 0 0 0 1px var(--line); color: var(--text-2); font: inherit; font-size: var(--text-xs); cursor: pointer; max-width: 220px; }
+.camp-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.camp-chip b { font-size: var(--text-2xs); background: var(--ink-950); border-radius: 999px; padding: 0 6px; color: var(--text-3); }
+.camp-chip.active { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.camp-chip.camp-new { box-shadow: inset 0 0 0 1px var(--line-strong); border: 1px dashed transparent; }
+.campaign-header { display: flex; flex-direction: column; gap: 6px; padding: var(--s-2); border-radius: var(--r-md); background: var(--ink-900); box-shadow: inset 0 0 0 1px var(--line); }
+.camp-head-row { display: flex; align-items: center; gap: 4px; }
+.camp-head-row input { flex: 1; min-width: 0; }
+.scene-camp { display: inline-flex; align-items: center; gap: 4px; }
+.scene-camp select { font-size: var(--text-2xs); padding: 1px 24px 1px 6px; height: auto; max-width: 190px; background-position: right 4px center; }
+.scene-camp .icon { width: 14px; height: 14px; }
+
 /* --- layout.css --- */
 /* ==========================================================================
    Brigandine DS — Layout do app (shell, painéis, HUD)

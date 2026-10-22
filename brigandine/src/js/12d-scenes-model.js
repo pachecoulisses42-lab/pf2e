@@ -61,11 +61,12 @@ function newSceneId() {
   return `sc_${Date.now().toString(36)}_${Math.floor(Math.random() * 1e6).toString(36)}`;
 }
 
-/** Cena nova a partir de um tabuleiro. */
-function makeScene({ name, notes = '', board, order = 0, thumb = '', now = Date.now() }) {
+/** Cena nova a partir de um tabuleiro. campaignId null = "Sem campanha". */
+function makeScene({ name, notes = '', board, order = 0, thumb = '', campaignId = null, now = Date.now() }) {
   return {
     id: newSceneId(), version: SCENE_VERSION,
     name: cleanText(name) || 'Cena', notes: cleanText(notes),
+    campaignId: campaignId || null,
     order, createdAt: now, updatedAt: now, thumb,
     stats: sceneStats(board),
     snapshot: board, progress: null
@@ -110,6 +111,7 @@ function normalizeImportedScene(raw) {
     version: SCENE_VERSION,
     name: cleanText(raw.name) || 'Cena importada',
     notes: cleanText(raw.notes),
+    campaignId: typeof raw.campaignId === 'string' && /^cp_[\w]+$/.test(raw.campaignId) ? raw.campaignId : null,
     order: Number.isFinite(raw.order) ? raw.order : 0,
     createdAt: Number.isFinite(raw.createdAt) ? raw.createdAt : now,
     updatedAt: Number.isFinite(raw.updatedAt) ? raw.updatedAt : now,
@@ -120,20 +122,88 @@ function normalizeImportedScene(raw) {
   };
 }
 
-/** Arquivo de campanha: todas as cenas + modelos do usuário. */
-function buildCampaignFile(scenes, library) {
-  return { kind: 'brigandine-campaign', version: SCENE_VERSION, exportedAt: new Date().toISOString(), scenes, library: library || [] };
+/* ---------------- Campanhas (pastas) ---------------- */
+
+/** Filtros especiais da barra de pastas. */
+const CAMPAIGN_ALL = 'all';
+const CAMPAIGN_NONE = 'none';
+
+function newCampaignId() {
+  return `cp_${Date.now().toString(36)}_${Math.floor(Math.random() * 1e6).toString(36)}`;
 }
 
-/** Lê arquivo de campanha, de cena única ou de tabuleiro. Devolve { scenes, library }. */
+function makeCampaign({ name, notes = '', order = 0, now = Date.now() }) {
+  return { id: newCampaignId(), name: cleanText(name) || 'Campanha', notes: cleanText(notes), order, createdAt: now, updatedAt: now };
+}
+
+function normalizeCampaign(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const now = Date.now();
+  return {
+    id: typeof raw.id === 'string' && /^cp_[\w]+$/.test(raw.id) ? raw.id : newCampaignId(),
+    name: cleanText(raw.name) || 'Campanha',
+    notes: cleanText(raw.notes),
+    order: Number.isFinite(raw.order) ? raw.order : 0,
+    createdAt: Number.isFinite(raw.createdAt) ? raw.createdAt : now,
+    updatedAt: Number.isFinite(raw.updatedAt) ? raw.updatedAt : now
+  };
+}
+
+function sortCampaigns(list) {
+  return [...list].sort((a, b) => (a.order - b.order) || (a.createdAt - b.createdAt));
+}
+
+/** Campanha da cena, tratando ids que não existem mais como "Sem campanha". */
+function sceneCampaignId(meta, campaigns) {
+  return meta.campaignId && campaigns.some(c => c.id === meta.campaignId) ? meta.campaignId : null;
+}
+
+/** Cenas de uma pasta: 'all' (todas), 'none' (sem campanha) ou o id da campanha. */
+function scenesInFolder(metas, folder, campaigns) {
+  if (folder === CAMPAIGN_ALL) return sortScenes(metas);
+  const want = folder === CAMPAIGN_NONE ? null : folder;
+  return sortScenes(metas.filter(m => sceneCampaignId(m, campaigns) === want));
+}
+
+/** Arquivo de campanhas: cenas + campanhas + modelos do usuário. */
+function buildCampaignFile(scenes, library, campaigns = []) {
+  return { kind: 'brigandine-campaign', version: SCENE_VERSION, exportedAt: new Date().toISOString(), campaigns, scenes, library: library || [] };
+}
+
+/** Lê arquivo de campanha, de cena única ou de tabuleiro. Devolve { scenes, library, campaigns }. */
 function parseScenesFile(data) {
   if (data && data.kind === 'brigandine-campaign' && Array.isArray(data.scenes)) {
-    return { scenes: data.scenes.map(normalizeImportedScene).filter(Boolean), library: Array.isArray(data.library) ? data.library : [] };
+    return {
+      scenes: data.scenes.map(normalizeImportedScene).filter(Boolean),
+      library: Array.isArray(data.library) ? data.library : [],
+      campaigns: (Array.isArray(data.campaigns) ? data.campaigns : []).map(normalizeCampaign).filter(Boolean)
+    };
   }
   if (data && data.kind === 'brigandine-scene') {
     const s = normalizeImportedScene(data.scene);
-    return { scenes: s ? [s] : [], library: [] };
+    return { scenes: s ? [s] : [], library: [], campaigns: [] };
   }
   const s = normalizeImportedScene(data);
-  return { scenes: s ? [s] : [], library: Array.isArray(data?.templates) ? data.templates : [] };
+  return { scenes: s ? [s] : [], library: Array.isArray(data?.templates) ? data.templates : [], campaigns: [] };
+}
+
+/**
+ * Prepara cenas e campanhas importadas para entrar ao lado das existentes: campanhas com id já usado
+ * ganham id novo (e as cenas acompanham); nomes repetidos ganham sufixo; cenas cuja campanha não veio
+ * no arquivo caem em `fallbackCampaignId`.
+ */
+function remapImport({ scenes, campaigns }, existingCampaigns, fallbackCampaignId = null) {
+  const idMap = new Map();
+  const names = existingCampaigns.map(c => c.name);
+  const outCampaigns = campaigns.map((c, i) => {
+    const id = existingCampaigns.some(e => e.id === c.id) ? newCampaignId() : c.id;
+    idMap.set(c.id, id);
+    const name = uniqueSceneName(c.name, names);
+    names.push(name);
+    return { ...c, id, name, order: existingCampaigns.length + i };
+  });
+  // cena de campanha que já existe aqui (ex.: exportou uma cena e importou de volta) continua nela
+  const keep = (id) => (id && existingCampaigns.some(e => e.id === id) ? id : null);
+  const outScenes = scenes.map(s => ({ ...s, campaignId: idMap.get(s.campaignId) || keep(s.campaignId) || fallbackCampaignId || null }));
+  return { scenes: outScenes, campaigns: outCampaigns };
 }

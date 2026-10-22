@@ -147,6 +147,69 @@ await check('exportar todas e importar: ids e nomes repetidos viram novos; model
   assert.equal(r.lib, true);
 });
 
+await check('campanhas: criar pasta, cena nova entra na pasta aberta, mover cena, busca dentro da pasta, ordem por pasta', async () => {
+  await page.evaluate(() => openScenesDialog());
+  await page.click('.camp-chip.camp-new');
+  await page.waitForFunction(() => SCENES.campaigns.length === 1 && SCENES.folder === SCENES.campaigns[0].id);
+  const nameInput = page.locator('#campaignNameInput');
+  await nameInput.fill('Abomination Vaults');
+  await nameInput.dispatchEvent('change');
+  await page.waitForFunction(() => SCENES.campaigns[0].name === 'Abomination Vaults');
+  const campId = await page.evaluate(() => SCENES.campaigns[0].id);
+  // pasta vazia → cena nova entra nela
+  assert.match(await page.locator('#scenesList').innerText(), /Pasta vazia/);
+  await page.evaluate(() => { markBoardSaved(); });
+  await page.click('button:has-text("Nova a partir do tabuleiro")');
+  await page.waitForFunction((id) => SCENES.metas.filter(m => m.campaignId === id).length === 1, campId);
+  // move duas cenas existentes para a campanha pelo seletor do cartão (na pasta Todas)
+  await page.click('.camp-chip:has-text("Todas")');
+  for (const name of ['Emboscada na ponte', 'Emboscada na ponte (cópia)']) {
+    const id = await page.evaluate((n) => SCENES.metas.find(m => m.name === n).id, name);
+    await page.selectOption(`.scene-card[data-id="${id}"] .scene-camp select`, campId);
+    await page.waitForFunction(([sid, cid]) => SCENES.metas.find(m => m.id === sid).campaignId === cid, [id, campId]);
+  }
+  await page.click(`.camp-chip:has-text("Abomination Vaults")`);
+  const inFolder = await page.locator('.scene-card').count();
+  assert.equal(inFolder, 3, 'a pasta mostra só as cenas dela');
+  assert.match(await page.locator('.camp-chip.active').innerText(), /Abomination Vaults\s*3/);
+  // busca dentro da pasta
+  await page.fill('#scenesSearch', 'cópia');
+  assert.equal(await page.locator('.scene-card').count(), 1);
+  await page.fill('#scenesSearch', '');
+  // reordenar dentro da pasta
+  const before = await page.evaluate((cid) => scenesInFolder(SCENES.metas, cid, SCENES.campaigns).map(m => m.name), campId);
+  await page.locator('.scene-card').nth(2).locator('button[title="Subir"]').click();
+  await page.waitForFunction(([cid, b]) => scenesInFolder(SCENES.metas, cid, SCENES.campaigns)[1].name === b[2], [campId, before]);
+  // em Todas o reordenar fica desligado e a busca acha pelo nome da campanha
+  await page.click('.camp-chip:has-text("Todas")');
+  assert.equal(await page.locator('.scene-card button[title="Subir"]:not([disabled])').count(), 0);
+  await page.fill('#scenesSearch', 'abomination');
+  assert.equal(await page.locator('.scene-card').count(), 3);
+  await page.fill('#scenesSearch', '');
+});
+
+await check('campanhas: exportar/importar mantém as pastas; excluir campanha move as cenas para Sem campanha', async () => {
+  const r = await page.evaluate(async () => {
+    const camp = SCENES.campaigns[0];
+    const scenes = [];
+    for (const m of scenesInFolder(SCENES.metas, camp.id, SCENES.campaigns)) scenes.push(await SCENES.store.get(m.id));
+    const file = JSON.parse(JSON.stringify(buildCampaignFile(scenes, [], [camp])));
+    setSceneFolder(CAMPAIGN_ALL);
+    await importScenesData(file);
+    const copy = SCENES.campaigns.find(c => c.name === 'Abomination Vaults (2)');
+    return { camps: SCENES.campaigns.length, copyScenes: copy ? scenesInFolder(SCENES.metas, copy.id, SCENES.campaigns).length : 0, copyId: copy && copy.id };
+  });
+  assert.deepEqual([r.camps, r.copyScenes], [2, 3]);
+  await page.evaluate((id) => setSceneFolder(id), r.copyId);
+  await page.click('#campaignHeader button[title="Excluir campanha"]');
+  await answer('Excluir e mover as cenas para Sem campanha');
+  await page.waitForFunction(() => SCENES.campaigns.length === 1);
+  const after = await page.evaluate(() => ({ none: scenesInFolder(SCENES.metas, CAMPAIGN_NONE, SCENES.campaigns).length, total: SCENES.metas.length, folder: SCENES.folder }));
+  assert.equal(after.folder, 'all');
+  assert.ok(after.none >= 3, `cenas foram para Sem campanha (${after.none})`);
+  await page.evaluate(() => closeScenesDialog());
+});
+
 await check('recarregar a página: cenas e modelos do usuário continuam lá; mapa de fundo volta a aparecer', async () => {
   const id = await page.evaluate(async () => {
     // mapa de fundo pequeno gerado na hora, salvo na cena aberta
@@ -157,14 +220,14 @@ await check('recarregar a página: cenas e modelos do usuário continuam lá; ma
     return SCENES.activeId;
   });
   await page.reload();
-  await page.waitForFunction(() => typeof SCENES !== 'undefined' && SCENES.store && SCENES.metas.length === 4);
+  await page.waitForFunction(() => typeof SCENES !== 'undefined' && SCENES.store && SCENES.metas.length >= 4);
   const r = await page.evaluate(async (id) => {
     const lib = UNIT_TEMPLATES.some(t => t.id === 't_meu_modelo');
     await openScene(id, 'open');
     await new Promise(r => setTimeout(r, 200));
-    return { lib, bg: !!bgImageObj, active: SCENES.activeId === id };
+    return { lib, bg: !!bgImageObj, active: SCENES.activeId === id, camps: SCENES.campaigns.map(c => c.name), folder: SCENES.folder };
   }, id);
-  assert.deepEqual(r, { lib: true, bg: true, active: true });
+  assert.deepEqual(r, { lib: true, bg: true, active: true, camps: ['Abomination Vaults'], folder: 'all' });
 });
 
 await check('sem erros de JavaScript', async () => { assert.deepEqual(errors, []); });

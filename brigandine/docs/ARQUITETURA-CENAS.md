@@ -126,9 +126,25 @@ memória segura a sessão e a interface avisa para exportar.
 | Janela modal de cenas no cabeçalho | Mais um menu na barra lateral | Cenas valem para montagem **e** combate; a barra lateral muda conforme o modo e já tem a regra de um menu por vez. |
 | Miniatura JPEG 240 px | Sem miniatura | Achar a cena certa na mesa é visual; ~15 KB por cena. |
 
+## 6b. Campanhas (pastas)
+
+- `Campaign = { id: 'cp_…', name, notes, order, createdAt, updatedAt }`, guardadas no `kv` como
+  `campaigns` (lista pequena, lida inteira ao abrir a janela).
+- Cada cena ganha `campaignId` (ou `null` = *Sem campanha*). Mover uma cena de pasta é só trocar esse campo
+  nos metadados — o tabuleiro não é regravado.
+- A janela mostra uma barra de pastas: **Todas**, **Sem campanha** e cada campanha, com contagem. Dentro da
+  pasta escolhida vale a lista única de antes (ordem ↑↓, busca por nome/anotação). Em *Todas* a busca
+  procura em tudo e o cartão mostra a campanha; reordenar fica desligado ali.
+- Cena nova entra na pasta aberta. Excluir campanha pergunta: mover as cenas para *Sem campanha* ou
+  excluí-las junto.
+- Exportar campanha = arquivo com a campanha e as cenas dela; o arquivo de "todas" leva também a lista de
+  campanhas. Importar recria as campanhas (ids repetidos trocados) e liga as cenas a elas.
+- Trade-off: pastas de um só nível. Subpastas (arcos dentro da campanha) ficariam para depois; a busca e
+  as anotações cobrem bem dezenas de cenas por campanha.
+
 ## 7. O que revisar se crescer
 
-- Pastas/campanhas (agrupar cenas por aventura) — hoje há uma lista ordenada com busca por nome.
+- Subpastas dentro da campanha (arcos/capítulos) e etiquetas.
 - Compartilhar cenas entre aparelhos (precisa de nuvem ou arquivo sincronizado).
 - Guardar o registro de combate dentro do `progress`.
 - Desfazer/histórico de versões da cena.

@@ -101,3 +101,30 @@ test('repositório de reserva (localStorage/memória): salvar, listar, abrir, or
   assert.equal((await store.listMeta()).length, 0);
   assert.equal(await store.get(scene.id), null);
 });
+
+test('campanhas: pastas, filtro, cena sem campanha e importação com ids remapeados', () => {
+  ctx.TEST_CAMPS = [{ id: 'cp_a', name: 'Abomination Vaults', order: 0, createdAt: 1 }, { id: 'cp_b', name: 'Kingmaker', order: 1, createdAt: 2 }];
+  ctx.TEST_METAS = [
+    { id: 's1', name: 'Porão', campaignId: 'cp_a', order: 1, createdAt: 1 },
+    { id: 's2', name: 'Farol', campaignId: 'cp_a', order: 0, createdAt: 2 },
+    { id: 's3', name: 'Ponte', campaignId: 'cp_b', order: 0, createdAt: 3 },
+    { id: 's4', name: 'Avulsa', campaignId: null, order: 0, createdAt: 4 },
+    { id: 's5', name: 'Órfã', campaignId: 'cp_apagada', order: 1, createdAt: 5 }
+  ];
+  const ids = (code) => plain(S(code)).map(m => m.id);
+  assert.deepEqual(ids("scenesInFolder(TEST_METAS, 'cp_a', TEST_CAMPS)"), ['s2', 's1'], 'ordem dentro da pasta');
+  assert.deepEqual(ids("scenesInFolder(TEST_METAS, CAMPAIGN_NONE, TEST_CAMPS)"), ['s4', 's5'], 'campanha apagada cai em Sem campanha');
+  assert.equal(ids("scenesInFolder(TEST_METAS, CAMPAIGN_ALL, TEST_CAMPS)").length, 5);
+  const c = plain(S("makeCampaign({ name: '<i>Nova</i>', order: 2 })"));
+  assert.ok(c.id.startsWith('cp_') && !/[<>]/.test(c.name));
+  ctx.TEST_IMPORT = { campaigns: [{ id: 'cp_a', name: 'Abomination Vaults' }], scenes: [{ id: 'x', campaignId: 'cp_a' }, { id: 'y', campaignId: null }] };
+  const r = plain(S("remapImport(TEST_IMPORT, TEST_CAMPS, 'cp_b')"));
+  assert.notEqual(r.campaigns[0].id, 'cp_a', 'id repetido ganha id novo');
+  assert.equal(r.campaigns[0].name, 'Abomination Vaults (2)');
+  assert.equal(r.scenes[0].campaignId, r.campaigns[0].id, 'a cena acompanha a campanha remapeada');
+  assert.equal(r.scenes[1].campaignId, 'cp_b', 'cena sem campanha entra na pasta aberta');
+  ctx.TEST_FILE = { kind: 'brigandine-campaign', campaigns: [{ id: 'cp_z', name: 'Z' }, null], scenes: [plain(S("makeScene({ name: 'A', board: captureBoard(TEST_STATE), campaignId: 'cp_z' })"))] };
+  const parsed = plain(S('parseScenesFile(TEST_FILE)'));
+  assert.equal(parsed.campaigns.length, 1);
+  assert.equal(parsed.scenes[0].campaignId, 'cp_z');
+});

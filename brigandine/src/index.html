@@ -64,8 +64,10 @@
     <button class="btn" onclick="createSceneFromBoard(false)"><svg class="icon"><use href="#i-copy"/></svg>Nova a partir do tabuleiro</button>
     <button class="btn" onclick="createSceneFromBoard(true)"><svg class="icon"><use href="#i-plus"/></svg>Nova em branco</button>
   </div>
+  <nav id="campaignBar" class="campaign-bar" aria-label="Campanhas"></nav>
+  <div id="campaignHeader" class="campaign-header hidden"></div>
   <div class="scenes-toolbar">
-    <input type="text" placeholder="Buscar cena por nome ou anotação" aria-label="Buscar cena" oninput="setSceneQuery(this.value)">
+    <input id="scenesSearch" type="text" placeholder="Buscar cena por nome ou anotação" aria-label="Buscar cena" oninput="setSceneQuery(this.value)">
     <button class="btn btn-ghost" onclick="exportAllScenes()"><svg class="icon"><use href="#i-download"/></svg>Exportar todas</button>
     <label class="btn btn-ghost"><svg class="icon"><use href="#i-upload"/></svg>Importar<input type="file" accept=".json,application/json" class="sr-only" onchange="importScenesFile(event)"></label>
   </div>

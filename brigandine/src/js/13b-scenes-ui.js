@@ -12,7 +12,9 @@ const SCENES = {
   savedPrint: null,  // impressão digital do último salvamento/abertura
   builtinIds: null,  // ids dos modelos que vêm com o app (não vão para a biblioteca)
   libraryPrint: null,
-  query: ''
+  query: '',
+  campaigns: [],     // pastas: { id, name, notes, order }
+  folder: 'all'      // pasta aberta: 'all', 'none' ou id da campanha
 };
 
 /* ---------------- Início ---------------- */
@@ -24,6 +26,9 @@ async function initScenes() {
     const lib = await SCENES.store.getKV('library');
     if (Array.isArray(lib)) mergeLibrary(lib);
     SCENES.metas = await SCENES.store.listMeta();
+    SCENES.campaigns = ((await SCENES.store.getKV('campaigns')) || []).map(normalizeCampaign).filter(Boolean);
+    const lastFolder = readPrefs().sceneFolder;
+    if (lastFolder === CAMPAIGN_NONE || SCENES.campaigns.some(c => c.id === lastFolder)) SCENES.folder = lastFolder;
   } catch (e) {
     addLog(`⚠️ Não foi possível ler as cenas salvas: ${escapeHtml(e.message)}.`);
   }
@@ -106,6 +111,128 @@ function scheduleSceneHeaderUpdate() {
   sceneHeaderTimer = setTimeout(updateSceneHeader, 700);
 }
 
+/* ---------------- Campanhas (pastas) ---------------- */
+
+function campaignById(id) {
+  return SCENES.campaigns.find(c => c.id === id) || null;
+}
+
+/** Campanha onde entram as cenas novas: a pasta aberta, se for uma campanha. */
+function folderCampaignId() {
+  return campaignById(SCENES.folder) ? SCENES.folder : null;
+}
+
+async function saveCampaigns() {
+  try { await SCENES.store.setKV('campaigns', SCENES.campaigns); }
+  catch (e) { addLog(`⚠️ Não foi possível guardar as campanhas: ${escapeHtml(e.message)}.`); }
+}
+
+function setSceneFolder(folder) {
+  SCENES.folder = folder === CAMPAIGN_NONE || campaignById(folder) ? folder : CAMPAIGN_ALL;
+  SCENES.query = '';
+  const search = document.getElementById('scenesSearch');
+  if (search) search.value = '';
+  savePrefs({ sceneFolder: SCENES.folder });
+  renderScenesDialog();
+}
+
+async function createCampaign() {
+  const c = makeCampaign({ name: uniqueSceneName('Nova campanha', SCENES.campaigns.map(x => x.name)), order: SCENES.campaigns.length });
+  SCENES.campaigns.push(c);
+  await saveCampaigns();
+  SCENES.folder = c.id;
+  savePrefs({ sceneFolder: c.id });
+  renderScenesDialog();
+  const input = document.getElementById('campaignNameInput');
+  if (input) { input.focus(); input.select(); }
+  return c.id;
+}
+
+function updateCampaign(id, patch) {
+  return queueSceneWrite(async () => {
+    const c = campaignById(id);
+    if (!c) return;
+    if ('name' in patch) c.name = uniqueSceneName(patch.name, SCENES.campaigns.filter(x => x.id !== id).map(x => x.name));
+    if ('notes' in patch) c.notes = cleanText(patch.notes);
+    c.updatedAt = Date.now();
+    await saveCampaigns();
+    updateSceneHeader();
+    // só a barra muda (nome no chip); o campo que a pessoa está editando fica como está
+    if ('name' in patch) {
+      const input = document.getElementById('campaignNameInput');
+      if (input && input.value !== c.name) input.value = c.name;
+      renderCampaignChips();
+    }
+  });
+}
+
+async function moveCampaign(id, dir) {
+  const list = sortCampaigns(SCENES.campaigns);
+  const i = list.findIndex(c => c.id === id), j = i + dir;
+  if (i < 0 || j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  SCENES.campaigns = list.map((c, k) => ({ ...c, order: k }));
+  await saveCampaigns();
+  renderScenesDialog();
+}
+
+/** Excluir campanha: as cenas vão para "Sem campanha" ou são excluídas junto. */
+async function deleteCampaign(id) {
+  const c = campaignById(id);
+  if (!c) return;
+  const inside = SCENES.metas.filter(m => m.campaignId === id);
+  const choice = await askChoice(
+    `Excluir a campanha <strong>${escapeHtml(c.name)}</strong>${inside.length ? ` (${inside.length} cena${inside.length > 1 ? 's' : ''})` : ''}?`,
+    [
+      ...(inside.length ? [{ label: 'Excluir e mover as cenas para Sem campanha', value: 'move', kind: 'btn-primary' },
+        { label: 'Excluir a campanha e as cenas', value: 'all', kind: 'btn-danger' }]
+        : [{ label: 'Excluir', value: 'move', kind: 'btn-danger' }]),
+      { label: 'Cancelar', value: null, kind: 'btn-ghost' }
+    ]);
+  if (!choice) return;
+  if (choice === 'all') {
+    for (const m of inside) await SCENES.store.remove(m.id);
+    SCENES.metas = SCENES.metas.filter(m => m.campaignId !== id);
+    if (inside.some(m => m.id === SCENES.activeId)) SCENES.activeId = null;
+  } else if (inside.length) {
+    const base = scenesInFolder(SCENES.metas, CAMPAIGN_NONE, SCENES.campaigns).length;
+    const moved = inside.map((m, k) => ({ ...m, campaignId: null, order: base + k }));
+    await SCENES.store.putMetas(moved);
+    SCENES.metas = SCENES.metas.map(m => moved.find(x => x.id === m.id) || m);
+  }
+  SCENES.campaigns = SCENES.campaigns.filter(x => x.id !== id);
+  await saveCampaigns();
+  addLog(`🗂️ Campanha <strong>${escapeHtml(c.name)}</strong> excluída${choice === 'all' ? ' com as cenas' : ''}.`);
+  setSceneFolder(CAMPAIGN_ALL);
+  updateSceneHeader();
+}
+
+/** Muda a cena de pasta (só os metadados; o tabuleiro não é regravado). */
+function setSceneCampaign(sceneId, campaignId) {
+  return queueSceneWrite(() => setSceneCampaignNow(sceneId, campaignId));
+}
+
+async function setSceneCampaignNow(sceneId, campaignId) {
+  const meta = SCENES.metas.find(m => m.id === sceneId);
+  if (!meta) return;
+  const target = campaignById(campaignId) ? campaignId : null;
+  const order = scenesInFolder(SCENES.metas, target || CAMPAIGN_NONE, SCENES.campaigns).length;
+  const updated = { ...meta, campaignId: target, order, updatedAt: Date.now() };
+  try { await SCENES.store.putMetas([updated]); } catch (e) { addLog(`⚠️ ${escapeHtml(e.message)}`); return; }
+  SCENES.metas = SCENES.metas.map(m => (m.id === sceneId ? updated : m));
+  updateSceneHeader();
+  renderScenesDialog();
+}
+
+async function exportCampaign(id) {
+  const c = campaignById(id);
+  if (!c) return;
+  const scenes = [];
+  for (const m of scenesInFolder(SCENES.metas, id, SCENES.campaigns)) { const s = await SCENES.store.get(m.id); if (s) scenes.push(s); }
+  downloadJSON(buildCampaignFile(scenes, customTemplates(), [c]), `brigandine_campanha_${fileSafe(c.name)}.json`);
+  addLog(`📦 Campanha <strong>${escapeHtml(c.name)}</strong> exportada (${scenes.length} cena(s)).`);
+}
+
 function activeMeta() {
   return SCENES.metas.find(m => m.id === SCENES.activeId) || null;
 }
@@ -117,8 +244,9 @@ function updateSceneHeader() {
   const dirty = isBoardDirty();
   label.textContent = meta ? meta.name : 'Sem cena';
   document.getElementById('sceneHeaderBtn').classList.toggle('dirty', dirty);
+  const camp = meta && campaignById(meta.campaignId);
   document.getElementById('sceneHeaderBtn').title = meta
-    ? `Cena aberta: ${meta.name}${dirty ? ' (alterações não salvas)' : ''}`
+    ? `Cena aberta: ${camp ? `${camp.name} › ` : ''}${meta.name}${dirty ? ' (alterações não salvas)' : ''}`
     : 'Cenas de combate';
 }
 
@@ -232,7 +360,9 @@ async function createSceneFromBoard(blank = false) {
     syncInspectorUI();
   }
   const name = uniqueSceneName(blank ? 'Cena em branco' : `Cena ${SCENES.metas.length + 1}`, SCENES.metas.map(m => m.name));
-  const scene = makeScene({ name, board: captureBoard(STATE), order: SCENES.metas.length, thumb: sceneThumbnail() });
+  const campaignId = folderCampaignId();
+  const order = scenesInFolder(SCENES.metas, campaignId || CAMPAIGN_NONE, SCENES.campaigns).length;
+  const scene = makeScene({ name, board: captureBoard(STATE), order, thumb: sceneThumbnail(), campaignId });
   if (STATE.mode === 'combat') scene.progress = captureBoard(STATE, true);
   if (!(await persistScene(scene))) return null;
   SCENES.activeId = scene.id;
@@ -311,15 +441,26 @@ async function afterCombatInScene() {
 
 /* ---------------- Organizar ---------------- */
 
-async function updateSceneMeta(id, patch) {
-  const scene = await SCENES.store.get(id);
-  if (!scene) return;
-  if ('name' in patch) scene.name = uniqueSceneName(patch.name, SCENES.metas.filter(m => m.id !== id).map(m => m.name));
-  if ('notes' in patch) scene.notes = cleanText(patch.notes);
-  scene.updatedAt = Date.now();
-  await persistScene(scene);
-  updateSceneHeader();
-  renderScenesDialog();
+let sceneWriteQueue = Promise.resolve();
+/** Gravações de metadados uma de cada vez: duas edições seguidas não se sobrescrevem. */
+function queueSceneWrite(fn) {
+  sceneWriteQueue = sceneWriteQueue.then(fn, fn);
+  return sceneWriteQueue;
+}
+
+/** Nome/anotações da cena. Não redesenha a lista (não atrapalha quem está digitando no cartão). */
+function updateSceneMeta(id, patch) {
+  return queueSceneWrite(async () => {
+    const scene = await SCENES.store.get(id);
+    if (!scene) return;
+    if ('name' in patch) scene.name = uniqueSceneName(patch.name, SCENES.metas.filter(m => m.id !== id).map(m => m.name));
+    if ('notes' in patch) scene.notes = cleanText(patch.notes);
+    scene.updatedAt = Date.now();
+    await persistScene(scene);
+    const input = document.querySelector(`.scene-card[data-id="${id}"] .scene-name`);
+    if (input && 'name' in patch && input.value !== scene.name) input.value = scene.name; // nome repetido ganhou sufixo
+    updateSceneHeader();
+  });
 }
 
 async function duplicateScene(id) {
@@ -327,14 +468,26 @@ async function duplicateScene(id) {
   if (!scene) return;
   const copy = { ...JSON.parse(JSON.stringify(scene)), id: newSceneId(), progress: null,
     name: uniqueSceneName(`${scene.name} (cópia)`, SCENES.metas.map(m => m.name)),
-    order: SCENES.metas.length, createdAt: Date.now(), updatedAt: Date.now() };
+    order: scenesInFolder(SCENES.metas, sceneCampaignId(scene, SCENES.campaigns) || CAMPAIGN_NONE, SCENES.campaigns).length,
+    createdAt: Date.now(), updatedAt: Date.now() };
   if (await persistScene(copy)) addLog(`⧉ Cena duplicada: <strong>${escapeHtml(copy.name)}</strong>.`);
   renderScenesDialog(copy.id);
 }
 
-async function moveSceneInList(id, dir) {
-  const metas = moveScene(SCENES.metas, id, dir);
-  try { await SCENES.store.putMetas(metas); SCENES.metas = metas; } catch (e) { addLog(`⚠️ ${escapeHtml(e.message)}`); }
+/** Sobe/desce a cena dentro da pasta aberta (cada pasta tem a própria ordem). */
+function moveSceneInList(id, dir) {
+  return queueSceneWrite(() => moveSceneInListNow(id, dir));
+}
+
+async function moveSceneInListNow(id, dir) {
+  const meta = SCENES.metas.find(m => m.id === id);
+  if (!meta) return;
+  const folder = sceneCampaignId(meta, SCENES.campaigns) || CAMPAIGN_NONE;
+  const moved = moveScene(scenesInFolder(SCENES.metas, folder, SCENES.campaigns), id, dir);
+  try {
+    await SCENES.store.putMetas(moved);
+    SCENES.metas = SCENES.metas.map(m => moved.find(x => x.id === m.id) || m);
+  } catch (e) { addLog(`⚠️ ${escapeHtml(e.message)}`); }
   renderScenesDialog();
 }
 
@@ -372,24 +525,27 @@ async function exportScene(id) {
 async function exportAllScenes() {
   const scenes = [];
   for (const m of sortScenes(SCENES.metas)) { const s = await SCENES.store.get(m.id); if (s) scenes.push(s); }
-  downloadJSON(buildCampaignFile(scenes, customTemplates()), 'brigandine_campanha.json');
-  addLog(`📦 ${scenes.length} cena(s) e ${customTemplates().length} modelo(s) exportados em <em>brigandine_campanha.json</em>.`);
+  downloadJSON(buildCampaignFile(scenes, customTemplates(), sortCampaigns(SCENES.campaigns)), 'brigandine_todas_as_cenas.json');
+  addLog(`📦 ${SCENES.campaigns.length} campanha(s), ${scenes.length} cena(s) e ${customTemplates().length} modelo(s) exportados em <em>brigandine_todas_as_cenas.json</em>.`);
 }
 
 /** Importa campanha, cena única ou tabuleiro comum como cena(s) novas (ids e nomes repetidos são trocados). */
 async function importScenesData(data) {
-  const { scenes, library } = parseScenesFile(data);
-  const libAdded = mergeLibrary(library);
+  const parsed = parseScenesFile(data);
+  const libAdded = mergeLibrary(parsed.library);
+  // campanhas do arquivo entram ao lado das existentes; cena sem campanha vai para a pasta aberta
+  const { scenes, campaigns } = remapImport(parsed, SCENES.campaigns, folderCampaignId());
+  if (campaigns.length) { SCENES.campaigns.push(...campaigns); await saveCampaigns(); }
   let added = 0;
   for (const s of scenes) {
     if (SCENES.metas.some(m => m.id === s.id)) s.id = newSceneId();
     s.name = uniqueSceneName(s.name, SCENES.metas.map(m => m.name));
-    s.order = SCENES.metas.length;
+    s.order = scenesInFolder(SCENES.metas, s.campaignId || CAMPAIGN_NONE, SCENES.campaigns).length;
     if (await persistScene(s)) added++;
   }
   if (libAdded) scheduleLibrarySave();
   addLog(added || libAdded
-    ? `📥 ${added} cena(s) importada(s)${libAdded ? ` e ${libAdded} modelo(s) na galeria` : ''}.`
+    ? `📥 ${added} cena(s) importada(s)${campaigns.length ? ` em ${campaigns.length} campanha(s) nova(s)` : ''}${libAdded ? ` e ${libAdded} modelo(s) na galeria` : ''}.`
     : '⚠️ O arquivo não tem cenas válidas.');
   renderScenesDialog();
   return added;
@@ -442,16 +598,30 @@ function renderScenesDialog(focusId = null) {
     : 'Salvar tabuleiro como cena nova';
   document.getElementById('scenesStorageInfo').textContent =
     { indexeddb: 'Guardadas neste navegador.', localstorage: 'Guardadas no armazenamento simples do navegador (≈5 MB).', memory: 'Atenção: só até fechar a página — exporte.' }[SCENES.store?.kind] || '';
+  renderCampaignBar();
   const q = normalizeSearchText(SCENES.query);
-  const metas = sortScenes(SCENES.metas).filter(m => !q || normalizeSearchText(`${m.name} ${m.notes}`).includes(q));
+  const inAll = SCENES.folder === CAMPAIGN_ALL;
+  const folderMetas = scenesInFolder(SCENES.metas, SCENES.folder, SCENES.campaigns);
+  // em "Todas": agrupa pela ordem das campanhas; dentro de cada pasta, a ordem da pasta
+  const campOrder = new Map(sortCampaigns(SCENES.campaigns).map((c, k) => [c.id, k]));
+  const rank = (m) => { const c = sceneCampaignId(m, SCENES.campaigns); return c ? campOrder.get(c) : -1; };
+  const ordered = inAll ? [...folderMetas].sort((a, b) => (rank(a) - rank(b)) || (a.order - b.order) || (a.createdAt - b.createdAt)) : folderMetas;
+  const metas = ordered.filter(m => !q || normalizeSearchText(`${m.name} ${m.notes} ${campaignById(m.campaignId)?.name || ''}`).includes(q));
   if (!SCENES.metas.length) {
     list.innerHTML = `<div class="empty"><svg class="icon"><use href="#i-folder"/></svg><strong>Nenhuma cena ainda</strong><span>Monte o tabuleiro e use <em>Salvar tabuleiro como cena nova</em>, ou comece uma <em>cena em branco</em>.</span></div>`;
     return;
   }
-  if (!metas.length) { list.innerHTML = '<p class="hint">Nenhuma cena com esse nome.</p>'; return; }
+  if (!folderMetas.length) {
+    list.innerHTML = `<div class="empty"><svg class="icon"><use href="#i-folder"/></svg><strong>Pasta vazia</strong><span>Cenas novas entram na pasta aberta. Para trazer uma cena existente, abra <em>Todas</em> e escolha a campanha no cartão dela.</span></div>`;
+    return;
+  }
+  if (!metas.length) { list.innerHTML = '<p class="hint">Nenhuma cena com esse nome nesta pasta.</p>'; return; }
+  const campaignOptions = (sel) => `<option value="">Sem campanha</option>${sortCampaigns(SCENES.campaigns).map(c =>
+    `<option value="${c.id}"${c.id === sel ? ' selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}`;
   list.innerHTML = metas.map((m, i) => {
     const isActive = m.id === SCENES.activeId;
     const st = m.stats || {};
+    const campId = sceneCampaignId(m, SCENES.campaigns);
     return `<article class="scene-card${isActive ? ' active' : ''}" data-id="${m.id}">
       <div class="scene-thumb">${m.thumb ? `<img src="${m.thumb}" alt="">` : '<svg class="icon"><use href="#i-hex"/></svg>'}</div>
       <div class="scene-body">
@@ -459,6 +629,7 @@ function renderScenesDialog(focusId = null) {
         <div class="scene-meta">
           <span>${st.heroes || 0} heróis · ${st.villains || 0} vilões · ${st.cols || 0}×${st.rows || 0}</span>
           <span>${formatSceneDate(m.updatedAt)}</span>
+          <label class="scene-camp"><svg class="icon"><use href="#i-folder"/></svg><select aria-label="Campanha da cena" onchange="setSceneCampaign('${m.id}', this.value)">${campaignOptions(campId)}</select></label>
           ${isActive ? `<span class="badge badge-accent">Aberta${dirty ? ' · não salva' : ''}</span>` : ''}
           ${m.hasProgress ? '<span class="badge">Combate em andamento</span>' : ''}
         </div>
@@ -468,8 +639,8 @@ function renderScenesDialog(focusId = null) {
           <button class="btn btn-sm btn-primary" onclick="openScene('${m.id}', 'start')"><svg class="icon"><use href="#i-swords"/></svg>Iniciar combate</button>
           ${m.hasProgress ? `<button class="btn btn-sm" onclick="openScene('${m.id}', 'resume')"><svg class="icon"><use href="#i-play"/></svg>Continuar</button>` : ''}
           <span class="grow"></span>
-          <button class="btn btn-sm btn-ghost btn-icon" title="Subir" aria-label="Subir" ${i === 0 || q ? 'disabled' : ''} onclick="moveSceneInList('${m.id}', -1)"><svg class="icon"><use href="#i-chevron-up"/></svg></button>
-          <button class="btn btn-sm btn-ghost btn-icon" title="Descer" aria-label="Descer" ${i === metas.length - 1 || q ? 'disabled' : ''} onclick="moveSceneInList('${m.id}', 1)"><svg class="icon"><use href="#i-chevron"/></svg></button>
+          <button class="btn btn-sm btn-ghost btn-icon" title="Subir" aria-label="Subir" ${i === 0 || q || inAll ? 'disabled' : ''} onclick="moveSceneInList('${m.id}', -1)"><svg class="icon"><use href="#i-chevron-up"/></svg></button>
+          <button class="btn btn-sm btn-ghost btn-icon" title="Descer" aria-label="Descer" ${i === metas.length - 1 || q || inAll ? 'disabled' : ''} onclick="moveSceneInList('${m.id}', 1)"><svg class="icon"><use href="#i-chevron"/></svg></button>
           <button class="btn btn-sm btn-ghost btn-icon" title="Duplicar" aria-label="Duplicar" onclick="duplicateScene('${m.id}')"><svg class="icon"><use href="#i-copy"/></svg></button>
           <button class="btn btn-sm btn-ghost btn-icon" title="Exportar" aria-label="Exportar" onclick="exportScene('${m.id}')"><svg class="icon"><use href="#i-download"/></svg></button>
           <button class="btn btn-sm btn-ghost btn-icon" title="Excluir" aria-label="Excluir" onclick="deleteScene('${m.id}')"><svg class="icon"><use href="#i-trash"/></svg></button>
@@ -481,4 +652,45 @@ function renderScenesDialog(focusId = null) {
     const input = list.querySelector(`.scene-card[data-id="${focusId}"] .scene-name`);
     if (input && document.getElementById('scenesDialog').open) { input.focus(); input.select(); }
   }
+}
+
+/** Barra de pastas (Todas, Sem campanha, campanhas) e o cabeçalho da campanha aberta. */
+function renderCampaignChips() {
+  const bar = document.getElementById('campaignBar');
+  if (!bar) return;
+  const count = (folder) => scenesInFolder(SCENES.metas, folder, SCENES.campaigns).length;
+  const chip = (folder, label, icon) =>
+    `<button type="button" class="camp-chip${SCENES.folder === folder ? ' active' : ''}" onclick="setSceneFolder('${folder}')">` +
+    `<svg class="icon"><use href="#i-${icon}"/></svg><span>${escapeHtml(label)}</span><b class="num">${count(folder)}</b></button>`;
+  bar.innerHTML = chip(CAMPAIGN_ALL, 'Todas', 'list') +
+    sortCampaigns(SCENES.campaigns).map(c => chip(c.id, c.name, 'folder')).join('') +
+    chip(CAMPAIGN_NONE, 'Sem campanha', 'hex') +
+    `<button type="button" class="camp-chip camp-new" onclick="createCampaign()"><svg class="icon"><use href="#i-plus"/></svg><span>Nova campanha</span></button>`;
+}
+
+function renderCampaignBar() {
+  const head = document.getElementById('campaignHeader');
+  if (!head) return;
+  renderCampaignChips();
+  const c = campaignById(SCENES.folder);
+  if (!c) {
+    head.innerHTML = '';
+    head.classList.add('hidden');
+  } else {
+    const sorted = sortCampaigns(SCENES.campaigns);
+    const idx = sorted.findIndex(x => x.id === c.id);
+    head.classList.remove('hidden');
+    head.innerHTML = `
+      <div class="camp-head-row">
+        <svg class="icon"><use href="#i-folder"/></svg>
+        <input id="campaignNameInput" type="text" class="scene-name" value="${escapeHtml(c.name)}" aria-label="Nome da campanha" onchange="updateCampaign('${c.id}', { name: this.value })">
+        <button class="btn btn-sm btn-ghost btn-icon" title="Mover campanha para a esquerda" aria-label="Mover campanha para a esquerda" ${idx === 0 ? 'disabled' : ''} onclick="moveCampaign('${c.id}', -1)"><svg class="icon"><use href="#i-chevron-up"/></svg></button>
+        <button class="btn btn-sm btn-ghost btn-icon" title="Mover campanha para a direita" aria-label="Mover campanha para a direita" ${idx === sorted.length - 1 ? 'disabled' : ''} onclick="moveCampaign('${c.id}', 1)"><svg class="icon"><use href="#i-chevron"/></svg></button>
+        <button class="btn btn-sm btn-ghost btn-icon" title="Exportar campanha" aria-label="Exportar campanha" onclick="exportCampaign('${c.id}')"><svg class="icon"><use href="#i-download"/></svg></button>
+        <button class="btn btn-sm btn-ghost btn-icon" title="Excluir campanha" aria-label="Excluir campanha" onclick="deleteCampaign('${c.id}')"><svg class="icon"><use href="#i-trash"/></svg></button>
+      </div>
+      <textarea class="scene-notes" rows="1" placeholder="Anotações da campanha (grupo, nível, próxima sessão…)" aria-label="Anotações da campanha" onchange="updateCampaign('${c.id}', { notes: this.value })">${escapeHtml(c.notes || '')}</textarea>`;
+  }
+  const search = document.getElementById('scenesSearch');
+  if (search) search.placeholder = c ? `Buscar em “${c.name}”` : SCENES.folder === CAMPAIGN_NONE ? 'Buscar nas cenas sem campanha' : 'Buscar em todas as cenas (nome, anotação ou campanha)';
 }
