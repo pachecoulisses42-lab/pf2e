@@ -1594,6 +1594,17 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
             </div>
 
             <div class="field">
+              <div class="field-label"><span>Visão</span><strong id="lblInspVision" class="num">—</strong></div>
+              <select id="inspVisionSelect" onchange="setSelectedVision(this.value)" aria-label="Visão da peça">
+                <option value="">Automática (pela ancestralidade)</option>
+                <option value="normal">Visão normal</option>
+                <option value="low-light">Visão na penumbra</option>
+                <option value="darkvision">Visão no escuro</option>
+              </select>
+              <p class="hint">Penumbra: quem não tem visão na penumbra/no escuro vê o alvo oculto (teste simples CD 5). Escuridão: sem visão no escuro, alvo escondido (CD 11), você fica cego e o terreno vira difícil.</p>
+            </div>
+
+            <div class="field">
               <div class="field-label"><span>Bônus do escudo</span><strong id="lblInspShield" class="num">+2 CA</strong></div>
               <div class="seg seg-4">
                 <button class="seg-btn shield-bonus-btn" data-b="0" onclick="setSelectedShieldBonus(0)">Nenhum</button>
@@ -3574,12 +3585,12 @@ function getTokenPreviewHTML(sculptKey, customDataUrl = null, options = {}) {
    ============================================================================ */
 const SPELL_CATALOG = {
   relampago: {
-    id: 'relampago', dmgType: 'elétrico', name: 'Relâmpago', cost: 2, range: 9,
+    id: 'relampago', flash: true, dmgType: 'elétrico', name: 'Relâmpago', cost: 2, range: 9,
     areaType: 'line', areaSize: 9, atkBonus: 9, dmgDie: '4d12', dmgBonus: 0,
     desc: 'Linha de 9m ancorada na peça'
   },
   bola_de_fogo: {
-    id: 'bola_de_fogo', dmgType: 'fogo', name: 'Bola de Fogo', cost: 2, range: 18,
+    id: 'bola_de_fogo', flash: true, dmgType: 'fogo', name: 'Bola de Fogo', cost: 2, range: 18,
     areaType: 'burst', areaSize: 9, atkBonus: 9, dmgDie: '6d6', dmgBonus: 0,
     desc: 'Explosão em Raio de 9m (Alcance 18m)'
   },
@@ -3589,12 +3600,12 @@ const SPELL_CATALOG = {
     desc: 'Vibração Sonora de Bardo (Alcance 18m)'
   },
   chama_cristalina: {
-    id: 'chama_cristalina', dmgType: 'fogo', name: 'Chama Cristalina', cost: 2, range: 18,
+    id: 'chama_cristalina', flash: true, dmgType: 'fogo', name: 'Chama Cristalina', cost: 2, range: 18,
     areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '4d6', dmgBonus: 4,
     desc: 'Fogo Rubro de Feiticeiro (Alcance 18m)'
   },
   julgamento_divino: {
-    id: 'julgamento_divino', dmgType: 'espiritual', name: 'Julgamento Radiante', cost: 2, range: 9,
+    id: 'julgamento_divino', flash: true, dmgType: 'espiritual', name: 'Julgamento Radiante', cost: 2, range: 9,
     areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '3d8', dmgBonus: 4,
     desc: 'Luz Sagrada de Paladino (Alcance 9m)'
   },
@@ -3639,12 +3650,12 @@ const SPELL_CATALOG = {
     desc: 'Toque profano (adjacente 1,5m)'
   },
   lanca_divina: {
-    id: 'lanca_divina', dmgType: 'espiritual', name: 'Lança Divina', cost: 1, range: 18,
+    id: 'lanca_divina', flash: true, dmgType: 'espiritual', name: 'Lança Divina', cost: 1, range: 18,
     areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '2d4', dmgBonus: 3,
     desc: 'Lança de luz sagrada (18m | ◆ 1 Ação)'
   },
   fogo_de_raposa: {
-    id: 'fogo_de_raposa', dmgType: 'fogo', name: 'Fogo de Raposa', cost: 1, range: 9,
+    id: 'fogo_de_raposa', flash: true, dmgType: 'fogo', name: 'Fogo de Raposa', cost: 1, range: 9,
     areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '2d4', dmgBonus: 3,
     desc: 'Chama espiritual da kitsune (9m | ◆ 1 Ação)'
   },
@@ -3654,7 +3665,7 @@ const SPELL_CATALOG = {
     desc: 'Jorro de água em linha de 9m'
   },
   sopro_draconico: {
-    id: 'sopro_draconico', dmgType: 'fogo', name: 'Sopro Dracônico', cost: 2, range: 9,
+    id: 'sopro_draconico', flash: true, dmgType: 'fogo', name: 'Sopro Dracônico', cost: 2, range: 9,
     areaType: 'burst', areaSize: 4.5, atkBonus: 9, dmgDie: '3d6', dmgBonus: 0,
     desc: 'Chamas do sangue de dragão, raio 4,5m (alcance 9m)'
   },
@@ -3664,7 +3675,7 @@ const SPELL_CATALOG = {
     desc: 'O eidolon vinculado golpeia o alvo (9m)'
   },
   fogueira_goblin: {
-    id: 'fogueira_goblin', dmgType: 'fogo', name: 'Fogueira Goblin', cost: 2, range: 18,
+    id: 'fogueira_goblin', flash: true, dmgType: 'fogo', name: 'Fogueira Goblin', cost: 2, range: 18,
     areaType: 'burst', areaSize: 3, atkBonus: 8, dmgDie: '2d6', dmgBonus: 0,
     desc: 'Labaredas tribais, raio 3m (alcance 18m)'
   },
@@ -3855,7 +3866,10 @@ function normalizeSpell(sp) {
     dmgType: sp.dmgType || '',
     manual: !!sp.manual,
     desc: sp.desc || '',
-    extra: Array.isArray(sp.extra) ? sp.extra.filter((x) => x && isValidDice(x.die)) : []
+    extra: Array.isArray(sp.extra) ? sp.extra.filter((x) => x && isValidDice(x.die)) : [],
+    // clarão: ilumina a área até o fim da rodada (magias do catálogo trazem o valor; arquivos antigos herdam pelo id)
+    flash: typeof sp.flash === 'boolean' ? sp.flash
+      : !!(typeof SPELL_CATALOG !== 'undefined' && sp.id && SPELL_CATALOG[sp.id] && SPELL_CATALOG[sp.id].flash)
   };
 }
 
@@ -4154,6 +4168,70 @@ function normalizeEnvironment(data = {}) {
       map: clampTransparency(layers.map ?? 0)
     }
   };
+}
+
+/* ---------------- Visão e luz (Pathfinder 2e Remaster, Player Core) ----------------
+   Luz plena: todos veem. Penumbra: oculto (teste simples CD 5) para quem não tem visão
+   na penumbra nem visão no escuro. Escuridão: escondido (CD 11; quem está escondido deixa
+   o alvo desprevenido, −2 CA) para quem não tem visão no escuro; quem está na escuridão
+   sem visão no escuro fica cego (terreno normal vira difícil, −4 em Percepção).
+   Efeitos em área não fazem teste simples. */
+
+const VISION_TYPES = {
+  normal: 'Visão normal',
+  'low-light': 'Visão na penumbra',
+  darkvision: 'Visão no escuro'
+};
+
+/** Visão padrão por ancestralidade (valores do compêndio PF2e). Texto já sem acentos, minúsculo. */
+const ANCESTRY_VISION_RULES = [
+  [/^(anao|anan|dwarf|goblin|hobgoblin|orc|meio orc|kobold|morto vivo|undead|esqueleto|kappa|fera das sombras|espirito|fetchling|dragonete)/, 'darkvision'],
+  [/^(elf|meio elf|half elf|gnom|kitsune|tengu|nagaji|fera|catfolk|ratfolk|sangue de dragao|tanuki|vanara|lizardfolk)/, 'low-light']
+];
+
+function foldText(s) {
+  return String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function ancestryVision(ancestry) {
+  const t = foldText(ancestry);
+  for (const [re, v] of ANCESTRY_VISION_RULES) if (re.test(t)) return v;
+  return 'normal';
+}
+
+/** Visão da peça: escolhida na aba Base ou, em "automática", pela ancestralidade. */
+function unitVision(unit) {
+  const v = unit && unit.sheet && unit.sheet.vision;
+  return VISION_TYPES[v] ? v : ancestryVision(unit && unit.sheet && unit.sheet.ancestry);
+}
+
+/** Nível de luz a partir do nível de escuridão da célula (0, 0.5, 1). */
+function lightLevelFromDarkness(d) {
+  return d >= 1 ? 'dark' : d > 0 ? 'dim' : 'bright';
+}
+
+/** Como um observador com essa visão percebe uma criatura nesse nível de luz. */
+function visibilityFor(lightLevel, observerVision) {
+  if (lightLevel === 'dark') return observerVision === 'darkvision' ? 'observed' : 'hidden';
+  if (lightLevel === 'dim') return observerVision === 'normal' ? 'concealed' : 'observed';
+  return 'observed';
+}
+
+const VISIBILITY_LABELS = { observed: 'observado', concealed: 'oculto', hidden: 'escondido' };
+
+/** CD do teste simples para mirar uma criatura (0 = não precisa). */
+function flatCheckDC(visibility) {
+  return visibility === 'hidden' ? 11 : visibility === 'concealed' ? 5 : 0;
+}
+
+/** Chance de passar num teste simples de CD dada (d20 ≥ CD). */
+function flatCheckChance(dc) {
+  return dc > 0 ? Math.max(0, Math.min(1, (21 - dc) / 20)) : 1;
+}
+
+/** Cego: está na escuridão sem visão no escuro. */
+function isBlindedBy(lightLevel, vision) {
+  return lightLevel === 'dark' && vision !== 'darkvision';
 }
 
 /* ===== 02-sheet-engine.js ===== */
@@ -5245,6 +5323,7 @@ const STATE = {
   objects: [],            // objetos e perigos: { id, type, col, row }
   effects: { nevoa: {}, escuridao: {}, chuva: {}, nevasca: {}, fumaca: {} }, // clima pintado: tipo -> { "c,r": 1 }
   effectZones: [],        // emanações presas a peças: { id, type, unitId, radius }
+  flashLights: [],        // clarões de magia: { keys, round } — luz plena até o fim da rodada
   layers: { terrain: 50, effects: 50, map: 0 }, // transparência (%) de cada menu
   openMenu: null,         // 'board' | 'map' | 'tools' | null — só o menu aberto age no tabuleiro
   toolTab: 'piece',       // aba da caixa de ferramentas
@@ -5319,6 +5398,7 @@ function resizeCanvas() {
    ============================================================================ */
 function setAppMode(mode) {
   STATE.mode = mode;
+  if (mode !== 'combat') STATE.flashLights = []; // clarões de magia só existem durante o combate
   document.body.classList.toggle('mode-combat', mode === 'combat');
   document.body.classList.toggle('mode-setup', mode !== 'combat');
 
@@ -5493,6 +5573,8 @@ function computeReachableCells(unit) {
   const queue = [{ col: unit.col, row: unit.row, cost: 0, diagCount: 0 }];
   const objectAt = {};
   for (const o of STATE.objects || []) objectAt[`${o.col},${o.row}`] = o.type;
+  // cego (escuridão sem visão no escuro): terreno normal vira difícil
+  const blindDark = unitVision(unit) === 'darkvision' ? {} : computeDarknessMap();
 
   while (queue.length > 0) {
     queue.sort((a, b) => a.cost - b.cost);
@@ -5515,7 +5597,7 @@ function computeReachableCells(unit) {
         nextDiag += 1;
         if (nextDiag % 2 === 0) stepMultiplier = 2;
       }
-      stepMultiplier *= moveMult;
+      stepMultiplier *= blindDark[nbKey] >= 1 ? Math.max(2, moveMult) : moveMult;
 
       const stepMeters = scale * stepMultiplier;
       const newCost = curr.cost + stepMeters;
@@ -5754,7 +5836,20 @@ function computeLightMap() {
       if (!map[k] || map[k] < level) map[k] = level;
     }
   }
+  // clarão de magia (fogo, raio, luz sagrada): área atingida em luz plena até o fim da rodada
+  for (const f of STATE.flashLights || []) for (const k of f.keys) map[k] = 2;
   return map;
+}
+
+/** Registra o clarão de uma magia na área atingida; some quando a rodada termina. */
+function addSpellFlash(spell, cells) {
+  if (!spell || !spell.flash || !cells.length) return;
+  (STATE.flashLights ||= []).push({ keys: cells.map(c => cellKey(c.col, c.row)), round: STATE.combat.round, from: spell.name });
+}
+
+/** Fim da rodada: os clarões das magias se apagam. */
+function expireSpellFlashes(newRound) {
+  STATE.flashLights = (STATE.flashLights || []).filter(f => f.round >= newRound);
 }
 
 /* ---------------- Clima ---------------- */
@@ -5769,6 +5864,21 @@ function effectCellSet(type) {
     for (const c of computeBurstCells(u.col, u.row, z.radius)) set.add(cellKey(c.col, c.row));
   }
   return set;
+}
+
+/** Nível de luz da casa: 'bright' | 'dim' | 'dark' (só há penumbra/escuridão onde a escuridão foi posta). */
+function cellLightLevel(col, row, darkMap = computeDarknessMap()) {
+  return lightLevelFromDarkness(darkMap[cellKey(col, row)] || 0);
+}
+
+/**
+ * Como o observador percebe o alvo (luz na casa do alvo × visão do observador), CD do teste simples
+ * e se o observador está escondido do alvo (alvo desprevenido contra ele).
+ */
+function visibilityBetween(observer, target, darkMap = computeDarknessMap()) {
+  const vis = visibilityFor(cellLightLevel(target.col, target.row, darkMap), unitVision(observer));
+  const back = visibilityFor(cellLightLevel(observer.col, observer.row, darkMap), unitVision(target));
+  return { vis, dc: flatCheckDC(vis), observerHidden: back === 'hidden' };
 }
 
 /** Escuridão efetiva por célula (0, 0.5, 1) já descontada a luz. */
@@ -7116,19 +7226,42 @@ function handleCombatBoardClick(cell, clickedUnit) {
   }
 }
 
+/**
+ * Teste simples por luz (PF2e): CD 5 se o alvo está oculto (penumbra), CD 11 se escondido (escuridão).
+ * Falhou: o ataque/efeito não atinge esse alvo. Devolve true se pode seguir.
+ */
+function passFlatCheck(attacker, target, sight, what) {
+  if (!sight.dc) return true;
+  const roll = Math.floor(Math.random() * 20) + 1;
+  const ok = roll >= sight.dc;
+  const why = sight.vis === 'hidden' ? 'escondido na escuridão' : 'oculto na penumbra';
+  if (!ok) {
+    spawnFloatingText(target.col, target.row, `🌑 ERROU (teste simples ${roll} < ${sight.dc})`, '#94a3b8');
+    addLog(`🌑 <strong>${escapeHtml(attacker.name)}</strong> mirou <strong>${escapeHtml(target.name)}</strong> (${why}) com <em>${escapeHtml(what)}</em>: teste simples ${roll} contra CD ${sight.dc} — <strong>falhou, não atinge</strong>.`);
+  } else {
+    addLog(`🌘 ${escapeHtml(target.name)} está ${why}: teste simples ${roll} contra CD ${sight.dc} — passou.`);
+  }
+  return ok;
+}
+
 function executeWeaponAttackAndDamage(attacker, target, weapon) {
   faceTowardCell(attacker, target.col, target.row);
   attacker.actions -= 1;
   const mapPenalty = attacker.strikesMade === 0 ? 0 : (attacker.strikesMade === 1 ? -5 : -10);
   attacker.strikesMade += 1;
 
+  // luz e visão (PF2e): alvo oculto/escondido exige teste simples; atacante escondido deixa o alvo desprevenido
+  const sight = visibilityBetween(attacker, target);
+  if (!passFlatCheck(attacker, target, sight, weapon.name)) { syncCombatUI(); requestRender(); return; }
+  const ac = target.ac - (sight.observerHidden ? 2 : 0);
+
   const d20 = Math.floor(Math.random() * 20) + 1;
   const atkTotal = d20 + (weapon.atkBonus || 0) + mapPenalty;
   const dmg = rollDamage(weapon);
 
-  const isCrit = d20 === 20 || atkTotal >= target.ac + 10;
-  const isHit = d20 !== 1 && (isCrit || atkTotal >= target.ac);
-  const atkInfo = `Acerto ${atkTotal}</strong> [d20=${d20} ${weapon.atkBonus >= 0 ? '+' : ''}${weapon.atkBonus}${mapPenalty < 0 ? ' ' + mapPenalty : ''} vs CA ${target.ac}]`;
+  const isCrit = d20 === 20 || atkTotal >= ac + 10;
+  const isHit = d20 !== 1 && (isCrit || atkTotal >= ac);
+  const atkInfo = `Acerto ${atkTotal}</strong> [d20=${d20} ${weapon.atkBonus >= 0 ? '+' : ''}${weapon.atkBonus}${mapPenalty < 0 ? ' ' + mapPenalty : ''} vs CA ${ac}${sight.observerHidden ? ' (desprevenido −2: atacante na escuridão)' : ''}]`;
 
   if (isHit) {
     const mult = isCrit ? 2 : 1;
@@ -7197,12 +7330,15 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
   }
 
   let targetUnits = [];
+  let areaCells = [cell];
   if (spell.areaType === 'line') {
     const lineRes = computeLineCells(caster.col, caster.row, cell.col, cell.row, spell.areaSize);
+    areaCells = lineRes.affected;
     const set = new Set(lineRes.affected.map(c => `${c.col},${c.row}`));
     targetUnits = STATE.units.filter(u => u.hp > 0 && u.id !== caster.id && set.has(`${u.col},${u.row}`));
   } else if (spell.areaType === 'burst') {
     const burstCells = computeBurstCells(cell.col, cell.row, spell.areaSize);
+    areaCells = burstCells;
     const set = new Set(burstCells.map(c => `${c.col},${c.row}`));
     targetUnits = STATE.units.filter(u => u.hp > 0 && set.has(`${u.col},${u.row}`));
   } else {
@@ -7219,14 +7355,28 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
   }
 
   caster.actions -= cost;
+  const isArea = spell.areaType === 'line' || spell.areaType === 'burst';
+  const darkMap = computeDarknessMap();
+  // alvo único em penumbra/escuridão: teste simples (áreas não fazem)
+  if (!isArea) {
+    const sight = visibilityBetween(caster, targetUnits[0], darkMap);
+    if (!passFlatCheck(caster, targetUnits[0], sight, spell.name)) {
+      addSpellFlash(spell, areaCells);
+      syncCombatUI();
+      requestRender();
+      return true;
+    }
+  }
   const dmg = rollDamage(spell);
   const hitSummaries = [];
 
   for (const t of targetUnits) {
+    const offGuard = visibilityBetween(caster, t, darkMap).observerHidden;
+    const ac = t.ac - (offGuard ? 2 : 0);
     const d20 = Math.floor(Math.random() * 20) + 1;
     const atkTotal = d20 + (spell.atkBonus || 8);
-    const isCrit = d20 === 20 || atkTotal >= t.ac + 10;
-    const isHit = d20 !== 1 && (isCrit || atkTotal >= t.ac);
+    const isCrit = d20 === 20 || atkTotal >= ac + 10;
+    const isHit = d20 !== 1 && (isCrit || atkTotal >= ac);
 
     let multiplier = 0;
     let statusLbl = '';
@@ -7254,10 +7404,14 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
       spawnFloatingText(t.col, t.row, multiplier > 0 ? `🛡️ ${statusLbl}` : '🛡️ ERROU', '#94a3b8');
     }
 
-    hitSummaries.push(`<strong>${t.name}</strong> [Acerto ${atkTotal} vs CA ${t.ac}: ${statusLbl} → -${dealt} PV${defenseNote ? ` (${defenseNote})` : ''}${t.hp === 0 ? ' 💀MORTO' : ''}]`);
+    hitSummaries.push(`<strong>${t.name}</strong> [Acerto ${atkTotal} vs CA ${ac}${offGuard ? ' desprevenido' : ''}: ${statusLbl} → -${dealt} PV${defenseNote ? ` (${defenseNote})` : ''}${t.hp === 0 ? ' 💀MORTO' : ''}]`);
   }
 
   addLog(`✨ <strong>${caster.name}</strong> lançou <strong>${spell.name}</strong> (${'◆'.repeat(cost)}) · dano base ${dmg.total} = ${formatDamageParts(dmg.parts)}: ${hitSummaries.join(' | ')}.`);
+  if (spell.flash) {
+    addSpellFlash(spell, areaCells);
+    addLog(`💥 O clarão de <em>${escapeHtml(spell.name)}</em> ilumina a área até o fim da rodada.`);
+  }
   syncCombatUI();
   requestRender();
   return true;
@@ -7376,11 +7530,16 @@ function sortInitiativeOrder() {
 }
 
 function rollAllInitiatives() {
+  const darkMap = computeDarknessMap();
+  const blinded = [];
   for (const u of STATE.units) {
     recalculateUnitFromSheet(u, false);
     const percBonus = u.sheet?.derived?.perception ?? (u.faction === 'hero' ? 7 : 5);
     const d20 = Math.floor(Math.random() * 20) + 1;
-    u.initiative = d20 + percBonus;
+    // cego na escuridão: −4 de estado em Percepção (iniciativa usa Percepção)
+    const blind = u.hp > 0 && isBlindedBy(cellLightLevel(u.col, u.row, darkMap), unitVision(u));
+    if (blind) blinded.push(u.name);
+    u.initiative = d20 + percBonus - (blind ? 4 : 0);
     u.actions = 3;
     u.reaction = true;
     u.strikesMade = 0;
@@ -7391,6 +7550,7 @@ function rollAllInitiatives() {
   STATE.combat.activeUnitId = firstAlive ? firstAlive.id : null;
   STATE.selectedUnitId = STATE.combat.activeUnitId;
   addLog(`🎲 Iniciativas (Percepção PF2e) roladas! Primeiro turno: <strong>${firstAlive ? firstAlive.name : '—'}</strong>.`);
+  if (blinded.length) addLog(`🌑 Cegos na escuridão (−4 na iniciativa): ${blinded.map(escapeHtml).join(', ')}.`);
   syncCombatUI();
   requestRender();
 }
@@ -7403,6 +7563,7 @@ function nextTurn() {
   if (nextIdx >= alive.length) {
     nextIdx = 0;
     STATE.combat.round += 1;
+    expireSpellFlashes(STATE.combat.round);
     addLog(`🔔 <strong>Início da Rodada ${STATE.combat.round}!</strong>`);
   }
   const nextUnit = alive[nextIdx];
@@ -7915,6 +8076,7 @@ function spellEditorHTML(sp, idx) {
       <div class="field"><label>Bônus de ataque</label><input type="number" value="${sp.atkBonus}" ${auto ? 'disabled' : ''} onchange="updateSpellField(${idx}, 'atkBonus', this.value)"></div>
     </div>
     <label class="check"><input type="checkbox" ${auto ? 'checked' : ''} onchange="updateSpellField(${idx}, 'manual', !this.checked)"> Ataque segue a ficha (bônus de dano &gt; 0 segue o atributo-chave)</label>
+    <label class="check"><input type="checkbox" ${sp.flash ? 'checked' : ''} onchange="updateSpellField(${idx}, 'flash', this.checked)"> Clarão: ilumina a área atingida até o fim da rodada (anula a escuridão)</label>
     ${extraEditorHTML('spell', idx, sp)}`;
 }
 
@@ -7954,6 +8116,8 @@ function syncInspectorUI() {
   document.getElementById('inspSculptPreview').innerHTML = getTokenPreviewHTML(u.sculpt, u.customTokenDataUrl, customTokenOptions(u));
   document.getElementById('inspNameInput').value = u.name;
   document.getElementById('inspTokenSelect').value = u.sculpt;
+  document.getElementById('inspVisionSelect').value = VISION_TYPES[u.sheet?.vision] ? u.sheet.vision : '';
+  document.getElementById('lblInspVision').textContent = VISION_TYPES[unitVision(u)];
   if (document.getElementById('tokenPickerDetails').open) {
     if (u.id !== syncInspectorUI.lastUnitId) syncTokenPickerTab(u.sculpt);
     renderTokenPicker();
@@ -8026,6 +8190,15 @@ function syncInspectorUI() {
       <button class="btn btn-sm btn-ghost btn-icon" onclick="removeItemFromUnit(${idx})" aria-label="Remover ${escapeHtml(it.name)}"><svg class="icon"><use href="#i-trash"/></svg></button>`;
     eiList.appendChild(row);
   });
+}
+
+/** Visão da peça ('' = automática pela ancestralidade). */
+function setSelectedVision(v) {
+  const u = STATE.units.find(x => x.id === STATE.selectedUnitId);
+  if (!u || !u.sheet) return;
+  if (VISION_TYPES[v]) u.sheet.vision = v; else delete u.sheet.vision;
+  syncInspectorUI();
+  requestRender();
 }
 
 function changeSelectedUnitToken(newSculpt) {
@@ -8224,6 +8397,7 @@ function updateEditableField(kind, idx, field, raw) {
       break;
     case 'dmgType': target.dmgType = DAMAGE_TYPES.includes(raw) ? raw : ''; break;
     case 'manual': target.manual = !!raw; break;
+    case 'flash': if (kind === 'spell') target.flash = !!raw; break;
     default: return;
   }
   recalculateUnitFromSheet(u, false);
@@ -9430,7 +9604,13 @@ function buildAttackPreviewHTML(attacker, target, source) {
   const { kind, src } = source;
   const map = kind === 'weapon' ? (attacker.strikesMade === 0 ? 0 : (attacker.strikesMade === 1 ? -5 : -10)) : 0;
   const toHit = (src.atkBonus || 0) + map;
-  const odds = attackOdds(toHit, target.ac);
+  // luz (PF2e): teste simples contra alvo oculto/escondido (não em áreas) e alvo desprevenido se o atacante está escondido
+  const sight = visibilityBetween(attacker, target);
+  const isArea = kind === 'spell' && src.areaType !== 'single';
+  const dc = isArea ? 0 : sight.dc;
+  const raw = attackOdds(toHit, target.ac - (sight.observerHidden ? 2 : 0));
+  const flat = flatCheckChance(dc);
+  const odds = { hit: raw.hit * flat, crit: raw.crit * flat };
   const avg = averageDamage(src);
   const normal = applyDefenses(avg.parts, 1, target);
   const crit = applyDefenses(avg.parts, 2, target);
@@ -9450,7 +9630,9 @@ function buildAttackPreviewHTML(attacker, target, source) {
     </div>
     ${notes ? `<div class="tip-note">${escapeHtml(notes)}</div>` : ''}
     ${verdict ? `<div class="tip-note">${verdict}</div>` : ''}
-    ${kind === 'spell' && src.areaType !== 'single' ? '<div class="tip-note faint">Em área: metade do dano se errar.</div>' : ''}`;
+    ${kind === 'spell' && src.areaType !== 'single' ? '<div class="tip-note faint">Em área: metade do dano se errar.</div>' : ''}
+    ${dc ? `<div class="tip-note">🌘 Alvo ${VISIBILITY_LABELS[sight.vis]}: teste simples CD ${dc} (${Math.round(flat * 100)}%) já incluído</div>` : ''}
+    ${sight.observerHidden ? '<div class="tip-note">🌑 Você está escondido do alvo: ele fica desprevenido (−2 CA)</div>' : ''}`;
 }
 
 function buildUnitTipHTML(unit) {

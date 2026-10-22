@@ -119,6 +119,8 @@ function computeReachableCells(unit) {
   const queue = [{ col: unit.col, row: unit.row, cost: 0, diagCount: 0 }];
   const objectAt = {};
   for (const o of STATE.objects || []) objectAt[`${o.col},${o.row}`] = o.type;
+  // cego (escuridão sem visão no escuro): terreno normal vira difícil
+  const blindDark = unitVision(unit) === 'darkvision' ? {} : computeDarknessMap();
 
   while (queue.length > 0) {
     queue.sort((a, b) => a.cost - b.cost);
@@ -141,7 +143,7 @@ function computeReachableCells(unit) {
         nextDiag += 1;
         if (nextDiag % 2 === 0) stepMultiplier = 2;
       }
-      stepMultiplier *= moveMult;
+      stepMultiplier *= blindDark[nbKey] >= 1 ? Math.max(2, moveMult) : moveMult;
 
       const stepMeters = scale * stepMultiplier;
       const newCost = curr.cost + stepMeters;

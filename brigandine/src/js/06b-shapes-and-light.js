@@ -138,7 +138,20 @@ function computeLightMap() {
       if (!map[k] || map[k] < level) map[k] = level;
     }
   }
+  // clarão de magia (fogo, raio, luz sagrada): área atingida em luz plena até o fim da rodada
+  for (const f of STATE.flashLights || []) for (const k of f.keys) map[k] = 2;
   return map;
+}
+
+/** Registra o clarão de uma magia na área atingida; some quando a rodada termina. */
+function addSpellFlash(spell, cells) {
+  if (!spell || !spell.flash || !cells.length) return;
+  (STATE.flashLights ||= []).push({ keys: cells.map(c => cellKey(c.col, c.row)), round: STATE.combat.round, from: spell.name });
+}
+
+/** Fim da rodada: os clarões das magias se apagam. */
+function expireSpellFlashes(newRound) {
+  STATE.flashLights = (STATE.flashLights || []).filter(f => f.round >= newRound);
 }
 
 /* ---------------- Clima ---------------- */
@@ -153,6 +166,21 @@ function effectCellSet(type) {
     for (const c of computeBurstCells(u.col, u.row, z.radius)) set.add(cellKey(c.col, c.row));
   }
   return set;
+}
+
+/** Nível de luz da casa: 'bright' | 'dim' | 'dark' (só há penumbra/escuridão onde a escuridão foi posta). */
+function cellLightLevel(col, row, darkMap = computeDarknessMap()) {
+  return lightLevelFromDarkness(darkMap[cellKey(col, row)] || 0);
+}
+
+/**
+ * Como o observador percebe o alvo (luz na casa do alvo × visão do observador), CD do teste simples
+ * e se o observador está escondido do alvo (alvo desprevenido contra ele).
+ */
+function visibilityBetween(observer, target, darkMap = computeDarknessMap()) {
+  const vis = visibilityFor(cellLightLevel(target.col, target.row, darkMap), unitVision(observer));
+  const back = visibilityFor(cellLightLevel(observer.col, observer.row, darkMap), unitVision(target));
+  return { vis, dc: flatCheckDC(vis), observerHidden: back === 'hidden' };
 }
 
 /** Escuridão efetiva por célula (0, 0.5, 1) já descontada a luz. */

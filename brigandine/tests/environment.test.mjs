@@ -13,7 +13,8 @@ function loadEnv(gridType = 'square', cols = 12, rows = 12) {
   ctx.STATE = {
     grid: { type: gridType, cols, rows, cellScale: 1.5 },
     camera: { x: 0, y: 0, zoom: 1, basePx: 60 },
-    terrainMap: {}, objects: [], units: [], effects: { escuridao: {} }, effectZones: []
+    terrainMap: {}, objects: [], units: [], effects: { escuridao: {} }, effectZones: [], flashLights: [],
+    combat: { round: 1 }
   };
   for (const f of ['01-catalog.js', '01b-rules.js', '01c-environment.js', '06-grid-and-ranges.js', '06b-shapes-and-light.js']) {
     vm.runInContext(readFileSync(join(root, 'src/js', f), 'utf8'), ctx, { filename: f });
@@ -98,4 +99,56 @@ test('hexágono: linha de visão em coordenadas cúbicas e luz bloqueada por mur
   const light = run(E, 'computeLightMap()');
   assert.equal(light['3,4'], 2);
   assert.equal(light['5,4'], undefined, 'atrás do muro');
+});
+
+test('visão PF2e: penumbra deixa oculto (CD 5), escuridão deixa escondido (CD 11) e cega quem não tem visão no escuro', () => {
+  const E = loadEnv();
+  const r = run(E, `({
+    vis: [visibilityFor('bright','normal'), visibilityFor('dim','normal'), visibilityFor('dim','low-light'), visibilityFor('dark','low-light'), visibilityFor('dark','darkvision')],
+    dc: [flatCheckDC('observed'), flatCheckDC('concealed'), flatCheckDC('hidden')],
+    chance: [flatCheckChance(0), flatCheckChance(5), flatCheckChance(11)],
+    anc: ['Humano','Elfo','Meio-elfo','Anão','Goblin','Orc','Halfling','Kobold','Fera','Morto-vivo','Kitsune','Kappa','Tengu','Fera das Sombras'].map(ancestryVision),
+    own: unitVision({ sheet: { ancestry: 'Humano', vision: 'darkvision' } }),
+    blind: [isBlindedBy('dark','normal'), isBlindedBy('dark','darkvision'), isBlindedBy('dim','normal')]
+  })`);
+  assert.deepEqual(r.vis, ['observed', 'concealed', 'observed', 'hidden', 'observed']);
+  assert.deepEqual(r.dc, [0, 5, 11]);
+  assert.deepEqual(r.chance, [1, 0.8, 0.5]);
+  assert.deepEqual(r.anc, ['normal', 'low-light', 'low-light', 'darkvision', 'darkvision', 'darkvision', 'normal', 'darkvision', 'low-light', 'darkvision', 'low-light', 'darkvision', 'low-light', 'darkvision']);
+  assert.equal(r.own, 'darkvision', 'escolha manual vence a ancestralidade');
+  assert.deepEqual(r.blind, [true, false, false]);
+});
+
+test('visibilidade entre peças e terreno difícil para quem está cego na escuridão', () => {
+  const E = loadEnv();
+  vm.runInContext(`for (let c = 0; c < 12; c++) for (let r = 0; r < 12; r++) STATE.effects.escuridao[c + ',' + r] = 1;
+    STATE.units = [
+      { id: 'h', col: 1, row: 1, hp: 10, moveSpeed: 6, actions: 3, items: [], sheet: { ancestry: 'Humano' } },
+      { id: 'g', col: 4, row: 1, hp: 10, moveSpeed: 6, actions: 3, items: [], sheet: { ancestry: 'Goblin' } }];`, E);
+  const s1 = run(E, 'visibilityBetween(STATE.units[0], STATE.units[1])');
+  assert.deepEqual(s1, { vis: 'hidden', dc: 11, observerHidden: false }, 'humano não vê o goblin; o goblin vê o humano');
+  const s2 = run(E, 'visibilityBetween(STATE.units[1], STATE.units[0])');
+  assert.deepEqual(s2, { vis: 'observed', dc: 0, observerHidden: true }, 'goblin ataca sem teste e o humano fica desprevenido');
+  assert.equal(run(E, 'computeReachableCells(STATE.units[0])')['2,1'].meters, 3, 'humano cego: casa normal custa o dobro');
+  assert.equal(run(E, 'computeReachableCells(STATE.units[1])')['3,1'].meters, 1.5, 'goblin com visão no escuro anda normal');
+  // tocha na mão do humano: os dois ficam em luz e tudo volta ao normal perto dele
+  vm.runInContext("STATE.units[0].items.push({ ...ITEM_CATALOG.tocha, lit: true })", E);
+  assert.deepEqual(run(E, 'visibilityBetween(STATE.units[0], STATE.units[1])'), { vis: 'observed', dc: 0, observerHidden: false });
+  assert.equal(run(E, 'computeReachableCells(STATE.units[0])')['2,1'].meters, 1.5);
+});
+
+test('clarão de magia: luz plena na área até o fim da rodada', () => {
+  const E = loadEnv();
+  vm.runInContext(`for (let c = 0; c < 12; c++) for (let r = 0; r < 12; r++) STATE.effects.escuridao[c + ',' + r] = 1;
+    addSpellFlash(normalizeSpell({ ...SPELL_CATALOG.bola_de_fogo }), shapeCells('burst', {col:6,row:6}, {col:6,row:6}, 3));
+    addSpellFlash(normalizeSpell({ ...SPELL_CATALOG.maldicao_sombria }), [{col:1,row:1}]);`, E);
+  let dark = run(E, 'computeDarknessMap()');
+  assert.equal(dark['6,6'], undefined, 'bola de fogo ilumina');
+  assert.equal(dark['8,6'], undefined);
+  assert.equal(dark['1,1'], 1, 'maldição sombria não ilumina');
+  assert.equal(run(E, "normalizeSpell({ id: 'relampago', name: 'R' }).flash"), true, 'arquivo antigo herda o clarão pelo id');
+  assert.equal(run(E, "normalizeSpell({ id: 'custom_1', name: 'X' }).flash"), false);
+  vm.runInContext('expireSpellFlashes(2)', E);
+  dark = run(E, 'computeDarknessMap()');
+  assert.equal(dark['6,6'], 1, 'na rodada seguinte volta a escurecer');
 });

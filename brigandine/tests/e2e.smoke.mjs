@@ -582,6 +582,61 @@ await check('salvar/carregar mantém terreno, objetos, clima, emanações, luz a
   await page.evaluate(() => { populateDemoBattle(); });
 });
 
+await check('escuridão no combate (PF2e): teste simples CD 11, desprevenido, cego na iniciativa, clarão até o fim da rodada', async () => {
+  const r = await page.evaluate(() => {
+    setAppMode('setup');
+    STATE.units = []; STATE.objects = []; STATE.terrainMap = {};
+    for (let c = 0; c < STATE.grid.cols; c++) for (let rr = 0; rr < STATE.grid.rows; rr++) STATE.effects.escuridao[c + ',' + rr] = 1;
+    spawnUnitFromTemplate('t_guerreiro', 2, 2);   // humano: visão normal
+    spawnUnitFromTemplate('t_goblin', 3, 2);      // goblin: visão no escuro
+    spawnUnitFromTemplate('t_feiticeiro', 2, 5);
+    const [hum, gob, feit] = STATE.units;
+    setAppMode('combat');
+    const realRandom = Math.random;
+    Math.random = () => 0.2; // d20 = 5
+    rollAllInitiatives();
+    const initLog = document.getElementById('combatLogBox').firstElementChild.textContent;
+    // humano ataca o goblin escondido na escuridão: teste simples 5 < 11 falha
+    selectActiveTurnUnit(hum.id); hum.actions = 3; hum.strikesMade = 0;
+    const gobHp = gob.hp;
+    executeWeaponAttackAndDamage(hum, gob, hum.weapons[0]);
+    const failLog = document.getElementById('combatLogBox').firstElementChild.textContent;
+    const after = { gobHp: gob.hp === gobHp, actions: hum.actions, strikes: hum.strikesMade };
+    // tooltip: prévia avisa do teste simples
+    selectCombatMainMenu('attack');
+    const tip = buildUnitTipHTML(gob);
+    // goblin ataca o humano: sem teste e humano desprevenido (CA −2)
+    Math.random = () => 0.5;
+    selectActiveTurnUnit(gob.id); gob.actions = 3; gob.strikesMade = 0;
+    executeWeaponAttackAndDamage(gob, hum, gob.weapons[0]);
+    const gobLog = document.getElementById('combatLogBox').firstElementChild.textContent;
+    // feiticeiro lança Bola de Fogo: clarão até o fim da rodada
+    selectActiveTurnUnit(feit.id); feit.actions = 3;
+    const fb = feit.spells.find(sp => sp.id === 'bola_de_fogo') || normalizeSpell({ ...SPELL_CATALOG.bola_de_fogo });
+    executeSpellCastOnCell(feit, fb, { col: 3, row: 4 }, null, false);
+    const flashes = STATE.flashLights.length;
+    const lit = computeDarknessMap()['3,4'] === undefined;
+    Math.random = realRandom;
+    const round = STATE.combat.round;
+    let guard = 0;
+    while (STATE.combat.round === round && guard++ < 10) nextTurn();
+    const afterRound = { flashes: STATE.flashLights.length, dark: computeDarknessMap()['3,4'] };
+    setAppMode('setup');
+    for (const t of Object.keys(STATE.effects)) STATE.effects[t] = {};
+    return { initLog, failLog, after, tip, gobLog, flashes, lit, afterRound };
+  });
+  assert.match(r.initLog, /Cegos na escuridão.*Guerreiro/);
+  assert.match(r.failLog, /teste simples 5 contra CD 11 — falhou/);
+  assert.deepEqual(r.after, { gobHp: true, actions: 2, strikes: 1 }, 'falhar no teste gasta a ação e conta para o MAP');
+  assert.match(r.tip, /teste simples CD 11 \(50%\)/);
+  assert.match(r.gobLog, /desprevenido −2/);
+  assert.ok(!/teste simples/.test(r.gobLog), 'goblin vê no escuro: sem teste simples');
+  assert.equal(r.flashes, 1);
+  assert.equal(r.lit, true, 'clarão ilumina a área');
+  assert.deepEqual(r.afterRound, { flashes: 0, dark: 1 }, 'fim da rodada: escuro de novo');
+  await page.evaluate(() => populateDemoBattle());
+});
+
 await check('sem erros de JavaScript durante o fluxo', async () => {
   assert.deepEqual(errors, []);
 });

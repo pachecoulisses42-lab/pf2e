@@ -30,6 +30,7 @@ const STATE = {
   objects: [],            // objetos e perigos: { id, type, col, row }
   effects: { nevoa: {}, escuridao: {}, chuva: {}, nevasca: {}, fumaca: {} }, // clima pintado: tipo -> { "c,r": 1 }
   effectZones: [],        // emanações presas a peças: { id, type, unitId, radius }
+  flashLights: [],        // clarões de magia: { keys, round } — luz plena até o fim da rodada
   layers: { terrain: 50, effects: 50, map: 0 }, // transparência (%) de cada menu
   openMenu: null,         // 'board' | 'map' | 'tools' | null — só o menu aberto age no tabuleiro
   toolTab: 'piece',       // aba da caixa de ferramentas

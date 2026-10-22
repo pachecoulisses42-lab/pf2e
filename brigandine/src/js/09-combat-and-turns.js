@@ -102,19 +102,42 @@ function handleCombatBoardClick(cell, clickedUnit) {
   }
 }
 
+/**
+ * Teste simples por luz (PF2e): CD 5 se o alvo está oculto (penumbra), CD 11 se escondido (escuridão).
+ * Falhou: o ataque/efeito não atinge esse alvo. Devolve true se pode seguir.
+ */
+function passFlatCheck(attacker, target, sight, what) {
+  if (!sight.dc) return true;
+  const roll = Math.floor(Math.random() * 20) + 1;
+  const ok = roll >= sight.dc;
+  const why = sight.vis === 'hidden' ? 'escondido na escuridão' : 'oculto na penumbra';
+  if (!ok) {
+    spawnFloatingText(target.col, target.row, `🌑 ERROU (teste simples ${roll} < ${sight.dc})`, '#94a3b8');
+    addLog(`🌑 <strong>${escapeHtml(attacker.name)}</strong> mirou <strong>${escapeHtml(target.name)}</strong> (${why}) com <em>${escapeHtml(what)}</em>: teste simples ${roll} contra CD ${sight.dc} — <strong>falhou, não atinge</strong>.`);
+  } else {
+    addLog(`🌘 ${escapeHtml(target.name)} está ${why}: teste simples ${roll} contra CD ${sight.dc} — passou.`);
+  }
+  return ok;
+}
+
 function executeWeaponAttackAndDamage(attacker, target, weapon) {
   faceTowardCell(attacker, target.col, target.row);
   attacker.actions -= 1;
   const mapPenalty = attacker.strikesMade === 0 ? 0 : (attacker.strikesMade === 1 ? -5 : -10);
   attacker.strikesMade += 1;
 
+  // luz e visão (PF2e): alvo oculto/escondido exige teste simples; atacante escondido deixa o alvo desprevenido
+  const sight = visibilityBetween(attacker, target);
+  if (!passFlatCheck(attacker, target, sight, weapon.name)) { syncCombatUI(); requestRender(); return; }
+  const ac = target.ac - (sight.observerHidden ? 2 : 0);
+
   const d20 = Math.floor(Math.random() * 20) + 1;
   const atkTotal = d20 + (weapon.atkBonus || 0) + mapPenalty;
   const dmg = rollDamage(weapon);
 
-  const isCrit = d20 === 20 || atkTotal >= target.ac + 10;
-  const isHit = d20 !== 1 && (isCrit || atkTotal >= target.ac);
-  const atkInfo = `Acerto ${atkTotal}</strong> [d20=${d20} ${weapon.atkBonus >= 0 ? '+' : ''}${weapon.atkBonus}${mapPenalty < 0 ? ' ' + mapPenalty : ''} vs CA ${target.ac}]`;
+  const isCrit = d20 === 20 || atkTotal >= ac + 10;
+  const isHit = d20 !== 1 && (isCrit || atkTotal >= ac);
+  const atkInfo = `Acerto ${atkTotal}</strong> [d20=${d20} ${weapon.atkBonus >= 0 ? '+' : ''}${weapon.atkBonus}${mapPenalty < 0 ? ' ' + mapPenalty : ''} vs CA ${ac}${sight.observerHidden ? ' (desprevenido −2: atacante na escuridão)' : ''}]`;
 
   if (isHit) {
     const mult = isCrit ? 2 : 1;
@@ -183,12 +206,15 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
   }
 
   let targetUnits = [];
+  let areaCells = [cell];
   if (spell.areaType === 'line') {
     const lineRes = computeLineCells(caster.col, caster.row, cell.col, cell.row, spell.areaSize);
+    areaCells = lineRes.affected;
     const set = new Set(lineRes.affected.map(c => `${c.col},${c.row}`));
     targetUnits = STATE.units.filter(u => u.hp > 0 && u.id !== caster.id && set.has(`${u.col},${u.row}`));
   } else if (spell.areaType === 'burst') {
     const burstCells = computeBurstCells(cell.col, cell.row, spell.areaSize);
+    areaCells = burstCells;
     const set = new Set(burstCells.map(c => `${c.col},${c.row}`));
     targetUnits = STATE.units.filter(u => u.hp > 0 && set.has(`${u.col},${u.row}`));
   } else {
@@ -205,14 +231,28 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
   }
 
   caster.actions -= cost;
+  const isArea = spell.areaType === 'line' || spell.areaType === 'burst';
+  const darkMap = computeDarknessMap();
+  // alvo único em penumbra/escuridão: teste simples (áreas não fazem)
+  if (!isArea) {
+    const sight = visibilityBetween(caster, targetUnits[0], darkMap);
+    if (!passFlatCheck(caster, targetUnits[0], sight, spell.name)) {
+      addSpellFlash(spell, areaCells);
+      syncCombatUI();
+      requestRender();
+      return true;
+    }
+  }
   const dmg = rollDamage(spell);
   const hitSummaries = [];
 
   for (const t of targetUnits) {
+    const offGuard = visibilityBetween(caster, t, darkMap).observerHidden;
+    const ac = t.ac - (offGuard ? 2 : 0);
     const d20 = Math.floor(Math.random() * 20) + 1;
     const atkTotal = d20 + (spell.atkBonus || 8);
-    const isCrit = d20 === 20 || atkTotal >= t.ac + 10;
-    const isHit = d20 !== 1 && (isCrit || atkTotal >= t.ac);
+    const isCrit = d20 === 20 || atkTotal >= ac + 10;
+    const isHit = d20 !== 1 && (isCrit || atkTotal >= ac);
 
     let multiplier = 0;
     let statusLbl = '';
@@ -240,10 +280,14 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
       spawnFloatingText(t.col, t.row, multiplier > 0 ? `🛡️ ${statusLbl}` : '🛡️ ERROU', '#94a3b8');
     }
 
-    hitSummaries.push(`<strong>${t.name}</strong> [Acerto ${atkTotal} vs CA ${t.ac}: ${statusLbl} → -${dealt} PV${defenseNote ? ` (${defenseNote})` : ''}${t.hp === 0 ? ' 💀MORTO' : ''}]`);
+    hitSummaries.push(`<strong>${t.name}</strong> [Acerto ${atkTotal} vs CA ${ac}${offGuard ? ' desprevenido' : ''}: ${statusLbl} → -${dealt} PV${defenseNote ? ` (${defenseNote})` : ''}${t.hp === 0 ? ' 💀MORTO' : ''}]`);
   }
 
   addLog(`✨ <strong>${caster.name}</strong> lançou <strong>${spell.name}</strong> (${'◆'.repeat(cost)}) · dano base ${dmg.total} = ${formatDamageParts(dmg.parts)}: ${hitSummaries.join(' | ')}.`);
+  if (spell.flash) {
+    addSpellFlash(spell, areaCells);
+    addLog(`💥 O clarão de <em>${escapeHtml(spell.name)}</em> ilumina a área até o fim da rodada.`);
+  }
   syncCombatUI();
   requestRender();
   return true;
@@ -362,11 +406,16 @@ function sortInitiativeOrder() {
 }
 
 function rollAllInitiatives() {
+  const darkMap = computeDarknessMap();
+  const blinded = [];
   for (const u of STATE.units) {
     recalculateUnitFromSheet(u, false);
     const percBonus = u.sheet?.derived?.perception ?? (u.faction === 'hero' ? 7 : 5);
     const d20 = Math.floor(Math.random() * 20) + 1;
-    u.initiative = d20 + percBonus;
+    // cego na escuridão: −4 de estado em Percepção (iniciativa usa Percepção)
+    const blind = u.hp > 0 && isBlindedBy(cellLightLevel(u.col, u.row, darkMap), unitVision(u));
+    if (blind) blinded.push(u.name);
+    u.initiative = d20 + percBonus - (blind ? 4 : 0);
     u.actions = 3;
     u.reaction = true;
     u.strikesMade = 0;
@@ -377,6 +426,7 @@ function rollAllInitiatives() {
   STATE.combat.activeUnitId = firstAlive ? firstAlive.id : null;
   STATE.selectedUnitId = STATE.combat.activeUnitId;
   addLog(`🎲 Iniciativas (Percepção PF2e) roladas! Primeiro turno: <strong>${firstAlive ? firstAlive.name : '—'}</strong>.`);
+  if (blinded.length) addLog(`🌑 Cegos na escuridão (−4 na iniciativa): ${blinded.map(escapeHtml).join(', ')}.`);
   syncCombatUI();
   requestRender();
 }
@@ -389,6 +439,7 @@ function nextTurn() {
   if (nextIdx >= alive.length) {
     nextIdx = 0;
     STATE.combat.round += 1;
+    expireSpellFlashes(STATE.combat.round);
     addLog(`🔔 <strong>Início da Rodada ${STATE.combat.round}!</strong>`);
   }
   const nextUnit = alive[nextIdx];

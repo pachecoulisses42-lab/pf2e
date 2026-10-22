@@ -137,3 +137,67 @@ function normalizeEnvironment(data = {}) {
     }
   };
 }
+
+/* ---------------- Visão e luz (Pathfinder 2e Remaster, Player Core) ----------------
+   Luz plena: todos veem. Penumbra: oculto (teste simples CD 5) para quem não tem visão
+   na penumbra nem visão no escuro. Escuridão: escondido (CD 11; quem está escondido deixa
+   o alvo desprevenido, −2 CA) para quem não tem visão no escuro; quem está na escuridão
+   sem visão no escuro fica cego (terreno normal vira difícil, −4 em Percepção).
+   Efeitos em área não fazem teste simples. */
+
+const VISION_TYPES = {
+  normal: 'Visão normal',
+  'low-light': 'Visão na penumbra',
+  darkvision: 'Visão no escuro'
+};
+
+/** Visão padrão por ancestralidade (valores do compêndio PF2e). Texto já sem acentos, minúsculo. */
+const ANCESTRY_VISION_RULES = [
+  [/^(anao|anan|dwarf|goblin|hobgoblin|orc|meio orc|kobold|morto vivo|undead|esqueleto|kappa|fera das sombras|espirito|fetchling|dragonete)/, 'darkvision'],
+  [/^(elf|meio elf|half elf|gnom|kitsune|tengu|nagaji|fera|catfolk|ratfolk|sangue de dragao|tanuki|vanara|lizardfolk)/, 'low-light']
+];
+
+function foldText(s) {
+  return String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function ancestryVision(ancestry) {
+  const t = foldText(ancestry);
+  for (const [re, v] of ANCESTRY_VISION_RULES) if (re.test(t)) return v;
+  return 'normal';
+}
+
+/** Visão da peça: escolhida na aba Base ou, em "automática", pela ancestralidade. */
+function unitVision(unit) {
+  const v = unit && unit.sheet && unit.sheet.vision;
+  return VISION_TYPES[v] ? v : ancestryVision(unit && unit.sheet && unit.sheet.ancestry);
+}
+
+/** Nível de luz a partir do nível de escuridão da célula (0, 0.5, 1). */
+function lightLevelFromDarkness(d) {
+  return d >= 1 ? 'dark' : d > 0 ? 'dim' : 'bright';
+}
+
+/** Como um observador com essa visão percebe uma criatura nesse nível de luz. */
+function visibilityFor(lightLevel, observerVision) {
+  if (lightLevel === 'dark') return observerVision === 'darkvision' ? 'observed' : 'hidden';
+  if (lightLevel === 'dim') return observerVision === 'normal' ? 'concealed' : 'observed';
+  return 'observed';
+}
+
+const VISIBILITY_LABELS = { observed: 'observado', concealed: 'oculto', hidden: 'escondido' };
+
+/** CD do teste simples para mirar uma criatura (0 = não precisa). */
+function flatCheckDC(visibility) {
+  return visibility === 'hidden' ? 11 : visibility === 'concealed' ? 5 : 0;
+}
+
+/** Chance de passar num teste simples de CD dada (d20 ≥ CD). */
+function flatCheckChance(dc) {
+  return dc > 0 ? Math.max(0, Math.min(1, (21 - dc) / 20)) : 1;
+}
+
+/** Cego: está na escuridão sem visão no escuro. */
+function isBlindedBy(lightLevel, vision) {
+  return lightLevel === 'dark' && vision !== 'darkvision';
+}

@@ -542,6 +542,17 @@
             </div>
 
             <div class="field">
+              <div class="field-label"><span>Visão</span><strong id="lblInspVision" class="num">—</strong></div>
+              <select id="inspVisionSelect" onchange="setSelectedVision(this.value)" aria-label="Visão da peça">
+                <option value="">Automática (pela ancestralidade)</option>
+                <option value="normal">Visão normal</option>
+                <option value="low-light">Visão na penumbra</option>
+                <option value="darkvision">Visão no escuro</option>
+              </select>
+              <p class="hint">Penumbra: quem não tem visão na penumbra/no escuro vê o alvo oculto (teste simples CD 5). Escuridão: sem visão no escuro, alvo escondido (CD 11), você fica cego e o terreno vira difícil.</p>
+            </div>
+
+            <div class="field">
               <div class="field-label"><span>Bônus do escudo</span><strong id="lblInspShield" class="num">+2 CA</strong></div>
               <div class="seg seg-4">
                 <button class="seg-btn shield-bonus-btn" data-b="0" onclick="setSelectedShieldBonus(0)">Nenhum</button>

@@ -10,6 +10,8 @@ a partir de `src/`. Interface e textos em português.
   for óbvia (fogo contínuo ilumina, tocha, lanterna), implemente seguindo o padrão de `01c-environment.js`
   (`light: { shape: 'emanation' | 'cone', bright, dim }`). **Se não souber como deve funcionar, pergunte ao
   usuário antes de decidir** e registre a decisão em `docs/GUIA-LAYOUT-E-TOKENS.md` (seção Ambiente).
+- Decisões já tomadas (clarão de magias até o fim da rodada, magias sombrias sem escuridão, regras de luz
+  do PF2e Remaster com teste simples/desprevenido/cego) estão no guia, seção 7.7 — siga-as.
 - Itens de luz carregados pelas peças: acender custa a ação do item (◆); ficam acesos até o usuário apagar;
   apagar não custa ação. Tocha = emanação; lanterna = cone na direção da peça.
 - Só um menu da montagem aberto por vez; só o menu aberto age no tabuleiro; fechar um menu desfaz a escolha

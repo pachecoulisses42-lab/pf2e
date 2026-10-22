@@ -118,7 +118,10 @@ function normalizeSpell(sp) {
     dmgType: sp.dmgType || '',
     manual: !!sp.manual,
     desc: sp.desc || '',
-    extra: Array.isArray(sp.extra) ? sp.extra.filter((x) => x && isValidDice(x.die)) : []
+    extra: Array.isArray(sp.extra) ? sp.extra.filter((x) => x && isValidDice(x.die)) : [],
+    // clarão: ilumina a área até o fim da rodada (magias do catálogo trazem o valor; arquivos antigos herdam pelo id)
+    flash: typeof sp.flash === 'boolean' ? sp.flash
+      : !!(typeof SPELL_CATALOG !== 'undefined' && sp.id && SPELL_CATALOG[sp.id] && SPELL_CATALOG[sp.id].flash)
   };
 }
 

@@ -3,12 +3,12 @@
    ============================================================================ */
 const SPELL_CATALOG = {
   relampago: {
-    id: 'relampago', dmgType: 'elétrico', name: 'Relâmpago', cost: 2, range: 9,
+    id: 'relampago', flash: true, dmgType: 'elétrico', name: 'Relâmpago', cost: 2, range: 9,
     areaType: 'line', areaSize: 9, atkBonus: 9, dmgDie: '4d12', dmgBonus: 0,
     desc: 'Linha de 9m ancorada na peça'
   },
   bola_de_fogo: {
-    id: 'bola_de_fogo', dmgType: 'fogo', name: 'Bola de Fogo', cost: 2, range: 18,
+    id: 'bola_de_fogo', flash: true, dmgType: 'fogo', name: 'Bola de Fogo', cost: 2, range: 18,
     areaType: 'burst', areaSize: 9, atkBonus: 9, dmgDie: '6d6', dmgBonus: 0,
     desc: 'Explosão em Raio de 9m (Alcance 18m)'
   },
@@ -18,12 +18,12 @@ const SPELL_CATALOG = {
     desc: 'Vibração Sonora de Bardo (Alcance 18m)'
   },
   chama_cristalina: {
-    id: 'chama_cristalina', dmgType: 'fogo', name: 'Chama Cristalina', cost: 2, range: 18,
+    id: 'chama_cristalina', flash: true, dmgType: 'fogo', name: 'Chama Cristalina', cost: 2, range: 18,
     areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '4d6', dmgBonus: 4,
     desc: 'Fogo Rubro de Feiticeiro (Alcance 18m)'
   },
   julgamento_divino: {
-    id: 'julgamento_divino', dmgType: 'espiritual', name: 'Julgamento Radiante', cost: 2, range: 9,
+    id: 'julgamento_divino', flash: true, dmgType: 'espiritual', name: 'Julgamento Radiante', cost: 2, range: 9,
     areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '3d8', dmgBonus: 4,
     desc: 'Luz Sagrada de Paladino (Alcance 9m)'
   },
@@ -68,12 +68,12 @@ const SPELL_CATALOG = {
     desc: 'Toque profano (adjacente 1,5m)'
   },
   lanca_divina: {
-    id: 'lanca_divina', dmgType: 'espiritual', name: 'Lança Divina', cost: 1, range: 18,
+    id: 'lanca_divina', flash: true, dmgType: 'espiritual', name: 'Lança Divina', cost: 1, range: 18,
     areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '2d4', dmgBonus: 3,
     desc: 'Lança de luz sagrada (18m | ◆ 1 Ação)'
   },
   fogo_de_raposa: {
-    id: 'fogo_de_raposa', dmgType: 'fogo', name: 'Fogo de Raposa', cost: 1, range: 9,
+    id: 'fogo_de_raposa', flash: true, dmgType: 'fogo', name: 'Fogo de Raposa', cost: 1, range: 9,
     areaType: 'single', areaSize: 0, atkBonus: 9, dmgDie: '2d4', dmgBonus: 3,
     desc: 'Chama espiritual da kitsune (9m | ◆ 1 Ação)'
   },
@@ -83,7 +83,7 @@ const SPELL_CATALOG = {
     desc: 'Jorro de água em linha de 9m'
   },
   sopro_draconico: {
-    id: 'sopro_draconico', dmgType: 'fogo', name: 'Sopro Dracônico', cost: 2, range: 9,
+    id: 'sopro_draconico', flash: true, dmgType: 'fogo', name: 'Sopro Dracônico', cost: 2, range: 9,
     areaType: 'burst', areaSize: 4.5, atkBonus: 9, dmgDie: '3d6', dmgBonus: 0,
     desc: 'Chamas do sangue de dragão, raio 4,5m (alcance 9m)'
   },
@@ -93,7 +93,7 @@ const SPELL_CATALOG = {
     desc: 'O eidolon vinculado golpeia o alvo (9m)'
   },
   fogueira_goblin: {
-    id: 'fogueira_goblin', dmgType: 'fogo', name: 'Fogueira Goblin', cost: 2, range: 18,
+    id: 'fogueira_goblin', flash: true, dmgType: 'fogo', name: 'Fogueira Goblin', cost: 2, range: 18,
     areaType: 'burst', areaSize: 3, atkBonus: 8, dmgDie: '2d6', dmgBonus: 0,
     desc: 'Labaredas tribais, raio 3m (alcance 18m)'
   },

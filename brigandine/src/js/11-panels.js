@@ -265,6 +265,7 @@ function spellEditorHTML(sp, idx) {
       <div class="field"><label>Bônus de ataque</label><input type="number" value="${sp.atkBonus}" ${auto ? 'disabled' : ''} onchange="updateSpellField(${idx}, 'atkBonus', this.value)"></div>
     </div>
     <label class="check"><input type="checkbox" ${auto ? 'checked' : ''} onchange="updateSpellField(${idx}, 'manual', !this.checked)"> Ataque segue a ficha (bônus de dano &gt; 0 segue o atributo-chave)</label>
+    <label class="check"><input type="checkbox" ${sp.flash ? 'checked' : ''} onchange="updateSpellField(${idx}, 'flash', this.checked)"> Clarão: ilumina a área atingida até o fim da rodada (anula a escuridão)</label>
     ${extraEditorHTML('spell', idx, sp)}`;
 }
 
@@ -304,6 +305,8 @@ function syncInspectorUI() {
   document.getElementById('inspSculptPreview').innerHTML = getTokenPreviewHTML(u.sculpt, u.customTokenDataUrl, customTokenOptions(u));
   document.getElementById('inspNameInput').value = u.name;
   document.getElementById('inspTokenSelect').value = u.sculpt;
+  document.getElementById('inspVisionSelect').value = VISION_TYPES[u.sheet?.vision] ? u.sheet.vision : '';
+  document.getElementById('lblInspVision').textContent = VISION_TYPES[unitVision(u)];
   if (document.getElementById('tokenPickerDetails').open) {
     if (u.id !== syncInspectorUI.lastUnitId) syncTokenPickerTab(u.sculpt);
     renderTokenPicker();
@@ -376,6 +379,15 @@ function syncInspectorUI() {
       <button class="btn btn-sm btn-ghost btn-icon" onclick="removeItemFromUnit(${idx})" aria-label="Remover ${escapeHtml(it.name)}"><svg class="icon"><use href="#i-trash"/></svg></button>`;
     eiList.appendChild(row);
   });
+}
+
+/** Visão da peça ('' = automática pela ancestralidade). */
+function setSelectedVision(v) {
+  const u = STATE.units.find(x => x.id === STATE.selectedUnitId);
+  if (!u || !u.sheet) return;
+  if (VISION_TYPES[v]) u.sheet.vision = v; else delete u.sheet.vision;
+  syncInspectorUI();
+  requestRender();
 }
 
 function changeSelectedUnitToken(newSculpt) {
@@ -574,6 +586,7 @@ function updateEditableField(kind, idx, field, raw) {
       break;
     case 'dmgType': target.dmgType = DAMAGE_TYPES.includes(raw) ? raw : ''; break;
     case 'manual': target.manual = !!raw; break;
+    case 'flash': if (kind === 'spell') target.flash = !!raw; break;
     default: return;
   }
   recalculateUnitFromSheet(u, false);

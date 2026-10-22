@@ -469,11 +469,25 @@ Dados e regras puras em `src/js/01c-environment.js`; formas e luz em `06b-shapes
 escuridão; penumbra deixa metade. Paredes e muros (`blocksLight`) cortam a luz; a face da parede recebe luz.
 Itens de luz das peças (`kind: 'light'`) acendem com ◆ e ficam acesos até apagar; cone segue a direção da peça.
 
-**Decisões registradas** (o que ainda não interage com a escuridão até o dono do projeto decidir):
-magias de fogo e de luz existentes (Bola de Fogo, Chama Cristalina, Fogo de Raposa, Sopro Dracônico,
-Fogueira Goblin, Julgamento Radiante, Lança Divina, Relâmpago) são instantâneas e **não** iluminam;
-magias sombrias (Maldição Sombria, Toque Sombrio, Uivo Espectral) **não** criam escuridão.
-Antes de mudar isso ou criar algo que interaja com a escuridão, pergunte ao usuário (ver `CLAUDE.md`).
+**Decisões do dono do projeto:**
+- **Clarão:** magias de fogo e de luz (Bola de Fogo, Chama Cristalina, Fogo de Raposa, Sopro Dracônico,
+  Fogueira Goblin, Julgamento Radiante, Lança Divina, Relâmpago — inclusive em pergaminho) iluminam a área
+  atingida em luz plena **até o fim da rodada**; depois volta a escurecer. Campo `flash: true` na magia;
+  magias criadas no editor têm a caixa *Clarão* (desmarcada por padrão).
+- **Magias sombrias** (Maldição Sombria, Toque Sombrio, Uivo Espectral) **não** criam escuridão.
+- **Regras de luz do PF2e Remaster** (Player Core, *Vision and Light*, e condições Oculto/Escondido/Cego):
+  - Penumbra: a criatura fica **oculta** para quem não tem visão na penumbra nem no escuro → teste simples
+    CD 5 para mirá-la com ataque ou magia de alvo único.
+  - Escuridão: fica **escondida** para quem não tem visão no escuro → teste simples CD 11; e quem está
+    escondido deixa o alvo **desprevenido** (−2 CA) contra os ataques dele.
+  - Quem está na escuridão sem visão no escuro fica **cego**: terreno normal vira difícil e −4 em
+    Percepção (aplicado na iniciativa).
+  - Efeitos em área não fazem teste simples (mas o desprevenido vale para a jogada de ataque).
+  - Visão vem da ancestralidade (compêndio PF2e: anão, goblin, orc, kobold, mortos-vivos, kappa = no escuro;
+    elfo, gnomo, kitsune, tengu, feras = na penumbra; humano, halfling = normal) ou da aba Base → *Visão*.
+- Fora das áreas de escuridão pintadas, tudo está em luz plena.
+
+Antes de criar algo novo que interaja com a escuridão sem uma regra clara acima, pergunte ao usuário (ver `CLAUDE.md`).
 
 ## 8. Como adicionar um token novo
 

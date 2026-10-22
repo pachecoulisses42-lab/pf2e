@@ -31,6 +31,7 @@ function resizeCanvas() {
    ============================================================================ */
 function setAppMode(mode) {
   STATE.mode = mode;
+  if (mode !== 'combat') STATE.flashLights = []; // clarões de magia só existem durante o combate
   document.body.classList.toggle('mode-combat', mode === 'combat');
   document.body.classList.toggle('mode-setup', mode !== 'combat');
 

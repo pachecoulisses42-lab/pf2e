@@ -20,7 +20,13 @@ function buildAttackPreviewHTML(attacker, target, source) {
   const { kind, src } = source;
   const map = kind === 'weapon' ? (attacker.strikesMade === 0 ? 0 : (attacker.strikesMade === 1 ? -5 : -10)) : 0;
   const toHit = (src.atkBonus || 0) + map;
-  const odds = attackOdds(toHit, target.ac);
+  // luz (PF2e): teste simples contra alvo oculto/escondido (não em áreas) e alvo desprevenido se o atacante está escondido
+  const sight = visibilityBetween(attacker, target);
+  const isArea = kind === 'spell' && src.areaType !== 'single';
+  const dc = isArea ? 0 : sight.dc;
+  const raw = attackOdds(toHit, target.ac - (sight.observerHidden ? 2 : 0));
+  const flat = flatCheckChance(dc);
+  const odds = { hit: raw.hit * flat, crit: raw.crit * flat };
   const avg = averageDamage(src);
   const normal = applyDefenses(avg.parts, 1, target);
   const crit = applyDefenses(avg.parts, 2, target);
@@ -40,7 +46,9 @@ function buildAttackPreviewHTML(attacker, target, source) {
     </div>
     ${notes ? `<div class="tip-note">${escapeHtml(notes)}</div>` : ''}
     ${verdict ? `<div class="tip-note">${verdict}</div>` : ''}
-    ${kind === 'spell' && src.areaType !== 'single' ? '<div class="tip-note faint">Em área: metade do dano se errar.</div>' : ''}`;
+    ${kind === 'spell' && src.areaType !== 'single' ? '<div class="tip-note faint">Em área: metade do dano se errar.</div>' : ''}
+    ${dc ? `<div class="tip-note">🌘 Alvo ${VISIBILITY_LABELS[sight.vis]}: teste simples CD ${dc} (${Math.round(flat * 100)}%) já incluído</div>` : ''}
+    ${sight.observerHidden ? '<div class="tip-note">🌑 Você está escondido do alvo: ele fica desprevenido (−2 CA)</div>' : ''}`;
 }
 
 function buildUnitTipHTML(unit) {
