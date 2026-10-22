@@ -9,7 +9,7 @@ Tabuleiro tático para Pathfinder 2e Remaster que abre direto no navegador, sem 
 - [`docs/GUIA-LAYOUT-E-TOKENS.md`](docs/GUIA-LAYOUT-E-TOKENS.md): como o layout, o design system e os tokens funcionam e como criar novos.
 - [`docs/PROMPT-novos-tokens.md`](docs/PROMPT-novos-tokens.md): prompts prontos para colar numa IA e gerar mais tokens no mesmo estilo (em código SVG ou em imagem).
 - [`docs/ARQUITETURA-CENAS.md`](docs/ARQUITETURA-CENAS.md): desenho das cenas de combate (requisitos, dados, armazenamento, decisões).
-- [`docs/PLANO-ANIMACOES.md`](docs/PLANO-ANIMACOES.md): plano (ainda não implementado) das animações de ataques e magias.
+- [`docs/PLANO-ANIMACOES.md`](docs/PLANO-ANIMACOES.md): animações de ataques, magias e itens (decisões, tipos e como acrescentar).
 - [`docs/FORMATO-PECAS.md`](docs/FORMATO-PECAS.md): formato para importar peças de outros módulos e como o token é escolhido.
 - [`docs/exemplo-token-druida.js`](docs/exemplo-token-druida.js): exemplo completo de token novo.
 - `dist/design-system.html`: documentação visual (componentes e tokens).
@@ -54,6 +54,7 @@ src/
     01-catalog.js         Catálogo de magias e itens
     01b-rules.js          Regras puras: dados, tipos de dano, runas, pacote de dano, defesas
     01c-environment.js    Terrenos, objetos, perigos, clima, itens de luz (dados e regras puras)
+    01d-animation-rules.js Qual animação cada arma/magia usa, ritmo e tremida (regras puras)
     02-sheet-engine.js    Cálculo da ficha PF2e (CA, testes, ataque, CD, escudo)
     03-templates.js       22 modelos de peça
     03b-templates-extras.js 34 peças dos tokens pintados (classes novas e vilões)
@@ -65,6 +66,7 @@ src/
     07-render.js          Desenho do tabuleiro em canvas
     07b-facing.js         Direção das peças: alça de giro, seta na borda, virar para o alvo
     07c-environment-render.js Texturas de terreno e clima, objetos, perigos, escuridão
+    07d-animations.js     Motor e desenhos das animações (golpes, projéteis, magias, itens)
     08-input.js           Ponteiro, arrasto, pintura de terreno
     09-combat-and-turns.js Ações, ataques, magias, itens, Erguer Escudo, turnos
     10-sheet-ui.js        Ficha em abas (Atributos, Testes, Combate, Build)
@@ -97,6 +99,7 @@ dist/                     Saída versionada: app, CSS do design system, document
 - **Tooltip do alvo** (novo): ao passar o cursor sobre uma peça aparecem PV, CA e as defesas dela. No combate, com Ação ou Magias aberto, mostra também a prévia da arma/magia selecionada contra aquele alvo: chance de acerto e de crítico (já com MAP), dano médio depois das defesas, dano no crítico e o que mudou (`cortante: resistência −3 · fogo: fraqueza +5`).
 - **Imagem própria como token** (novo): aba Base → *Importar imagem* (PNG, JPG, WebP, GIF ou SVG, até 10 MB), ou arraste a imagem sobre a peça no tabuleiro. Imagens raster são reduzidas para 384 px. Por padrão a imagem é recortada em círculo com a moldura (ouro para heróis, ferro para vilões); desmarque a moldura para usar PNG transparente. *Usar padrão* volta à ilustração. A imagem vai junto no salvamento, na exportação JSON e no modelo salvo na galeria.
 - **Cenas de combate** (novo): botão **Cenas** no topo. **Campanhas** funcionam como pastas: barra com *Todas*, cada campanha (com contagem) e *Sem campanha*; criar, renomear, anotar, reordenar, exportar e excluir campanha (as cenas vão para *Sem campanha* ou são excluídas junto); cada cena escolhe sua campanha no cartão; dentro da pasta, lista única com busca e ordem própria. Monte vários encontros com antecedência e abra cada um na hora: *Nova a partir do tabuleiro*, *Nova em branco*, nome, anotações do mestre, miniatura, busca, ordem (↑↓), duplicar, excluir, exportar uma ou todas (arquivo de campanha) e importar. **Abrir** leva à montagem; **Iniciar combate** usa uma cópia (a cena preparada não muda) e rola iniciativa; *Salvar* durante o combate guarda o progresso para **Continuar** depois; ao encerrar o combate dá para voltar à cena preparada. O topo mostra a cena aberta e um ponto quando há alterações não salvas (Ctrl/⌘+S salva); trocar de cena pergunta antes. Fica guardado no navegador (IndexedDB; reserva em localStorage), junto com os modelos criados na galeria. O mapa de fundo agora volta ao carregar.
+- **Animações** (novo): golpes de espada, estocadas, impactos, garras, flechas, virotes, arremessos, bombas, tiros e disparos de energia; uma animação para cada uma das 21 magias do catálogo (e genéricas para magias novas); poções, Erguer Escudo, acender luz e perigos. Armas no ritmo normal (0,9 s), magias e cura no cinema (1,4 s). O número de dano e a barra de PV aparecem no impacto; um clique no tabuleiro pula; a tela treme em críticos e explosões. Botão ✨ na barra do tabuleiro liga/desliga (fica salvo); respeita "reduzir movimento" do sistema. O editor de arma e de magia tem o campo **Animação** (Automática mostra qual será usada).
 - **Barra do tabuleiro** (novo): **mão** (arrastar para mover a visão; Espaço segurado faz o mesmo), **lixeira** (apaga peça, objeto, perigo ou terreno vindos da Caixa de ferramentas — clique apaga o de cima; arrastar limpa objetos e terreno sem apagar peças; Ctrl+Z desfaz) e **lápis** (clique numa peça abre o inspetor; em objeto, perigo ou terreno abre um editor para trocar o tipo, ajustar luz plena/penumbra de quem ilumina e o dano do perigo; arrastar move peça, objeto ou perigo). Com uma delas ligada, o clique é dela; escolher algo na Caixa de ferramentas desliga. No combate fica só a mão. No celular o zoom é na pinça, e a barra mostra mão, lixeira, lápis, régua e centralizar.
 - **Registro de dados e ações no combate** (novo): no painel esquerdo, abaixo de *Encerrar combate*, recolhível (a escolha é lembrada). Na montagem continua na gaveta inferior.
 - **Caixa de ferramentas** (novo; antigo menu Peças): abas **Personagens** (galeria, filtro, criar do zero, importar), **Terreno** (chão, terra, lama, neve, água, abismo, difícil, parede, perigo — com textura desenhada; lama, neve e água custam o dobro, abismo e parede bloqueiam, parede bloqueia a luz), **Objetos** (pedra, cadeira, mesa, barril, baú, árvore, muro e luzes: tocha de parede, braseiro, lampião, cristal de luz), **Animais** (lobos e outros com `category: "animal"`) e **Perigos** (espinhos, fogueira, poça de ácido, armadilha de urso, runa explosiva — no combate, quem termina o movimento no perigo sofre o dano; a fogueira ilumina). Terreno pinta em célula, raio, cone, linha, quadrado ou tudo.

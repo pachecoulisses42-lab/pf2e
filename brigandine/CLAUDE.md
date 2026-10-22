@@ -26,6 +26,10 @@ PLAYWRIGHT_REQUIRE_FROM=/usr/lib/node_modules/ CHROMIUM_PATH=<chrome> node tests
 PLAYWRIGHT_REQUIRE_FROM=/usr/lib/node_modules/ CHROMIUM_PATH=<chrome> node tests/e2e.scenes.mjs
 ```
 
+Animações (`01d`, `07d`, `docs/PLANO-ANIMACOES.md`): a regra resolve na hora e chama `setAnimSpec`; a ação
+de combate é embrulhada em `withAnimation`. Ação nova (ataque, magia, item) deve pedir a sua animação.
+Armas no ritmo normal, magias/efeitos mágicos no cinema; clique pula; tremida em crítico e explosão; sem som.
+
 Cenas de combate: ver `docs/ARQUITETURA-CENAS.md`. Tudo que entra no tabuleiro precisa estar em
 `captureBoard` (12d) e em `applyLoadedPayload` (12) para ser salvo e reaberto nas cenas.
 

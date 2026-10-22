@@ -100,6 +100,7 @@ function normalizeWeapon(w) {
     reach: Number.isFinite(w.reach) && w.reach > 0 ? w.reach : 1.5,
     dmgType: w.dmgType || '',
     manual: !!w.manual,
+    anim: typeof WEAPON_ANIMS !== 'undefined' && WEAPON_ANIMS[w.anim] ? w.anim : 'auto',
     extra: Array.isArray(w.extra) ? w.extra.filter((x) => x && isValidDice(x.die)) : []
   };
 }
@@ -118,6 +119,7 @@ function normalizeSpell(sp) {
     dmgType: sp.dmgType || '',
     manual: !!sp.manual,
     desc: sp.desc || '',
+    anim: typeof SPELL_ANIMS !== 'undefined' && SPELL_ANIMS[sp.anim] ? sp.anim : 'auto',
     extra: Array.isArray(sp.extra) ? sp.extra.filter((x) => x && isValidDice(x.die)) : [],
     // clarão: ilumina a área até o fim da rodada (magias do catálogo trazem o valor; arquivos antigos herdam pelo id)
     flash: typeof sp.flash === 'boolean' ? sp.flash

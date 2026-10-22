@@ -31,6 +31,7 @@ function resizeCanvas() {
    7. MODE SWITCHING & END COMBAT FUNCTION
    ============================================================================ */
 function setAppMode(mode) {
+  finishAnimation();
   STATE.mode = mode;
   // lixeira e lápis são da montagem; a mão vale nos dois modos
   if (mode !== 'setup' && STATE.hudTool && STATE.hudTool !== 'pan') { STATE.hudTool = null; closeBoardEditor(); }

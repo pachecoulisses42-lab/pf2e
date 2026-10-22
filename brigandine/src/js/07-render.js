@@ -36,6 +36,9 @@ function renderBoard() {
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
   ctx.clearRect(0, 0, w, h);
+  const shake = animShakeOffset();
+  ctx.save();
+  if (shake) ctx.translate(shake.x, shake.y);
 
   const firstCenter = getCellPixelCenter(0, 0);
   const lastCenter = getCellPixelCenter(STATE.grid.cols - 1, STATE.grid.rows - 1);
@@ -241,6 +244,7 @@ function renderBoard() {
     drawUnitToken(unit, isTargetable);
   }
   drawFacingHandle();
+  drawAnimationLayer();
 
   // 6. Draw Free Ruler
   if (STATE.ruler.active && STATE.ruler.startCell && STATE.ruler.endCell) {
@@ -284,9 +288,11 @@ function renderBoard() {
     ctx.fillText(ft.text, ft.x, ft.y);
     ctx.restore();
   }
+  ctx.restore();
 }
 
 function spawnFloatingText(col, row, text, color = '#fca5a5') {
+  if (holdFloatingText([col, row, text, color])) return;
   const center = getCellPixelCenter(col, row);
   const ft = { x: center.x, y: center.y - 18, text, color, alpha: 1.0 };
   STATE.floatingTexts.push(ft);
@@ -345,11 +351,14 @@ function drawProceduralMap(x, y, w, h) {
 
 function drawUnitToken(unit, isTargetable) {
   const center = getCellPixelCenter(unit.col, unit.row);
+  const nudge = animUnitOffset(unit);
+  if (nudge) { center.x += nudge.x; center.y += nudge.y; }
+  const hp = displayHp(unit);
   const s = STATE.camera.basePx * STATE.camera.zoom;
   const tokenR = s * 0.46;
   const isSelected = unit.id === STATE.selectedUnitId;
   const isActiveTurn = STATE.mode === 'combat' && unit.id === STATE.combat.activeUnitId;
-  const isDead = unit.hp <= 0;
+  const isDead = hp <= 0;
 
   ctx.save();
 
@@ -430,7 +439,7 @@ function drawUnitToken(unit, isTargetable) {
 
     ctx.fillStyle = '#090d14';
     ctx.fillRect(barX, barY, barW, barH);
-    const hpRatio = Math.max(0, Math.min(1, unit.hp / unit.maxHp));
+    const hpRatio = Math.max(0, Math.min(1, hp / unit.maxHp));
     ctx.fillStyle = hpRatio > 0.5 ? '#22c55e' : (hpRatio > 0.25 ? '#f59e0b' : '#ef4444');
     ctx.fillRect(barX, barY, barW * hpRatio, barH);
     ctx.strokeStyle = '#000';

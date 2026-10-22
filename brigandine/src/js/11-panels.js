@@ -233,6 +233,9 @@ function weaponEditorHTML(w, idx) {
       <div class="field"><label>Bônus de dano</label><input type="number" value="${w.dmgBonus}" ${auto ? 'disabled' : ''} onchange="updateWeaponField(${idx}, 'dmgBonus', this.value)"></div>
     </div>
     <div class="field"><label>Bônus de ataque</label><input type="number" value="${w.atkBonus}" ${auto ? 'disabled' : ''} onchange="updateWeaponField(${idx}, 'atkBonus', this.value)"></div>
+    <div class="field"><label>Animação</label>
+      <select onchange="updateWeaponField(${idx}, 'anim', this.value)">${Object.entries(WEAPON_ANIMS).map(([k, l]) => `<option value="${k}" ${(w.anim || 'auto') === k ? 'selected' : ''}>${k === 'auto' ? `${l} (${WEAPON_ANIMS[weaponAnimKind({ ...w, anim: 'auto' })]})` : l}</option>`).join('')}</select>
+    </div>
     <label class="check"><input type="checkbox" ${auto ? 'checked' : ''} onchange="updateWeaponField(${idx}, 'manual', !this.checked)"> Ataque e bônus de dano seguem a ficha</label>
     ${extraEditorHTML('weapon', idx, w)}`;
 }
@@ -265,6 +268,9 @@ function spellEditorHTML(sp, idx) {
       <div class="field"><label>Bônus de ataque</label><input type="number" value="${sp.atkBonus}" ${auto ? 'disabled' : ''} onchange="updateSpellField(${idx}, 'atkBonus', this.value)"></div>
     </div>
     <label class="check"><input type="checkbox" ${auto ? 'checked' : ''} onchange="updateSpellField(${idx}, 'manual', !this.checked)"> Ataque segue a ficha (bônus de dano &gt; 0 segue o atributo-chave)</label>
+    <div class="field"><label>Animação</label>
+      <select onchange="updateSpellField(${idx}, 'anim', this.value)">${Object.entries(SPELL_ANIMS).map(([k, l]) => `<option value="${k}" ${(sp.anim || 'auto') === k ? 'selected' : ''}>${k === 'auto' ? `${l} (${SPELL_ANIMS[spellAnimKind({ ...sp, anim: 'auto' })]})` : l}</option>`).join('')}</select>
+    </div>
     <label class="check"><input type="checkbox" ${sp.flash ? 'checked' : ''} onchange="updateSpellField(${idx}, 'flash', this.checked)"> Clarão: ilumina a área atingida até o fim da rodada (anula a escuridão)</label>
     ${extraEditorHTML('spell', idx, sp)}`;
 }
@@ -587,6 +593,7 @@ function updateEditableField(kind, idx, field, raw) {
     case 'dmgType': target.dmgType = DAMAGE_TYPES.includes(raw) ? raw : ''; break;
     case 'manual': target.manual = !!raw; break;
     case 'flash': if (kind === 'spell') target.flash = !!raw; break;
+    case 'anim': target.anim = (kind === 'spell' ? SPELL_ANIMS : WEAPON_ANIMS)[raw] ? raw : 'auto'; break;
     default: return;
   }
   recalculateUnitFromSheet(u, false);

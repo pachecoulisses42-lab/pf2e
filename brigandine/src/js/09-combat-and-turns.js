@@ -120,7 +120,13 @@ function passFlatCheck(attacker, target, sight, what) {
   return ok;
 }
 
+/** Golpe com arma: as regras resolvem na hora; a animação (07d) mostra o resultado. */
 function executeWeaponAttackAndDamage(attacker, target, weapon) {
+  return withAnimation(() => resolveWeaponAttack(attacker, target, weapon));
+}
+
+function resolveWeaponAttack(attacker, target, weapon) {
+  const anim = (hit, crit) => setAnimSpec({ kind: weaponAnimKind(weapon), family: 'weapon', from: attacker, targets: [{ unit: target, hit }], crit, color: damageAnimColor(weapon.dmgType) });
   faceTowardCell(attacker, target.col, target.row);
   attacker.actions -= 1;
   const mapPenalty = attacker.strikesMade === 0 ? 0 : (attacker.strikesMade === 1 ? -5 : -10);
@@ -128,7 +134,7 @@ function executeWeaponAttackAndDamage(attacker, target, weapon) {
 
   // luz e visão (PF2e): alvo oculto/escondido exige teste simples; atacante escondido deixa o alvo desprevenido
   const sight = visibilityBetween(attacker, target);
-  if (!passFlatCheck(attacker, target, sight, weapon.name)) { syncCombatUI(); requestRender(); return; }
+  if (!passFlatCheck(attacker, target, sight, weapon.name)) { anim(false, false); syncCombatUI(); requestRender(); return; }
   const ac = target.ac - (sight.observerHidden ? 2 : 0);
 
   const d20 = Math.floor(Math.random() * 20) + 1;
@@ -139,6 +145,7 @@ function executeWeaponAttackAndDamage(attacker, target, weapon) {
   const isHit = d20 !== 1 && (isCrit || atkTotal >= ac);
   const atkInfo = `Acerto ${atkTotal}</strong> [d20=${d20} ${weapon.atkBonus >= 0 ? '+' : ''}${weapon.atkBonus}${mapPenalty < 0 ? ' ' + mapPenalty : ''} vs CA ${ac}${sight.observerHidden ? ' (desprevenido −2: atacante na escuridão)' : ''}]`;
 
+  anim(isHit, isHit && isCrit);
   if (isHit) {
     const mult = isCrit ? 2 : 1;
     const applied = applyDefenses(dmg.parts, mult, target);
@@ -161,6 +168,10 @@ function executeWeaponAttackAndDamage(attacker, target, weapon) {
 
 /** Erguer Escudo (◆): bônus de CA até o início do próximo turno da peça. */
 function raiseShield() {
+  return withAnimation(raiseShieldNow);
+}
+
+function raiseShieldNow() {
   const u = STATE.units.find(x => x.id === STATE.combat.activeUnitId);
   if (!u || u.hp <= 0) return;
   const bonus = shieldBonusOf(u);
@@ -179,6 +190,7 @@ function raiseShield() {
   u.actions -= 1;
   u.shieldRaised = true;
   recalculateUnitFromSheet(u, false);
+  setAnimSpec({ kind: 'shield', family: 'item', from: u, targets: [{ unit: u, hit: true }], color: '#9adfff' });
   spawnFloatingText(u.col, u.row, `🛡️ Escudo +${bonus} CA`, '#9adfff');
   addLog(`🛡️ <strong>${u.name}</strong> ergueu o escudo (◆): <strong style="color:var(--ward)">CA ${u.baseAc} → ${u.ac}</strong> até o início do próximo turno.`);
   syncCombatUI();
@@ -192,6 +204,25 @@ function lowerShield(unit) {
 }
 
 function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) {
+  return withAnimation(() => resolveSpellCast(caster, spell, cell, clickedUnit, isFromScroll));
+}
+
+/** Pede a animação da magia: linha vai até a última casa; explosão usa centro e raio da área. */
+function spellAnimSpec(caster, spell, cell, areaCells, targets, crit) {
+  const kind = spellAnimKind(spell);
+  const spec = { kind, family: 'spell', from: caster, targets, crit, color: damageAnimColor(spell.dmgType), areaCells };
+  if (spell.areaType === 'line') {
+    const far = areaCells.reduce((best, c) => (cellDistanceMeters(caster.col, caster.row, c.col, c.row) > cellDistanceMeters(caster.col, caster.row, best.col, best.row) ? c : best), cell);
+    spec.endCell = { col: far.col, row: far.row };
+  } else if (spell.areaType === 'burst') {
+    spec.endCell = { col: cell.col, row: cell.row };
+    spec.areaCenter = { col: cell.col, row: cell.row };
+    spec.areaRadius = (spell.areaSize || 0) / (STATE.grid.cellScale || 1.5);
+  }
+  setAnimSpec(spec);
+}
+
+function resolveSpellCast(caster, spell, cell, clickedUnit, isFromScroll) {
   const cost = isFromScroll ? 2 : (spell.cost || 2);
   if (caster.actions < cost) {
     addLog(`⚠️ <strong>${caster.name}</strong> precisa de ${cost} ações (${'◆'.repeat(cost)}) para lançar <em>${spell.name}</em>, mas só tem ${caster.actions}◆.`);
@@ -237,6 +268,7 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
   if (!isArea) {
     const sight = visibilityBetween(caster, targetUnits[0], darkMap);
     if (!passFlatCheck(caster, targetUnits[0], sight, spell.name)) {
+      spellAnimSpec(caster, spell, cell, areaCells, [{ unit: targetUnits[0], hit: false }], false);
       addSpellFlash(spell, areaCells);
       syncCombatUI();
       requestRender();
@@ -245,6 +277,8 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
   }
   const dmg = rollDamage(spell);
   const hitSummaries = [];
+  const animTargets = [];
+  let anyCrit = false;
 
   for (const t of targetUnits) {
     const offGuard = visibilityBetween(caster, t, darkMap).observerHidden;
@@ -268,6 +302,8 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
     } else {
       statusLbl = 'ERROU';
     }
+    animTargets.push({ unit: t, hit: multiplier > 0 });
+    if (isCrit) anyCrit = true;
     const applied = multiplier > 0 ? applyDefenses(dmg.parts, multiplier, t) : { total: 0, lines: [] };
     const dealt = applied.total;
     const defenseNote = describeDefenseEffects(applied.lines);
@@ -283,6 +319,7 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
     hitSummaries.push(`<strong>${t.name}</strong> [Acerto ${atkTotal} vs CA ${ac}${offGuard ? ' desprevenido' : ''}: ${statusLbl} → -${dealt} PV${defenseNote ? ` (${defenseNote})` : ''}${t.hp === 0 ? ' 💀MORTO' : ''}]`);
   }
 
+  spellAnimSpec(caster, spell, cell, areaCells, animTargets, anyCrit);
   addLog(`✨ <strong>${caster.name}</strong> lançou <strong>${spell.name}</strong> (${'◆'.repeat(cost)}) · dano base ${dmg.total} = ${formatDamageParts(dmg.parts)}: ${hitSummaries.join(' | ')}.`);
   if (spell.flash) {
     addSpellFlash(spell, areaCells);
@@ -298,6 +335,10 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
  * até o usuário apagar; a luz segue a peça e, na lanterna, a direção dela.
  */
 function toggleLightItem(unit, idx, inCombat) {
+  return withAnimation(() => toggleLightItemNow(unit, idx, inCombat));
+}
+
+function toggleLightItemNow(unit, idx, inCombat) {
   const item = unit && unit.items[idx];
   const light = itemLight(item);
   if (!light) return false;
@@ -314,6 +355,7 @@ function toggleLightItem(unit, idx, inCombat) {
       unit.actions -= cost;
     }
     item.lit = true;
+    setAnimSpec({ kind: 'light', family: 'item', from: unit, targets: [{ unit, hit: true }], color: '#fbbf24' });
     const shape = light.shape === 'cone' ? `cone de ${String(light.bright).replace('.', ',')} m para onde a peça olha` : `${String(light.bright).replace('.', ',')} m ao redor`;
     addLog(`🔥 <strong>${escapeHtml(unit.name)}</strong> acendeu <em>${escapeHtml(item.name)}</em>${inCombat ? ` (${'◆'.repeat(cost)})` : ''}: luz plena ${shape}, penumbra até ${String(light.dim).replace('.', ',')} m. Fica acesa até ser apagada.`);
   }
@@ -324,18 +366,27 @@ function toggleLightItem(unit, idx, inCombat) {
 
 /** Perigo na casa onde a peça terminou o movimento: rola o dano (com defesas). */
 function applyHazardAt(unit) {
+  return withAnimation(() => applyHazardAtNow(unit));
+}
+
+function applyHazardAtNow(unit) {
   const hz = (STATE.objects || []).find(o => o.col === unit.col && o.row === unit.row && HAZARD_TYPES[o.type]);
   if (!hz || unit.hp <= 0) return;
   const def = envHazardDamage(hz);
   const dmg = rollDamage({ name: def.label, dmgDie: def.dmgDie, dmgType: def.dmgType });
   const applied = applyDefenses(dmg.parts, 1, unit);
   unit.hp = Math.max(0, unit.hp - applied.total);
+  setAnimSpec({ kind: 'hazard', family: 'item', from: unit, targets: [{ unit, hit: applied.total > 0 }], color: damageAnimColor(def.dmgType) });
   const note = describeDefenseEffects(applied.lines);
   spawnFloatingText(unit.col, unit.row, applied.total ? `⚠️ -${applied.total} PV` : '🛡️ RESISTIU', applied.total ? '#fca5a5' : '#94a3b8');
   addLog(`⚠️ <strong>${escapeHtml(unit.name)}</strong> parou em <em>${escapeHtml(def.label)}</em> e sofreu <strong style="color:var(--strike)">${applied.total}</strong> de dano (${formatDamageParts(dmg.parts, 1)})${note ? ` <em>(${note})</em>` : ''}.${unit.hp === 0 ? ` 💀 <strong style="color:var(--strike)">${escapeHtml(unit.name)} MORTO!</strong>` : ` (PV: ${unit.hp}/${unit.maxHp})`}`);
 }
 
 function executeItemUseOnCell(user, item, cell, clickedUnit) {
+  return withAnimation(() => useItemOnCellNow(user, item, cell, clickedUnit));
+}
+
+function useItemOnCellNow(user, item, cell, clickedUnit) {
   if (item.kind === 'light') {
     toggleLightItem(user, user.items.indexOf(item), true);
     return;
@@ -363,6 +414,7 @@ function executeItemUseOnCell(user, item, cell, clickedUnit) {
     item.qty -= 1;
     const heal = rollDiceExpression(item.dice, item.bonus);
     target.hp = Math.min(target.maxHp, target.hp + heal.total);
+    setAnimSpec({ kind: 'heal', family: 'item', from: user, targets: [{ unit: target, hit: true }], color: '#4ade80' });
     spawnFloatingText(target.col, target.row, `🧪 +${heal.total} PV`, '#4ade80');
     addLog(`🧪 <strong>${user.name}</strong> usou <strong>${item.name}</strong> em <strong>${target.name}</strong> (gastou ◆◆ 2 Ações), curando <strong style="color:#4ade80">+${heal.total} PV</strong> [${item.dice}+${item.bonus}] (PV atual: ${target.hp}/${target.maxHp}).`);
     syncCombatUI();

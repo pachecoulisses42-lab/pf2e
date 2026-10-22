@@ -47,6 +47,8 @@ function getCanvasRelativeCoords(e) {
 
 function onCanvasPointerDown(e) {
   const isTouch = e.pointerType === 'touch';
+  // um clique (ou toque) no tabuleiro pula a animação em andamento
+  if (animationPlaying() && (isTouch || e.button === 0)) { finishAnimation(); e.preventDefault(); return; }
   if (isTouch) {
     touchState.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (touchState.pointers.size === 2) {

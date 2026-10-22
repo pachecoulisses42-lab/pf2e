@@ -710,6 +710,63 @@ await check('barra do tabuleiro: mão move a visão, lixeira apaga (Ctrl+Z desfa
   await page.evaluate(() => { setAppMode('setup'); STATE.objects = []; populateDemoBattle(); });
 });
 
+await check('animações: seguram número e barra de PV até o impacto, clique pula, desligar vale e fica salvo', async () => {
+  const r = await page.evaluate(() => {
+    setAppMode('setup'); setAppMode('combat');
+    setAnimationsEnabled(true);
+    const att = STATE.units.find(u => u.faction === 'hero' && u.hp > 0);
+    const tgt = STATE.units.find(u => u.faction !== 'hero' && u.hp > 0);
+    att.actions = 3; att.strikesMade = 0; tgt.ac = -100; tgt.hp = tgt.maxHp;
+    STATE.floatingTexts = [];
+    const before = tgt.hp;
+    executeWeaponAttackAndDamage(att, tgt, att.weapons[0]);
+    const during = { playing: animationPlaying(), kind: ANIM.current && ANIM.current.kind, dur: ANIM.current && ANIM.current.duration,
+      shown: displayHp(tgt), real: tgt.hp, texts: STATE.floatingTexts.length };
+    return { before, during, tgtId: tgt.id };
+  });
+  assert.equal(r.during.playing, true);
+  assert.equal(r.during.dur, 900, 'arma no ritmo normal');
+  assert.ok(r.during.real < r.before, 'regra aplicou o dano na hora');
+  assert.equal(r.during.shown, r.before, 'barra mostra o PV anterior até o impacto');
+  assert.equal(r.during.texts, 0, 'número flutuante espera o impacto');
+  // um clique no tabuleiro pula
+  const box = await page.locator('#battleCanvas').boundingBox();
+  await page.mouse.click(box.x + 20, box.y + box.height - 20);
+  const after = await page.evaluate((id) => { const t = STATE.units.find(u => u.id === id); return { playing: animationPlaying(), shown: displayHp(t), real: t.hp, texts: STATE.floatingTexts.length }; }, r.tgtId);
+  assert.equal(after.playing, false);
+  assert.equal(after.shown, after.real);
+  assert.ok(after.texts >= 1);
+  // magia: ritmo cinema e termina sozinha
+  const sp = await page.evaluate(() => {
+    const caster = STATE.units.find(u => u.faction === 'hero' && u.hp > 0);
+    const tgt = STATE.units.find(u => u.faction !== 'hero' && u.hp > 0);
+    caster.actions = 3; caster.col = 2; caster.row = 2; tgt.col = 4; tgt.row = 2;
+    const ok = executeSpellCastOnCell(caster, { ...SPELL_CATALOG.bola_de_fogo }, { col: 4, row: 2 }, tgt, false);
+    return { ok, kind: ANIM.current && ANIM.current.kind, dur: ANIM.current && ANIM.current.duration, radius: ANIM.current && ANIM.current.areaRadius };
+  });
+  assert.equal(sp.ok, true);
+  assert.equal(sp.kind, 'fireball');
+  assert.equal(sp.dur, 1400, 'magia no ritmo cinema');
+  assert.ok(sp.radius > 0);
+  await page.waitForFunction(() => !animationPlaying(), null, { timeout: 4000 });
+  // desligado: nada segura e a preferência fica salva
+  const off = await page.evaluate(() => {
+    toggleAnimations();
+    const att = STATE.units.find(u => u.faction === 'hero' && u.hp > 0);
+    const tgt = STATE.units.find(u => u.faction !== 'hero' && u.hp > 0);
+    att.actions = 3; att.strikesMade = 0; STATE.floatingTexts = [];
+    executeWeaponAttackAndDamage(att, tgt, att.weapons[0]);
+    const res = { playing: animationPlaying(), texts: STATE.floatingTexts.length, pref: readPrefs().animations, pressed: document.getElementById('btnHudAnim').getAttribute('aria-pressed') };
+    toggleAnimations();
+    return { ...res, prefOn: readPrefs().animations };
+  });
+  assert.equal(off.playing, false);
+  assert.ok(off.texts >= 1);
+  assert.equal(off.pref, false);
+  assert.equal(off.pressed, 'false');
+  assert.equal(off.prefOn, true);
+});
+
 await check('sem erros de JavaScript durante o fluxo', async () => {
   assert.deepEqual(errors, []);
 });

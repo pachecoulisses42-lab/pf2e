@@ -132,5 +132,6 @@ function applyPrefs() {
   const prefs = readPrefs();
   setTheme(prefs.theme || 'parchment');
   if (prefs.tokenStyle && (TOKEN_STYLES[prefs.tokenStyle] || RETIRED_TOKEN_STYLES[prefs.tokenStyle])) chooseTokenStyle(prefs.tokenStyle);
+  setAnimationsEnabled(prefs.animations !== false, false);
   if (prefs.combatLogOpen === false) document.getElementById('combatLogPanel').open = false;
 }

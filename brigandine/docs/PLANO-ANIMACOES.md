@@ -1,4 +1,15 @@
-# Plano — animações de ataques e magias
+# Animações de ataques e magias
+
+**Situação:** implementado (etapas 1, 2 e 3). Módulos: `src/js/01d-animation-rules.js` (escolha, ritmo,
+tremida — regras puras, testadas em `tests/animations.test.mjs`) e `src/js/07d-animations.js` (motor e desenhos).
+
+**Decisões do dono:** magias e efeitos mágicos no ritmo **cinema** (1,4 s); ataques com arma no **normal**
+(0,9 s); **um clique no tabuleiro pula** a animação; a tela **treme** em críticos e explosões; **sem sons**.
+
+**Como acrescentar:** uma ação nova roda dentro de `withAnimation(...)` e, quando acontece de fato, chama
+`setAnimSpec({ kind, family, from, targets, crit, color })`. Um tipo novo precisa de um desenho em
+`ANIM_DRAW`, partículas de impacto em `ANIM_IMPACTS`, o instante do impacto em `ANIM_IMPACT_AT` e o rótulo
+em `WEAPON_ANIMS` ou `SPELL_ANIMS`.
 
 **É possível?** Sim. O tabuleiro já é desenhado em `<canvas>` quadro a quadro; dá para acrescentar uma
 camada de animação desenhada em código (vetores e partículas), sem imagens novas, sem dependências e sem
@@ -87,10 +98,9 @@ sendo o *clarão* das magias (até o fim da rodada), como já decidido.
 2. As 21 magias do catálogo + animação automática para magias novas + campo "Animação" nos editores.
 3. Extras (poções, luz, perigos, escudo) e ajustes finos.
 
-## Decisões que preciso de você
+## Decisões tomadas
 
-1. Duração padrão: rápida (0,5 s), normal (0,9 s) ou cinema (1,4 s)?
-2. Durante a animação o tabuleiro fica bloqueado (evita cliques no meio) ou pode clicar e pular?
-3. Pode tremer levemente a tela em críticos e explosões?
-4. Quer sons (espada, flecha, explosão)? Seriam sons sintetizados no navegador, sem arquivos, com volume
-   e botão de mudo.
+1. Duração: cinema para magias e efeitos mágicos; normal para ataques com arma.
+2. Um clique no tabuleiro pula a animação.
+3. Tremida leve em críticos e explosões: sim.
+4. Sons: não.
