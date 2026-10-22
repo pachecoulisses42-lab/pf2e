@@ -14,7 +14,8 @@ export function loadRules() {
   return vm.runInContext(`({
     DAMAGE_TYPES, RUNE_PRESETS, SPELL_CATALOG, isValidDice, rollDiceExpression, rollDamage,
     formatDamageParts, describeDamage, shieldBonusOf, normalizeWeapon, normalizeSpell,
-    escapeHtml, cleanText, recalculateUnitFromSheet
+    escapeHtml, cleanText, recalculateUnitFromSheet,
+    applyDefenses, describeDefenseEffects, normalizeDefenses, defenseMatches, DEFENSE_TYPES
   })`, ctx);
 }
 

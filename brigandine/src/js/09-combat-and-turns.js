@@ -112,13 +112,15 @@ function executeWeaponAttackAndDamage(attacker, target, weapon) {
 
   if (isHit) {
     const mult = isCrit ? 2 : 1;
-    const finalDmg = dmg.total * mult;
+    const applied = applyDefenses(dmg.parts, mult, target);
+    const finalDmg = applied.total;
+    const defenseNote = describeDefenseEffects(applied.lines);
     target.hp = Math.max(0, target.hp - finalDmg);
     const critTag = isCrit ? 'CRÍTICO 2x! ' : 'ACERTOU! ';
-    spawnFloatingText(target.col, target.row, `⚔️ ${critTag}-${finalDmg} PV`, isCrit ? '#facc15' : '#fca5a5');
+    spawnFloatingText(target.col, target.row, finalDmg === 0 ? (applied.lines.every(l => l.immune) ? '🛡️ IMUNE' : '🛡️ RESISTIU') : `⚔️ ${critTag}-${finalDmg} PV`, finalDmg === 0 ? '#94a3b8' : (isCrit ? '#facc15' : '#fca5a5'));
 
     const deadText = target.hp === 0 ? ` 💀 <strong style="color:var(--strike)">${target.name} MORTO!</strong>` : ` (PV: ${target.hp}/${target.maxHp})`;
-    addLog(`⚔️ <strong>${attacker.name}</strong> atacou <strong>${target.name}</strong> com <em>${weapon.name}</em> (◆): <strong>${atkInfo} → <strong style="color:var(--ok)">${isCrit ? 'CRÍTICO!' : 'ACERTOU!'}</strong> Dano <strong style="color:var(--strike)">${finalDmg}</strong> = ${formatDamageParts(dmg.parts, mult)}.${deadText}`);
+    addLog(`⚔️ <strong>${attacker.name}</strong> atacou <strong>${target.name}</strong> com <em>${weapon.name}</em> (◆): <strong>${atkInfo} → <strong style="color:var(--ok)">${isCrit ? 'CRÍTICO!' : 'ACERTOU!'}</strong> Dano <strong style="color:var(--strike)">${finalDmg}</strong> = ${formatDamageParts(dmg.parts, mult)}${defenseNote ? ` <em>(${defenseNote})</em>` : ''}.${deadText}`);
   } else {
     spawnFloatingText(target.col, target.row, `🛡️ ERROU (${atkTotal} vs CA ${target.ac})`, '#94a3b8');
     addLog(`⚔️ <strong>${attacker.name}</strong> atacou <strong>${target.name}</strong> com <em>${weapon.name}</em> (◆): <strong>${atkInfo} → <strong style="color:var(--text-3)">ERROU!</strong>`);
@@ -206,30 +208,33 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
     const isCrit = d20 === 20 || atkTotal >= t.ac + 10;
     const isHit = d20 !== 1 && (isCrit || atkTotal >= t.ac);
 
-    let dealt = 0;
+    let multiplier = 0;
     let statusLbl = '';
     if (isCrit) {
-      dealt = dmg.total * 2;
+      multiplier = 2;
       statusLbl = 'CRÍTICO 2x';
     } else if (isHit) {
-      dealt = dmg.total;
+      multiplier = 1;
       statusLbl = 'ACERTOU';
     } else if (spell.areaType === 'line' || spell.areaType === 'burst') {
-      dealt = Math.max(1, Math.floor(dmg.total / 2));
+      multiplier = 0.5;
       statusLbl = 'METADE';
     } else {
-      dealt = 0;
       statusLbl = 'ERROU';
     }
+    const applied = multiplier > 0 ? applyDefenses(dmg.parts, multiplier, t) : { total: 0, lines: [] };
+    const dealt = applied.total;
+    const defenseNote = describeDefenseEffects(applied.lines);
+    if (multiplier > 0 && dealt === 0) statusLbl = applied.lines.every(l => l.immune) ? 'IMUNE' : 'RESISTIU';
 
     if (dealt > 0) {
       t.hp = Math.max(0, t.hp - dealt);
       spawnFloatingText(t.col, t.row, `✨ ${statusLbl} -${dealt} PV`, '#e9d5ff');
     } else {
-      spawnFloatingText(t.col, t.row, `🛡️ ERROU`, '#94a3b8');
+      spawnFloatingText(t.col, t.row, multiplier > 0 ? `🛡️ ${statusLbl}` : '🛡️ ERROU', '#94a3b8');
     }
 
-    hitSummaries.push(`<strong>${t.name}</strong> [Acerto ${atkTotal} vs CA ${t.ac}: ${statusLbl} → -${dealt} PV${t.hp === 0 ? ' 💀MORTO' : ''}]`);
+    hitSummaries.push(`<strong>${t.name}</strong> [Acerto ${atkTotal} vs CA ${t.ac}: ${statusLbl} → -${dealt} PV${defenseNote ? ` (${defenseNote})` : ''}${t.hp === 0 ? ' 💀MORTO' : ''}]`);
   }
 
   addLog(`✨ <strong>${caster.name}</strong> lançou <strong>${spell.name}</strong> (${'◆'.repeat(cost)}) · dano base ${dmg.total} = ${formatDamageParts(dmg.parts)}: ${hitSummaries.join(' | ')}.`);

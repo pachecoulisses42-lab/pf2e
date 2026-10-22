@@ -901,6 +901,7 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
           </div>
           <div class="hp-bar-outer"><div id="combatUnitHpBar" class="hp-bar-inner" style="width:100%"></div></div>
         </div>
+        <div id="combatUnitDefenses" class="chip-row hidden"></div>
         <div class="economy">
           <div class="action-diamonds">
             <div id="pipAction1" class="action-pip available" onclick="toggleActionPip(1)" title="Ação 1">1</div>
@@ -1057,6 +1058,35 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
             </div>
 
             <div class="field">
+              <div class="field-label"><span>Resistências e fraquezas</span></div>
+              <div id="defenseList" class="stack"></div>
+              <details class="more">
+                <summary>Adicionar defesa<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+                <div class="more-body">
+                  <div class="grid-2">
+                    <div class="field"><label>Tipo de defesa</label>
+                      <select id="defenseKind" onchange="syncInspectorUI()">
+                        <option value="resistances">Resistência</option>
+                        <option value="weaknesses">Fraqueza</option>
+                        <option value="immunities">Imunidade</option>
+                      </select>
+                    </div>
+                    <div class="field"><label>Contra o dano</label>
+                      <select id="defenseType">
+                        <option value="cortante">cortante</option><option value="perfurante">perfurante</option><option value="contundente">contundente</option>
+                        <option value="fogo">fogo</option><option value="gélido">gélido</option><option value="elétrico">elétrico</option><option value="ácido">ácido</option><option value="sônico">sônico</option>
+                        <option value="espiritual">espiritual</option><option value="vital">vital</option><option value="veneno">veneno</option><option value="mental">mental</option><option value="força">força</option>
+                        <option value="físico">todo físico</option><option value="energia">toda energia</option><option value="todos">todos</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="field" id="defenseValueField"><label>Valor</label><input type="number" id="defenseValue" min="1" value="5"></div>
+                  <button class="btn btn-block" onclick="addDefenseToSelectedUnit()"><svg class="icon"><use href="#i-plus"/></svg>Incluir defesa</button>
+                </div>
+              </details>
+            </div>
+
+            <div class="field">
               <div class="field-label"><span>Movimento por ação</span><strong id="lblInspMove">9 metros</strong></div>
               <div class="seg seg-4">
                 <button class="seg-btn unit-move-btn" data-m="3" onclick="setSelectedUnitMove(3)">3m</button>
@@ -1195,72 +1225,170 @@ const TK = (() => {
   /** Gradiente de tecido iluminado de cima-esquerda. */
   const cloth = (id, name, light, dark) => lin(`${name}_${id}`, [[0, light], [1, dark]], [0.15, 0, 0.85, 1]);
 
-  const skinDefs = (id, skin) => rad(`skin_${id}`, [[0, lighten(skin, 0.28)], [0.6, skin], [1, darken(skin, 0.3)]], [0.38, 0.32, 0.85]);
+  const skinDefs = (id, skin) => rad(`skin_${id}`, [[0, lighten(skin, 0.34)], [0.45, skin], [1, darken(skin, 0.4)]], [0.4, 0.3, 0.8]);
 
   /**
-   * Rosto frontal. Retorna { neck, head } para controlar a ordem das camadas.
-   * Opções: skin, eye, brow, mouth, y (centro), w/h (largura/altura do crânio),
-   * eyeGlow (olhos emissivos), squint (0..1), smile (-1..1), ears ('round'|'pointed'|'none').
+   * Rosto frontal em estilo de quadrinhos. Retorna { neck, head }.
+   * Opções: skin, eye, brow, mouth, y, w, h,
+   *   chin (0..1, largura do queixo: maior = mais quadrado), tilt (-1..1, + = bravo, - = triste),
+   *   squint (0..1), smile (-1..1), teeth ('none'|'grin'|'fangs'|'snarl'), eyeGlow, lashes,
+   *   ears ('round'|'pointed'|'none'), nose (escala), stubble (bool), crow (rugas laterais).
    */
   function face(id, o = {}) {
     const {
       skin = '#e2b48c', eye = '#3b2a1c', brow = '#2a1a10', mouth = '#8c4a3a',
-      y = 102, w = 33, h = 38, eyeGlow = false, squint = 0, smile = 0.4,
-      ears = 'round', browW = 3.2, lashes = false, nose = 1
+      y = 102, w = 33, h = 38, chin = 0.34, tilt = 0.2, squint = 0, smile = 0.4, teeth = 'none',
+      eyeGlow = false, lashes = false, ears = 'round', nose = 1, stubble = false, browW = 1, wink = false
     } = o;
-    const dark = darken(skin, 0.35);
+    const ink = '#06060c';
+    const dark = darken(skin, 0.38);
+    const mid = darken(skin, 0.18);
     const ex = 14.5;
     const ey = y + 3;
-    const lid = squint * 3.2;
+    const lid = squint * 3.4;
+    const cw = w * chin;                 // meia-largura do queixo
+    const jaw = `M${128 - w} ${y - 4} C${128 - w} ${y - 30} ${128 - w * 0.62} ${y - h} 128 ${y - h} C${128 + w * 0.62} ${y - h} ${128 + w} ${y - 30} ${128 + w} ${y - 4}
+       C${128 + w} ${y + 16} ${128 + w * 0.82} ${y + h * 0.7} ${128 + cw + 4} ${y + h * 0.93} Q128 ${y + h * 1.04} ${128 - cw - 4} ${y + h * 0.93}
+       C${128 - w * 0.82} ${y + h * 0.7} ${128 - w} ${y + 16} ${128 - w} ${y - 4}Z`;
+
     const eyeSVG = (sx) => `
       <g transform="translate(${128 + sx * ex} ${ey}) scale(${sx} 1)">
-        <path d="M-9.5 0.5 Q-2 ${-6.5 + lid} 9.5 -0.8 Q1 ${5.5 - lid * 0.4} -9.5 0.5Z" fill="#f8f3ea" stroke="${darken(skin, 0.55)}" stroke-width="1.3" stroke-linejoin="round"/>
-        <circle cx="0.8" cy="-0.6" r="4.4" fill="${eye}"/>
-        <circle cx="0.8" cy="-0.6" r="4.4" fill="none" stroke="${darken(eye, 0.5)}" stroke-width="0.9"/>
-        <circle cx="0.8" cy="-0.6" r="2" fill="#0b0b10"/>
-        <circle cx="-0.8" cy="-2.1" r="1.2" fill="#fff" opacity="0.95"/>
-        ${eyeGlow ? `<circle cx="0.8" cy="-0.6" r="7" fill="${eye}" opacity="0.28"/>` : ''}
-        <path d="M-9.8 0.8 Q-2 ${-7.4 + lid} 9.8 -1" fill="none" stroke="${darken(skin, 0.6)}" stroke-width="${lashes ? 2.6 : 1.8}" stroke-linecap="round"/>
+        <path d="M-10.5 1.5 Q-3 ${-8 + lid} 10.5 -1.2 Q2 ${6.5 - lid * 0.5} -10.5 1.5Z" fill="#fbf6ec" stroke="${ink}" stroke-width="1.2" stroke-linejoin="round"/>
+        <clipPath id="eyc_${id}_${sx > 0 ? 'r' : 'l'}"><path d="M-10.5 1.5 Q-3 ${-8 + lid} 10.5 -1.2 Q2 ${6.5 - lid * 0.5} -10.5 1.5Z"/></clipPath>
+        <g clip-path="url(#eyc_${id}_${sx > 0 ? 'r' : 'l'})">
+          <circle cx="1.5" cy="-0.4" r="6" fill="${eye}"/>
+          <path d="M-5 3 Q1.5 8 8 3 L8 8 L-5 8Z" fill="${lighten(eye, 0.35)}" opacity="0.8"/>
+          <circle cx="1.5" cy="-0.4" r="6" fill="none" stroke="${darken(eye, 0.6)}" stroke-width="1.6"/>
+          <circle cx="1.5" cy="-0.4" r="2.6" fill="#07070c"/>
+          <path d="M-9 -3 Q-2 -9 11 -4 L11 -9 L-9 -9Z" fill="${ink}" opacity="0.32"/>
+        </g>
+        <circle cx="-0.6" cy="-2.6" r="1.9" fill="#fff"/><circle cx="3.6" cy="1.2" r="0.9" fill="#fff" opacity="0.9"/>
+        ${eyeGlow ? `<circle cx="1.5" cy="-0.4" r="9" fill="${eye}" opacity="0.3"/>` : ''}
+        <path d="M-11.5 2 Q-3 ${-9.4 + lid} 11.5 -1.6" fill="none" stroke="${ink}" stroke-width="${lashes ? 3.8 : 3.1}" stroke-linecap="round"/>
+        ${lashes ? `<path d="M-11 1 L-14 -2 M10.500 -2 L14 -5" stroke="${ink}" stroke-width="2" stroke-linecap="round"/>` : ''}
+        <path d="M-7 ${-9.5 + lid} Q2 ${-13 + lid * 0.5} 10 ${-8.5}" fill="none" stroke="${dark}" stroke-width="1.1" stroke-linecap="round" opacity="0.7"/>
+        <path d="M-7 7.5 Q1 10 8 6.5" fill="none" stroke="${dark}" stroke-width="1" opacity="0.5"/>
       </g>`;
-    const browSVG = (sx) => `<path d="M${128 + sx * 6} ${y - 7 + squint * 2} Q${128 + sx * 15} ${y - 14 + squint * 3} ${128 + sx * 24} ${y - 8 - squint * 2}" fill="none" stroke="${brow}" stroke-width="${browW}" stroke-linecap="round"/>`;
-    const smileY = y + 25;
+
+    // sobrancelha como cunha afilada; tilt>0 baixa a ponta interna (bravo)
+    const browSVG = (sx) => {
+      const ix = 128 + sx * 5, ox = 128 + sx * 27;
+      const iy = y - 8 + tilt * 5 + squint * 1.5, oy = y - 12 - tilt * 4 - squint * 1;
+      const t = 3.6 * browW;
+      return `<path d="M${ix} ${iy} Q${128 + sx * 15} ${(iy + oy) / 2 - 5.5} ${ox} ${oy} Q${128 + sx * 15} ${(iy + oy) / 2 - 5.5 + t} ${ix} ${iy + t * 1.1}Z" fill="${brow}" stroke="${ink}" stroke-width="1.4" stroke-linejoin="round"/>`;
+    };
+
+    const toothRow = teeth === 'none' ? '' : (() => {
+      const n = teeth === 'fangs' ? 2 : 6;
+      if (teeth === 'fangs') return `<path d="M${128 - 8} ${y + 24} L${128 - 5} ${y + 33} L${128 - 2} ${y + 24}Z M${128 + 8} ${y + 24} L${128 + 5} ${y + 33} L${128 + 2} ${y + 24}Z" fill="#fff" stroke="${ink}" stroke-width="1.2" stroke-linejoin="round"/>`;
+      let t = '';
+      for (let i = 0; i < n; i++) t += `<path d="M${128 - 13 + i * 5.2} ${y + 25 + smile * 1} h5.2 v${teeth === 'snarl' ? 7 : 5} h-5.2z" fill="#fff" stroke="${ink}" stroke-width="0.9"/>`;
+      return t;
+    })();
+
+    const sy = y + 26;
+    const mouthSVG = teeth === 'none'
+      ? `<path d="M${128 - 11} ${sy - smile * 1.5} Q128 ${sy + 6 * smile + 0.5} ${128 + 11} ${sy - smile * 1.5}" fill="none" stroke="${ink}" stroke-width="2.8" stroke-linecap="round"/>
+         <path d="M${128 - 5} ${sy + 4 + smile * 2} Q128 ${sy + 7 + smile * 2.6} ${128 + 5} ${sy + 4 + smile * 2}" fill="none" stroke="${mouth}" stroke-width="2.2" stroke-linecap="round" opacity="0.8"/>`
+      : `<path d="M${128 - 14} ${sy - 1} Q128 ${sy + 12 * Math.max(0.3, smile)} ${128 + 14} ${sy - 1} Q128 ${sy + 2} ${128 - 14} ${sy - 1}Z" fill="#3a0c12" stroke="${ink}" stroke-width="2.2" stroke-linejoin="round"/>${toothRow}`;
+
+    const earSVG = ears === 'none' ? '' : ears === 'pointed'
+      ? `<path d="M${128 - w + 2} ${y - 6} L${128 - w - 30} ${y - 26} L${128 - w - 2} ${y + 16}Z" fill="url(#skin_${id})" stroke="${ink}" stroke-width="2.6" stroke-linejoin="round"/>
+         <path d="M${128 - w - 4} ${y - 8} L${128 - w - 22} ${y - 19} L${128 - w - 4} ${y + 8}Z" fill="${dark}" opacity="0.4"/>
+         <path d="M${128 + w - 2} ${y - 6} L${128 + w + 30} ${y - 26} L${128 + w + 2} ${y + 16}Z" fill="url(#skin_${id})" stroke="${ink}" stroke-width="2.6" stroke-linejoin="round"/>
+         <path d="M${128 + w + 4} ${y - 8} L${128 + w + 22} ${y - 19} L${128 + w + 4} ${y + 8}Z" fill="${dark}" opacity="0.4"/>`
+      : `<path d="M${128 - w + 1} ${y - 8} C${128 - w - 10} ${y - 10} ${128 - w - 9} ${y + 12} ${128 - w + 3} ${y + 12}Z" fill="url(#skin_${id})" stroke="${ink}" stroke-width="2.4" stroke-linejoin="round"/>
+         <path d="M${128 + w - 1} ${y - 8} C${128 + w + 10} ${y - 10} ${128 + w + 9} ${y + 12} ${128 + w - 3} ${y + 12}Z" fill="url(#skin_${id})" stroke="${ink}" stroke-width="2.4" stroke-linejoin="round"/>
+         <path d="M${128 - w - 4} ${y - 2} q-1 7 3 8 M${128 + w + 4} ${y - 2} q1 7 -3 8" stroke="${dark}" stroke-width="1.4" fill="none" opacity="0.7"/>`;
+
+    const nx = 3.6 * nose;
     const head = `
-      ${ears === 'none' ? '' : ears === 'pointed'
-        ? `<path d="M${128 - w + 2} ${y - 6} L${128 - w - 26} ${y - 22} L${128 - w - 2} ${y + 16} Z" fill="url(#skin_${id})" stroke="${dark}" stroke-width="2" stroke-linejoin="round"/>
-           <path d="M${128 + w - 2} ${y - 6} L${128 + w + 26} ${y - 22} L${128 + w + 2} ${y + 16} Z" fill="url(#skin_${id})" stroke="${dark}" stroke-width="2" stroke-linejoin="round"/>`
-        : `<ellipse cx="${128 - w - 1}" cy="${y + 2}" rx="5.5" ry="9" fill="url(#skin_${id})" stroke="${dark}" stroke-width="1.8"/>
-           <ellipse cx="${128 + w + 1}" cy="${y + 2}" rx="5.5" ry="9" fill="url(#skin_${id})" stroke="${dark}" stroke-width="1.8"/>`}
-      <path d="M${128 - w} ${y - 4} C${128 - w} ${y - 30} ${128 - w * 0.62} ${y - h} 128 ${y - h} C${128 + w * 0.62} ${y - h} ${128 + w} ${y - 30} ${128 + w} ${y - 4} C${128 + w} ${y + 22} ${128 + w * 0.56} ${y + h * 0.96} 128 ${y + h} C${128 - w * 0.56} ${y + h * 0.96} ${128 - w} ${y + 22} ${128 - w} ${y - 4}Z"
-            fill="url(#skin_${id})" stroke="${dark}" stroke-width="2.2" stroke-linejoin="round"/>
-      <path d="M${128 - w + 5} ${y + 12} Q${128 - w + 8} ${y + 30} 128 ${y + h - 3} Q${128 + w - 8} ${y + 30} ${128 + w - 5} ${y + 12}" fill="none" stroke="${dark}" stroke-width="2" opacity="0.18"/>
+      <g filter="url(#cel_${id})">
+        ${earSVG}
+        <path d="${jaw}" fill="url(#skin_${id})" stroke="${ink}" stroke-width="3.2" stroke-linejoin="round"/>
+      </g>
+      <!-- planos do rosto: bochecha, sombra do nariz e sob o lábio (sombra dura) -->
+      <path d="M${128 + w - 4} ${y + 6} Q${128 + w - 9} ${y + 26} ${128 + cw + 4} ${y + h * 0.9} Q${128 + w - 14} ${y + 24} ${128 + w - 17} ${y + 8}Z" fill="${dark}" opacity="0.38"/>
+      <path d="M${128 + 4} ${y + 6} Q${128 + 9 * nose} ${y + 14} ${128 + 6 * nose} ${y + 19} L${128 + 2} ${y + 19}Z" fill="${dark}" opacity="0.4"/>
+      <path d="M${128 - 8} ${sy + 9} Q128 ${sy + 13} ${128 + 8} ${sy + 9} Q128 ${sy + 16} ${128 - 8} ${sy + 9}Z" fill="${dark}" opacity="0.35"/>
+      ${stubble ? `<path d="M${128 - w + 4} ${y + 14} Q${128 - w + 6} ${y + h * 0.9} 128 ${y + h} Q${128 + w - 6} ${y + h * 0.9} ${128 + w - 4} ${y + 14} Q128 ${y + 26} ${128 - w + 4} ${y + 14}Z" fill="url(#hatch_${id})" opacity="0.28"/>` : ''}
       ${browSVG(-1)}${browSVG(1)}
-      ${eyeSVG(-1)}${eyeSVG(1)}
-      <path d="M128 ${y + 5} Q${128 - 5 * nose} ${y + 17} ${128 - 3.5 * nose} ${y + 18.5} Q128 ${y + 21} ${128 + 3.5 * nose} ${y + 18.5} Q${128 + 5 * nose} ${y + 17} 128 ${y + 5}" fill="${dark}" opacity="0.2"/>
-      <path d="M${128 - 4 * nose} ${y + 19} Q128 ${y + 22.5} ${128 + 4 * nose} ${y + 19}" fill="none" stroke="${dark}" stroke-width="1.6" stroke-linecap="round" opacity="0.7"/>
-      <path d="M${128 - 10} ${smileY - smile * 1} Q128 ${smileY + 5 * smile + 1} ${128 + 10} ${smileY - smile * 1}" fill="none" stroke="${mouth}" stroke-width="2.4" stroke-linecap="round"/>`;
-    const neck = `<path d="M${128 - 15} ${y + 22} L${128 + 15} ${y + 22} L${128 + 18} ${y + 62} L${128 - 18} ${y + 62}Z" fill="${darken(skin, 0.2)}"/>
-      <path d="M${128 - 15} ${y + 22} L${128 + 15} ${y + 22} L${128 + 15} ${y + 40} Q128 ${y + 50} ${128 - 15} ${y + 40}Z" fill="#000" opacity="0.22"/>`;
+      ${eyeSVG(-1)}${wink ? `<path d="M${128 + ex - 11} ${ey + 2} Q${128 + ex} ${ey + 9} ${128 + ex + 11} ${ey + 2}" fill="none" stroke="${ink}" stroke-width="3.4" stroke-linecap="round"/><path d="M${128 + ex + 11} ${ey + 2} l4 -3 M${128 + ex + 8} ${ey + 5} l4 1" stroke="${ink}" stroke-width="1.8" stroke-linecap="round"/>` : eyeSVG(1)}
+      <path d="M${128 - 2.5} ${y - 2} Q${128 - 3.5 * nose} ${y + 9} ${128 - nx} ${y + 16}" fill="none" stroke="${dark}" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+      <path d="M${128 - nx - 3} ${y + 17} Q${128 - nx} ${y + 21.500} 128 ${y + 20} Q${128 + nx} ${y + 21.500} ${128 + nx + 3} ${y + 17}" fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      ${mouthSVG}`;
+    // pescoço curto e grosso, com trapézios descendo até os ombros
+    const neck = `<g filter="url(#cel_${id})">
+        <path d="M${128 - 19} ${y + 20} L${128 + 19} ${y + 20} L${128 + 21} ${y + 46} C${128 + 24} ${y + 56} ${128 + 28} ${y + 66} ${128 + 31} ${y + 80} L${128 - 31} ${y + 80} C${128 - 28} ${y + 66} ${128 - 24} ${y + 56} ${128 - 21} ${y + 46}Z" fill="${mid}" stroke="${ink}" stroke-width="2.8" stroke-linejoin="round"/>
+      </g>
+      <path d="M${128 - 17} ${y + 24} L${128 + 17} ${y + 24} L${128 + 19} ${y + 40} Q128 ${y + 54} ${128 - 19} ${y + 40}Z" fill="#000" opacity="0.32"/>
+      <path d="M${128 + 4} ${y + 40} Q${128 + 12} ${y + 50} ${128 + 22} ${y + 48}" fill="none" stroke="${dark}" stroke-width="2" opacity="0.6"/>`;
     return { neck, head };
   }
 
   /** Pauldron de placas sobrepostas (lado -1 esquerdo, +1 direito). */
   function pauldron(id, side, { fill = `url(#steel_${id})`, trim = `url(#gold_${id})`, plates = 3 } = {}) {
     const mx = (x) => (side < 0 ? x : 256 - x);
-    let out = `<path d="M${mx(36)} 226 C${mx(34)} 190 ${mx(58)} 168 ${mx(92)} 174 L${mx(102)} 214 C${mx(78)} 226 ${mx(56)} 232 ${mx(36)} 226Z" fill="${fill}" stroke="#101722" stroke-width="3" stroke-linejoin="round"/>`;
+    let out = `<g filter="url(#cel_${id})"><path d="M${mx(36)} 226 C${mx(34)} 190 ${mx(58)} 168 ${mx(92)} 174 L${mx(102)} 214 C${mx(78)} 226 ${mx(56)} 232 ${mx(36)} 226Z" fill="${fill}" stroke="#101722" stroke-width="3" stroke-linejoin="round"/>`;
     for (let i = 1; i <= plates; i++) {
       const t = i / (plates + 1);
       out += `<path d="M${mx(38 + t * 4)} ${226 - t * 14} Q${mx(66)} ${236 - t * 30} ${mx(100)} ${216 - t * 16}" fill="none" stroke="#101722" stroke-width="2" opacity="0.5"/>`;
     }
     out += `<path d="M${mx(46)} 200 C${mx(52)} 184 ${mx(70)} 177 ${mx(88)} 178" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
       <path d="M${mx(36)} 226 C${mx(56)} 232 ${mx(78)} 226 ${mx(102)} 214" fill="none" stroke="${trim}" stroke-width="4" stroke-linecap="round"/>
-      <circle cx="${mx(60)}" cy="202" r="3.2" fill="${trim}" stroke="#101722" stroke-width="1.2"/>`;
+      <circle cx="${mx(60)}" cy="202" r="3.2" fill="${trim}" stroke="#101722" stroke-width="1.2"/></g>`;
     return out;
   }
 
+  /** Brilho de quatro pontas (reflexo em metal, gemas e olhos). */
+  const gl = (x, y, sc = 1, rot = 0, op = 0.95) =>
+    `<path d="M0 -9 L1.8 -1.8 L9 0 L1.8 1.8 L0 9 L-1.8 1.8 L-9 0 L-1.8 -1.8Z" fill="#fff" opacity="${op}" transform="translate(${x} ${y}) rotate(${rot}) scale(${sc})"/>`;
+
   const TORSO = 'M34 256 C38 214 62 190 100 178 L156 178 C194 190 218 214 222 256Z';
 
+
+  /**
+   * Linguagem de quadrinhos como filtros SVG, aplicáveis a qualquer grupo:
+   *  - comic: contorno de nanquim + sombra em cel shading (luz vinda de cima-esquerda)
+   *    + brilho de borda + luz de recorte na cor de acento (lado direito)
+   *  - cel:   só o sombreamento (para partes internas, sem contorno)
+   */
+  function comicDefs(id, accent) {
+    const region = 'filterUnits="userSpaceOnUse" x="-24" y="-24" width="304" height="304" color-interpolation-filters="sRGB"';
+    const shade = (dx, dy, op) => `
+      <feOffset in="SourceAlpha" dx="${dx}" dy="${dy}" result="o1"/>
+      <feComposite in="SourceAlpha" in2="o1" operator="out" result="cres"/>
+      <feFlood flood-color="#0c0614" flood-opacity="${op}"/>
+      <feComposite in2="cres" operator="in" result="shade"/>`;
+    const light = `
+      <feOffset in="SourceAlpha" dx="3.5" dy="4.5" result="o2"/>
+      <feComposite in="SourceAlpha" in2="o2" operator="out" result="rim"/>
+      <feFlood flood-color="#ffffff" flood-opacity="0.42"/>
+      <feComposite in2="rim" operator="in" result="hi"/>
+      <feOffset in="SourceAlpha" dx="-3.5" dy="0" result="o3"/>
+      <feComposite in="SourceAlpha" in2="o3" operator="out" result="bnc"/>
+      <feFlood flood-color="${accent}" flood-opacity="0.55"/>
+      <feComposite in2="bnc" operator="in" result="bounce"/>`;
+    return `
+    <filter id="comic_${id}" ${region}>
+      <feMorphology in="SourceAlpha" operator="dilate" radius="2.2" result="dil"/>
+      <feFlood flood-color="#06060c"/>
+      <feComposite in2="dil" operator="in" result="outline"/>
+      ${shade(-6, -8, 0.36)}${light}
+      <feMerge><feMergeNode in="outline"/><feMergeNode in="SourceGraphic"/><feMergeNode in="shade"/><feMergeNode in="bounce"/><feMergeNode in="hi"/></feMerge>
+    </filter>
+    <filter id="cel_${id}" ${region}>
+      ${shade(-5, -7, 0.34)}${light}
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="shade"/><feMergeNode in="bounce"/><feMergeNode in="hi"/></feMerge>
+    </filter>
+    <pattern id="ht_${id}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(28)"><circle cx="3" cy="3" r="1.35" fill="#000"/></pattern>
+    <pattern id="hatch_${id}" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)"><path d="M0 0 V5" stroke="#06060c" stroke-width="1.6"/></pattern>
+    <linearGradient id="htg_${id}" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset="0.55" stop-color="#000"/></linearGradient>
+    <mask id="htm_${id}"><rect width="256" height="256" fill="url(#htg_${id})"/></mask>`;
+  }
+
   /** Moldura do medalhão + composição das camadas. */
-  function frame(id, { faction, bg, accent, art }) {
+  function frame(id, { faction, bg, accent, art, lean = faction === 'hero' ? -3 : 3 }) {
     const rim = faction === 'hero'
       ? ['#fff1b8', '#d9ac4a', '#6b4b12']
       : ['#c9bcbc', '#5f4d50', '#1b1214'];
@@ -1279,31 +1407,34 @@ const TK = (() => {
     ${rad(`vig_${id}`, [[0.55, '#000', 0], [1, '#000', 0.62]], [0.5, 0.5, 0.5])}
     ${rad(`gem_${id}`, [[0, lighten(accent, 0.6)], [0.55, accent], [1, darken(accent, 0.5)]], [0.35, 0.3, 0.8])}
     <clipPath id="clip_${id}"><circle cx="128" cy="128" r="108"/></clipPath>
+    ${comicDefs(id, accent)}
     ${materials(id)}
     ${a.defs || ''}
   </defs>
   <circle cx="128" cy="130" r="124" fill="#000" opacity="0.35"/>
   <circle cx="128" cy="128" r="124" fill="url(#rim_${id})"/>
   <circle cx="128" cy="128" r="123" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="1.5"/>
+  <circle cx="128" cy="128" r="124.5" fill="none" stroke="#06060c" stroke-width="3"/>
   <circle cx="128" cy="128" r="116" fill="none" stroke="${stud}" stroke-width="4.2" stroke-dasharray="1.2 20.6" stroke-linecap="round" opacity="0.9"/>
   <circle cx="128" cy="128" r="111" fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="3"/>
   <circle cx="128" cy="128" r="108" fill="url(#bg_${id})"/>
   <g clip-path="url(#clip_${id})">
-    <g fill="#fff" opacity="0.07">${rays}</g>
+    <g fill="${accent}" opacity="0.16">${rays}</g>
+    <rect width="256" height="256" fill="url(#ht_${id})" mask="url(#htm_${id})" opacity="0.35"/>
     ${a.glow || ''}
-    ${a.back || ''}
-    ${a.body}
+    <g filter="url(#comic_${id})">${a.back || ''}</g>
+    <g filter="url(#comic_${id})" transform="rotate(${lean} 128 214)">${a.body}</g>
     <circle cx="128" cy="128" r="108" fill="url(#vig_${id})"/>
   </g>
   <circle cx="128" cy="128" r="108" fill="none" stroke="${accent}" stroke-width="2" opacity="0.95"/>
   <circle cx="128" cy="128" r="106.5" fill="none" stroke="#000" stroke-opacity="0.5" stroke-width="1"/>
-  ${a.over || ''}
+  <g filter="url(#comic_${id})">${a.over || ''}</g>
   <path d="M128 221 L140 233 L128 246 L116 233Z" fill="url(#gem_${id})" stroke="${faction === 'hero' ? '#5a3f0e' : '#140c0e'}" stroke-width="2.2" stroke-linejoin="round"/>
   <path d="M128 224 L134 232 L128 230Z" fill="#fff" opacity="0.6"/>
 </svg>`;
   }
 
-  return { lin, rad, mix, lighten, darken, cloth, skinDefs, face, pauldron, frame, TORSO };
+  return { lin, rad, mix, lighten, darken, cloth, skinDefs, face, pauldron, frame, gl, TORSO };
 })();
 
 const SCULPT_SVGS = {};
@@ -1317,7 +1448,7 @@ const T = TK;
 SCULPT_SVGS.guerreiro = () => T.frame('guerreiro', {
   faction: 'hero', accent: '#4fa3e0', bg: ['#2b4a68', '#0d1a28'],
   art: (id) => {
-    const f = T.face(id, { skin: '#e3b48c', eye: '#3f78a8', brow: '#3a2615', smile: 0.15, h: 36 });
+    const f = T.face(id, { skin: '#e3b48c', eye: '#3f78a8', brow: '#3a2615', smile: 0.2, h: 36, chin: 0.5, tilt: 0.45, stubble: true, browW: 1.25 });
     return {
       defs: `${T.skinDefs(id, '#e3b48c')}${T.cloth(id, 'tabard', '#5da3dc', '#1c4468')}${T.cloth(id, 'cape', '#2f6a9c', '#0e2539')}${T.cloth(id, 'plume', '#e5483d', '#7f1612')}`,
       back: `<path d="M44 256 C40 196 66 164 104 156 L152 156 C190 164 216 196 212 256Z" fill="url(#cape_${id})" stroke="#0a1622" stroke-width="3"/>
@@ -1337,7 +1468,8 @@ SCULPT_SVGS.guerreiro = () => T.frame('guerreiro', {
         <path d="M93 86 Q128 66 163 86 L163 96 Q128 78 93 96Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2"/>
         <path d="M124 80 L132 80 L131 108 Q128 111 125 108Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="2"/>
         <path d="M91 96 L97 128 L110 120 L108 94Z M165 96 L159 128 L146 120 L148 94Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="2.4" stroke-linejoin="round"/>
-        <path d="M102 62 Q116 50 134 49" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>`,
+        <path d="M102 62 Q116 50 134 49" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+        ${T.gl(110, 58, 1.1, 20)}${T.gl(68, 190, 0.9, 0)}`,
       over: `
         <path d="M128 46 C112 22 140 6 172 16 C162 28 156 40 146 50Z" fill="url(#plume_${id})" stroke="#4a0c09" stroke-width="2.4"/>
         <g>
@@ -1347,6 +1479,7 @@ SCULPT_SVGS.guerreiro = () => T.frame('guerreiro', {
           <rect x="213.5" y="188" width="11" height="26" rx="3" fill="url(#leather_${id})" stroke="#1a0e06" stroke-width="2"/>
           <path d="M214 194 H224 M214 200 H224 M214 206 H224" stroke="#1a0e06" stroke-width="1.5" opacity="0.7"/>
           <circle cx="219" cy="220" r="8" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.2"/>
+          ${T.gl(219, 52, 1.5, 0)}${T.gl(217, 120, 0.9, 0)}
         </g>
         <g>
           <circle cx="62" cy="206" r="38" fill="url(#steel_${id})" stroke="#101722" stroke-width="3.5"/>
@@ -1362,7 +1495,7 @@ SCULPT_SVGS.guerreiro = () => T.frame('guerreiro', {
 SCULPT_SVGS.paladino = () => T.frame('paladino', {
   faction: 'hero', accent: '#f4d36a', bg: ['#6b5a2a', '#1c1608'],
   art: (id) => {
-    const f = T.face(id, { skin: '#efc7a2', eye: '#5aa0d8', brow: '#b58a3a', smile: 0.5, h: 36 });
+    const f = T.face(id, { skin: '#efc7a2', eye: '#5aa0d8', brow: '#b58a3a', smile: 0.7, h: 36, chin: 0.3, tilt: -0.05, lashes: true });
     return {
       defs: `${T.skinDefs(id, '#efc7a2')}${T.cloth(id, 'tabard', '#ffffff', '#cfc7b0')}${T.cloth(id, 'hair', '#ffe48a', '#b3822a')}${T.cloth(id, 'cape', '#fff6d6', '#b9a66a')}${T.rad(`halo_${id}`, [[0.55, '#ffe9a0', 0.9], [0.8, '#ffd45a', 0.35], [1, '#ffd45a', 0]], [0.5, 0.5, 0.5])}`,
       glow: `<circle cx="128" cy="96" r="78" fill="url(#halo_${id})"/>
@@ -1383,7 +1516,8 @@ SCULPT_SVGS.paladino = () => T.frame('paladino', {
         <path d="M94 86 Q128 62 162 86" fill="none" stroke="url(#gold_${id})" stroke-width="6" stroke-linecap="round"/>
         <path d="M94 86 Q128 62 162 86" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity="0.7"/>
         <path d="M95 84 L62 64 L72 82 L56 88 L82 98Z M161 84 L194 64 L184 82 L200 88 L174 98Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M128 66 L134 76 L128 86 L122 76Z" fill="#7fd3ff" stroke="#fff" stroke-width="1.5"/>`,
+        <path d="M128 66 L134 76 L128 86 L122 76Z" fill="#7fd3ff" stroke="#fff" stroke-width="1.5"/>
+        ${T.gl(128, 74, 1.1, 0)}${T.gl(104, 70, 0.8, 0)}${T.gl(160, 70, 0.8, 0)}`,
       over: `
         <g>
           <path d="M37 18 L45 40 L44 176 L30 176 L29 40Z" fill="url(#steelv_${id})" stroke="#101722" stroke-width="2.6" stroke-linejoin="round"/>
@@ -1393,6 +1527,7 @@ SCULPT_SVGS.paladino = () => T.frame('paladino', {
           <rect x="31.500" y="190" width="11" height="26" rx="3" fill="url(#leather_${id})" stroke="#1a0e06" stroke-width="2"/>
           <circle cx="37" cy="222" r="8" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.2"/>
           <path d="M37 6 V18 M20 14 L28 26 M54 14 L46 26" stroke="#ffe9a0" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
+          ${T.gl(37, 16, 1.7, 0)}${T.gl(37, 110, 1, 0)}
         </g>
         <g>
           <path d="M184 168 H252 V214 C252 236 224 246 218 250 C212 246 184 236 184 214Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="3.5" stroke-linejoin="round"/>
@@ -1408,7 +1543,7 @@ SCULPT_SVGS.barbaro = () => T.frame('barbaro', {
   faction: 'hero', accent: '#e0703a', bg: ['#6a3a22', '#1a0d07'],
   art: (id) => {
     const skin = '#86a066';
-    const f = T.face(id, { skin, eye: '#e3a73c', brow: '#1c1a10', smile: -0.7, squint: 0.55, browW: 5.2, w: 36, h: 38, ears: 'pointed', nose: 1.4 });
+    const f = T.face(id, { skin, eye: '#e3a73c', brow: '#1c1a10', smile: 0.9, squint: 0.6, browW: 1.7, tilt: 0.85, w: 36, h: 38, chin: 0.62, teeth: 'snarl', ears: 'pointed', nose: 1.4 });
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'fur', '#d9bc8a', '#6b4a28')}${T.cloth(id, 'mohawk', '#e5522a', '#6e1608')}`,
       body: `
@@ -1440,6 +1575,7 @@ SCULPT_SVGS.barbaro = () => T.frame('barbaro', {
           <path d="M219 52 C192 38 176 66 184 100 C198 90 210 88 219 92Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="3" stroke-linejoin="round"/>
           <path d="M219 52 C246 38 254 66 250 100 C238 90 228 88 219 92Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="3" stroke-linejoin="round"/>
           <path d="M190 66 C192 80 196 88 206 92" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+          ${T.gl(196, 70, 1.2, 0)}${T.gl(240, 74, 1, 0)}
           <path d="M219 48 L219 30" stroke="url(#steel_${id})" stroke-width="7" stroke-linecap="round"/>
           <circle cx="219" cy="214" r="13" fill="url(#skin_${id})" stroke="#2a3418" stroke-width="2.6"/>
         </g>`
@@ -1451,7 +1587,7 @@ SCULPT_SVGS.clerigo = () => T.frame('clerigo', {
   faction: 'hero', accent: '#f0c64a', bg: ['#6a5a30', '#17120a'],
   art: (id) => {
     const skin = '#dc9f7a';
-    const f = T.face(id, { skin, eye: '#4a6f8a', brow: '#9a4f20', browW: 6, smile: 0.2, w: 35, h: 36, nose: 1.5 });
+    const f = T.face(id, { skin, eye: '#4a6f8a', brow: '#9a4f20', browW: 1.8, smile: 0.35, w: 35, h: 36, chin: 0.5, tilt: 0.1, nose: 1.5 });
     const braid = (x, y0) => [0, 1, 2, 3].map(i => `<ellipse cx="${x}" cy="${y0 + i * 9}" rx="5" ry="5.5" fill="url(#beard_${id})" stroke="#5a2a0c" stroke-width="1.6"/>`).join('') + `<circle cx="${x}" cy="${y0 + 38}" r="3.4" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="1.2"/>`;
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'beard', '#d9782f', '#7a3512')}${T.cloth(id, 'robe', '#fff4cc', '#c9a85a')}${T.cloth(id, 'mail', '#9aa7b8', '#3b4656')}`,
@@ -1486,6 +1622,7 @@ SCULPT_SVGS.clerigo = () => T.frame('clerigo', {
           ${[0, 45, 90, 135, 180, 225, 270, 315].map(a => `<path d="M37 ${58 - 24} l-4 -8 l8 0z" transform="rotate(${a} 37 58)" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="1.6"/>`).join('')}
           <circle cx="37" cy="58" r="6" fill="#fff4cc" stroke="#5a3f0e" stroke-width="1.6"/>
           <path d="M20 46 Q26 38 36 36" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.65"/>
+          ${T.gl(26, 44, 1.2, 0)}
           <circle cx="37" cy="226" r="12" fill="url(#skin_${id})" stroke="#5a2a0c" stroke-width="2.6"/>
         </g>`
     };
@@ -1496,7 +1633,7 @@ SCULPT_SVGS.bardo = () => T.frame('bardo', {
   faction: 'hero', accent: '#d85fb0', bg: ['#5a2a56', '#140a16'],
   art: (id) => {
     const skin = '#eab793';
-    const f = T.face(id, { skin, eye: '#5e9a4a', brow: '#2a1810', smile: 1, lashes: true, h: 36, w: 32 });
+    const f = T.face(id, { skin, eye: '#5e9a4a', brow: '#2a1810', smile: 1, lashes: true, h: 36, w: 32, chin: 0.28, tilt: -0.3, teeth: 'grin', wink: true });
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'coat', '#b9418e', '#47123a')}${T.cloth(id, 'hat', '#8a2f78', '#36103a')}${T.cloth(id, 'feather', '#ffffff', '#d4c5e6')}${T.cloth(id, 'hair', '#6b3a22', '#241008')}`,
       back: `<path d="M84 90 C70 124 78 156 92 176 L164 176 C178 156 186 124 172 90Z" fill="url(#hair_${id})" stroke="#1c0c06" stroke-width="2.4"/>`,
@@ -1544,7 +1681,7 @@ SCULPT_SVGS.feiticeiro = () => T.frame('feiticeiro', {
   faction: 'hero', accent: '#f0587f', bg: ['#6a1f3c', '#180610'],
   art: (id) => {
     const skin = '#eebfa8';
-    const f = T.face(id, { skin, eye: '#ffb07a', brow: '#6a1a10', smile: 0.5, eyeGlow: true, lashes: true, h: 36, w: 31, squint: 0.15 });
+    const f = T.face(id, { skin, eye: '#ffb07a', brow: '#6a1a10', smile: 0.7, eyeGlow: true, lashes: true, h: 36, w: 31, squint: 0.3, tilt: 0.35, chin: 0.26 });
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'coat', '#c9406a', '#3e0f26')}${T.cloth(id, 'flame', '#ffd25a', '#d8261e')}${T.rad(`aura_${id}`, [[0, '#ff7aa8', 0.55], [1, '#ff7aa8', 0]], [0.5, 0.5, 0.5])}${T.lin(`crystal_${id}`, [[0, '#ffe6f1'], [0.5, '#ff8fbc'], [1, '#a31650']], [0, 0, 1, 1])}`,
       glow: `<circle cx="128" cy="108" r="96" fill="url(#aura_${id})"/>`,
@@ -1569,6 +1706,7 @@ SCULPT_SVGS.feiticeiro = () => T.frame('feiticeiro', {
           <path d="M212 54 L232 78 L224 118 L200 118 L192 78Z" fill="url(#crystal_${id})" stroke="#4a0c28" stroke-width="3" stroke-linejoin="round"/>
           <path d="M212 54 L212 118 M192 78 L232 78 M200 118 L212 78 L224 118" stroke="#fff" stroke-width="1.5" opacity="0.55" fill="none"/>
           <path d="M200 66 L210 60" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+          ${T.gl(203, 66, 1.3, 0)}${T.gl(226, 108, 0.8, 0)}
         </g>
         <g>
           <path d="M54 170 C28 176 26 214 46 232 C40 214 56 206 58 190 C66 200 72 212 64 232 C84 218 84 184 54 170Z" fill="url(#flame_${id})" stroke="#5a0f0a" stroke-width="2.6" stroke-linejoin="round"/>
@@ -1582,7 +1720,7 @@ SCULPT_SVGS.mago = () => T.frame('mago', {
   faction: 'hero', accent: '#8d76e8', bg: ['#2f2a66', '#0b0a20'],
   art: (id) => {
     const skin = '#e6c2a0';
-    const f = T.face(id, { skin, eye: '#58a0e0', brow: '#d8dce6', browW: 4.6, smile: 0.3, w: 31, h: 35, nose: 1.4 });
+    const f = T.face(id, { skin, eye: '#58a0e0', brow: '#d8dce6', browW: 1.7, smile: 0.4, w: 31, h: 35, chin: 0.3, tilt: -0.2, nose: 1.4 });
     const stars = [[76, 232], [92, 214], [112, 244], [150, 238], [168, 214], [184, 236], [64, 208], [196, 210]]
       .map(([x, y]) => `<path d="M${x} ${y - 5} l1.6 3.4 l3.6 .6 l-2.6 2.6 l.6 3.6 l-3.2 -1.8 l-3.2 1.8 l.6 -3.6 l-2.6 -2.6 l3.6 -.6z" fill="#ffe9a0" opacity="0.9"/>`).join('');
     return {
@@ -1617,6 +1755,7 @@ SCULPT_SVGS.mago = () => T.frame('mago', {
           <circle cx="219" cy="66" r="34" fill="url(#aura_${id})"/>
           <path d="M219 38 L238 58 L228 90 L210 90 L200 58Z" fill="url(#orb_${id})" stroke="#173a5a" stroke-width="2.8" stroke-linejoin="round" transform="rotate(8 219 64)"/>
           <path d="M214 46 L206 58" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
+          ${T.gl(212, 50, 1.3, 0)}
           <path d="M221 88 C212 120 224 180 216 250" fill="none" stroke="url(#wood_${id})" stroke-width="10" stroke-linecap="round"/>
           <path d="M221 88 C212 120 224 180 216 250" fill="none" stroke="#1d1006" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="2 12"/>
           <path d="M206 100 Q219 108 232 100" stroke="url(#gold_${id})" stroke-width="4" fill="none" stroke-linecap="round"/>
@@ -1629,7 +1768,7 @@ SCULPT_SVGS.ranger = () => T.frame('ranger', {
   faction: 'hero', accent: '#6fc45a', bg: ['#25472c', '#07140a'],
   art: (id) => {
     const skin = '#d4a47c';
-    const f = T.face(id, { skin, eye: '#8fd86a', brow: '#2a1a10', smile: 0.1, squint: 0.3, eyeGlow: true, h: 35, w: 31 });
+    const f = T.face(id, { skin, eye: '#8fd86a', brow: '#2a1a10', smile: 0, squint: 0.5, eyeGlow: true, h: 35, w: 31, chin: 0.36, tilt: 0.4, stubble: true });
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'hood', '#5f9a4a', '#143018')}${T.cloth(id, 'cloak', '#4c8240', '#10271a')}${T.lin(`shade_${id}`, [[0, '#000', 0.65], [0.55, '#000', 0.1], [1, '#000', 0]], [0, 0, 0, 1])}`,
       back: `<g>
@@ -1650,6 +1789,7 @@ SCULPT_SVGS.ranger = () => T.frame('ranger', {
         <!-- capuz -->
         <path d="M128 28 C88 34 70 70 78 120 C80 138 88 152 98 160 L100 124 C94 96 100 72 114 62 C120 58 136 58 142 62 C156 72 162 96 156 124 L158 160 C168 152 176 138 178 120 C186 70 168 34 128 28Z" fill="url(#hood_${id})" stroke="#07140a" stroke-width="3.2" stroke-linejoin="round"/>
         <path d="M100 124 C94 96 100 72 114 62 C120 58 136 58 142 62 C156 72 162 96 156 124 C146 100 110 100 100 124Z" fill="url(#shade_${id})"/>
+        <path d="M100 124 C94 96 100 72 114 62 C120 58 136 58 142 62 C156 72 162 96 156 124 C146 100 110 100 100 124Z" fill="url(#hatch_${id})" opacity="0.4"/>
         <path d="M96 60 Q108 40 128 36" stroke="#d6ffb8" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.5"/>`,
       over: `
         <g>
@@ -1668,7 +1808,7 @@ SCULPT_SVGS.rogue = () => T.frame('rogue', {
   faction: 'hero', accent: '#5fd0b4', bg: ['#1f3c3a', '#060f10'],
   art: (id) => {
     const skin = '#c9a384';
-    const f = T.face(id, { skin, eye: '#d8fff0', brow: '#1a1210', smile: 0, squint: 0.65, eyeGlow: true, h: 34, w: 30 });
+    const f = T.face(id, { skin, eye: '#d8fff0', brow: '#1a1210', smile: 0, squint: 0.75, eyeGlow: true, h: 34, w: 30, chin: 0.3, tilt: 0.55 });
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'hood', '#3b5a58', '#0a1616')}${T.cloth(id, 'leatherd', '#3a4a48', '#0c1514')}${T.lin(`shade_${id}`, [[0, '#000', 0.7], [0.5, '#000', 0.15], [1, '#000', 0]], [0, 0, 0, 1])}`,
       back: `<path d="M44 256 C40 196 66 164 104 156 L152 156 C190 164 216 196 212 256Z" fill="url(#hood_${id})" stroke="#050c0c" stroke-width="3"/>`,
@@ -1679,6 +1819,8 @@ SCULPT_SVGS.rogue = () => T.frame('rogue', {
         <path d="M64 256 L172 184 M192 256 L84 184" stroke="url(#leather_${id})" stroke-width="5" opacity="0.9"/>
         ${[0, 1, 2, 3].map(i => `<g transform="translate(${96 + i * 14} ${204 + i * 4}) rotate(-34)"><path d="M0 0 L3 -12 L6 0Z" fill="url(#steel_${id})" stroke="#050c0c" stroke-width="1.2"/><rect x="0" y="0" width="6" height="7" fill="url(#leather_${id})" stroke="#050c0c" stroke-width="1"/></g>`).join('')}
         <rect x="122" y="210" width="12" height="14" rx="2" fill="url(#steel_${id})" stroke="#050c0c" stroke-width="1.6"/>
+        <path d="M96 126 L160 126 L170 184 Q128 200 86 184Z" fill="url(#hood_${id})" stroke="#050c0c" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M100 150 Q128 160 156 150 M98 166 Q128 178 158 166" stroke="#6fa09a" stroke-width="1.6" fill="none" opacity="0.4"/>
         ${f.head}
         <!-- máscara cobrindo o rosto -->
         <path d="M94 114 C100 108 156 108 162 114 L160 136 C150 152 106 152 96 136Z" fill="url(#hood_${id})" stroke="#050c0c" stroke-width="2.6" stroke-linejoin="round"/>
@@ -1686,6 +1828,7 @@ SCULPT_SVGS.rogue = () => T.frame('rogue', {
         <!-- capuz profundo -->
         <path d="M128 26 C84 30 66 68 74 122 C76 142 86 158 98 166 L100 118 C94 94 102 74 116 66 C122 62 134 62 140 66 C154 74 162 94 156 118 L158 166 C170 158 180 142 182 122 C190 68 172 30 128 26Z" fill="url(#hood_${id})" stroke="#050c0c" stroke-width="3.2" stroke-linejoin="round"/>
         <path d="M102 100 C96 82 104 70 118 64 C124 62 132 62 138 64 C152 70 160 82 154 100 C146 90 110 90 102 100Z" fill="url(#shade_${id})"/>
+        <path d="M102 100 C96 82 104 70 118 64 C124 62 132 62 138 64 C152 70 160 82 154 100 C146 90 110 90 102 100Z" fill="url(#hatch_${id})" opacity="0.5"/>
         <path d="M94 56 Q106 40 128 34" stroke="#9fe8d6" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.45"/>`,
       over: `
         <g>
@@ -1710,7 +1853,7 @@ SCULPT_SVGS.goblin = () => T.frame('goblin', {
   faction: 'villain', accent: '#e24b3a', bg: ['#4a2a1c', '#0e0806'],
   art: (id) => {
     const skin = '#7fae4c';
-    const f = T.face(id, { skin, eye: '#ffd23a', brow: '#1d2a0e', browW: 4.4, smile: 1, squint: 0.4, ears: 'pointed', nose: 1.9, w: 34, h: 36, eyeGlow: true });
+    const f = T.face(id, { skin, eye: '#ffd23a', brow: '#1d2a0e', browW: 1.5, smile: 1, squint: 0.45, tilt: 0.7, ears: 'pointed', nose: 1.9, w: 34, h: 36, chin: 0.3, eyeGlow: true });
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'rag', '#8a5a3a', '#2e1a10')}${T.cloth(id, 'rust', '#c98a5a', '#5a2e18')}`,
       body: `
@@ -1797,7 +1940,7 @@ SCULPT_SVGS.bandido = () => T.frame('bandido', {
   faction: 'villain', accent: '#d8283e', bg: ['#4a1620', '#0d0507'],
   art: (id) => {
     const skin = '#c79a74';
-    const f = T.face(id, { skin, eye: '#e0b060', brow: '#120a06', browW: 4.2, smile: -0.2, squint: 0.7, h: 35, w: 31 });
+    const f = T.face(id, { skin, eye: '#e0b060', brow: '#120a06', browW: 1.4, smile: 0.3, squint: 0.75, tilt: 0.6, h: 35, w: 31, chin: 0.5 });
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'hood', '#5a1a24', '#12070a')}${T.cloth(id, 'mask', '#e23a4a', '#7a1020')}${T.cloth(id, 'vest', '#4a3a34', '#150e0c')}${T.lin(`shade_${id}`, [[0, '#000', 0.65], [0.6, '#000', 0.1], [1, '#000', 0]], [0, 0, 0, 1])}`,
       back: `<path d="M44 256 C40 196 66 164 104 156 L152 156 C190 164 216 196 212 256Z" fill="url(#hood_${id})" stroke="#0a0406" stroke-width="3"/>`,
@@ -1810,6 +1953,8 @@ SCULPT_SVGS.bandido = () => T.frame('bandido', {
         <rect x="118" y="214" width="20" height="18" rx="3" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2"/>
         <rect x="124" y="219" width="8" height="8" rx="1.500" fill="#1c0e0c"/>
         <path d="M60 206 l8 -8 l8 8 l-8 8z M180 206 l8 -8 l8 8 l-8 8z" fill="url(#steel_${id})" stroke="#0a0406" stroke-width="2"/>
+        <path d="M96 128 L160 128 L168 186 Q128 202 88 186Z" fill="url(#mask_${id})" stroke="#3a0810" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M100 150 Q128 160 156 150" stroke="#ff8a96" stroke-width="1.8" fill="none" opacity="0.5"/>
         ${f.head}
         <!-- cicatriz sobre o olho -->
         <path d="M110 80 L124 122" stroke="#7a2a30" stroke-width="3" stroke-linecap="round"/>
@@ -1823,6 +1968,7 @@ SCULPT_SVGS.bandido = () => T.frame('bandido', {
         <!-- capuz -->
         <path d="M128 28 C86 32 68 70 76 124 C78 142 88 156 98 164 L100 120 C94 96 102 74 116 66 C122 62 134 62 140 66 C154 74 162 96 156 120 L158 164 C168 156 178 142 180 124 C188 70 170 32 128 28Z" fill="url(#hood_${id})" stroke="#0a0406" stroke-width="3.200" stroke-linejoin="round"/>
         <path d="M102 100 C96 82 104 70 118 64 C124 62 132 62 138 64 C152 70 160 82 154 100 C146 90 110 90 102 100Z" fill="url(#shade_${id})"/>
+        <path d="M102 100 C96 82 104 70 118 64 C124 62 132 62 138 64 C152 70 160 82 154 100 C146 90 110 90 102 100Z" fill="url(#hatch_${id})" opacity="0.5"/>
         <path d="M94 58 Q106 42 128 36" stroke="#ff8a96" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.4"/>`,
       over: `
         <g>
@@ -2102,6 +2248,86 @@ function escapeHtml(str) {
 /** Nomes entram em logs HTML: remove marcação em vez de escapar. */
 function cleanText(str) {
   return String(str ?? '').replace(/[<>]/g, '').trim();
+}
+
+/* ---------- Resistências, fraquezas e imunidades ---------- */
+const PHYSICAL_TYPES = ['cortante', 'perfurante', 'contundente'];
+const ENERGY_TYPES = ['fogo', 'gélido', 'elétrico', 'ácido', 'sônico', 'força', 'vital'];
+/** Além dos tipos de dano, defesas aceitam estes grupos. */
+const DEFENSE_GROUPS = ['físico', 'energia', 'todos'];
+const DEFENSE_TYPES = [...DAMAGE_TYPES.filter((t) => t !== 'precisão'), ...DEFENSE_GROUPS];
+
+/** Uma defesa do tipo `entryType` vale para o dano de tipo `damageType`? */
+function defenseMatches(entryType, damageType) {
+  if (entryType === 'todos') return true;
+  if (entryType === damageType) return true;
+  if (entryType === 'físico') return PHYSICAL_TYPES.includes(damageType);
+  if (entryType === 'energia') return ENERGY_TYPES.includes(damageType);
+  return false;
+}
+
+/**
+ * Aplica imunidades, resistências e fraquezas de `target` ao pacote de dano.
+ *  - `multiplier` (1, 2 no crítico, 0.5 em metade) é aplicado antes das defesas.
+ *  - Dano de "precisão" conta como o tipo da arma/magia (parte base).
+ *  - Por tipo vale a maior resistência e a maior fraqueza aplicáveis.
+ *  - Fraqueza só soma se algum dano daquele tipo foi causado e o alvo não é imune.
+ * Retorna { total, lines: [{ type, raw, resisted, weakness, immune, final }] }.
+ */
+function applyDefenses(parts, multiplier, target) {
+  const baseType = (parts[0] && parts[0].type) || '';
+  const buckets = new Map();
+  for (const p of parts) {
+    const eff = (p.type === 'precisão' ? baseType : p.type) || 'sem tipo';
+    buckets.set(eff, (buckets.get(eff) || 0) + Math.floor(p.total * multiplier));
+  }
+
+  const resistances = (target && target.resistances) || [];
+  const weaknesses = (target && target.weaknesses) || [];
+  const immunities = (target && target.immunities) || [];
+  const best = (list, type) => list.reduce((m, d) => (defenseMatches(d.type, type) ? Math.max(m, d.value) : m), 0);
+
+  const lines = [];
+  let total = 0;
+  for (const [type, raw] of buckets) {
+    const immune = immunities.some((t) => defenseMatches(t, type));
+    let final = 0;
+    let resisted = 0;
+    let weakness = 0;
+    if (!immune) {
+      resisted = Math.min(raw, best(resistances, type));
+      weakness = raw > 0 ? best(weaknesses, type) : 0;
+      final = raw - resisted + weakness;
+    }
+    lines.push({ type, raw, resisted, weakness, immune, final });
+    total += final;
+  }
+  return { total, lines };
+}
+
+/** "fogo: resistência −5 · gélido: fraqueza +3 · veneno: imune" — só o que mudou algo. */
+function describeDefenseEffects(lines) {
+  return lines
+    .filter((l) => l.immune || l.resisted > 0 || l.weakness > 0)
+    .map((l) => {
+      const bits = [];
+      if (l.immune) bits.push('imune');
+      if (l.resisted > 0) bits.push(`resistência −${l.resisted}`);
+      if (l.weakness > 0) bits.push(`fraqueza +${l.weakness}`);
+      return `${l.type}: ${bits.join(', ')}`;
+    })
+    .join(' · ');
+}
+
+/** Garante a forma { resistances:[{type,value}], weaknesses:[...], immunities:[type] } em qualquer peça. */
+function normalizeDefenses(unit) {
+  const clean = (list) => (Array.isArray(list) ? list : [])
+    .filter((d) => d && DEFENSE_TYPES.includes(d.type) && Number.isFinite(d.value) && d.value > 0)
+    .map((d) => ({ type: d.type, value: Math.floor(d.value) }));
+  unit.resistances = clean(unit.resistances);
+  unit.weaknesses = clean(unit.weaknesses);
+  unit.immunities = (Array.isArray(unit.immunities) ? unit.immunities : []).filter((t) => DEFENSE_TYPES.includes(t));
+  return unit;
 }
 
 /* ===== 02-sheet-engine.js ===== */
@@ -3419,13 +3645,15 @@ function executeWeaponAttackAndDamage(attacker, target, weapon) {
 
   if (isHit) {
     const mult = isCrit ? 2 : 1;
-    const finalDmg = dmg.total * mult;
+    const applied = applyDefenses(dmg.parts, mult, target);
+    const finalDmg = applied.total;
+    const defenseNote = describeDefenseEffects(applied.lines);
     target.hp = Math.max(0, target.hp - finalDmg);
     const critTag = isCrit ? 'CRÍTICO 2x! ' : 'ACERTOU! ';
-    spawnFloatingText(target.col, target.row, `⚔️ ${critTag}-${finalDmg} PV`, isCrit ? '#facc15' : '#fca5a5');
+    spawnFloatingText(target.col, target.row, finalDmg === 0 ? (applied.lines.every(l => l.immune) ? '🛡️ IMUNE' : '🛡️ RESISTIU') : `⚔️ ${critTag}-${finalDmg} PV`, finalDmg === 0 ? '#94a3b8' : (isCrit ? '#facc15' : '#fca5a5'));
 
     const deadText = target.hp === 0 ? ` 💀 <strong style="color:var(--strike)">${target.name} MORTO!</strong>` : ` (PV: ${target.hp}/${target.maxHp})`;
-    addLog(`⚔️ <strong>${attacker.name}</strong> atacou <strong>${target.name}</strong> com <em>${weapon.name}</em> (◆): <strong>${atkInfo} → <strong style="color:var(--ok)">${isCrit ? 'CRÍTICO!' : 'ACERTOU!'}</strong> Dano <strong style="color:var(--strike)">${finalDmg}</strong> = ${formatDamageParts(dmg.parts, mult)}.${deadText}`);
+    addLog(`⚔️ <strong>${attacker.name}</strong> atacou <strong>${target.name}</strong> com <em>${weapon.name}</em> (◆): <strong>${atkInfo} → <strong style="color:var(--ok)">${isCrit ? 'CRÍTICO!' : 'ACERTOU!'}</strong> Dano <strong style="color:var(--strike)">${finalDmg}</strong> = ${formatDamageParts(dmg.parts, mult)}${defenseNote ? ` <em>(${defenseNote})</em>` : ''}.${deadText}`);
   } else {
     spawnFloatingText(target.col, target.row, `🛡️ ERROU (${atkTotal} vs CA ${target.ac})`, '#94a3b8');
     addLog(`⚔️ <strong>${attacker.name}</strong> atacou <strong>${target.name}</strong> com <em>${weapon.name}</em> (◆): <strong>${atkInfo} → <strong style="color:var(--text-3)">ERROU!</strong>`);
@@ -3513,30 +3741,33 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
     const isCrit = d20 === 20 || atkTotal >= t.ac + 10;
     const isHit = d20 !== 1 && (isCrit || atkTotal >= t.ac);
 
-    let dealt = 0;
+    let multiplier = 0;
     let statusLbl = '';
     if (isCrit) {
-      dealt = dmg.total * 2;
+      multiplier = 2;
       statusLbl = 'CRÍTICO 2x';
     } else if (isHit) {
-      dealt = dmg.total;
+      multiplier = 1;
       statusLbl = 'ACERTOU';
     } else if (spell.areaType === 'line' || spell.areaType === 'burst') {
-      dealt = Math.max(1, Math.floor(dmg.total / 2));
+      multiplier = 0.5;
       statusLbl = 'METADE';
     } else {
-      dealt = 0;
       statusLbl = 'ERROU';
     }
+    const applied = multiplier > 0 ? applyDefenses(dmg.parts, multiplier, t) : { total: 0, lines: [] };
+    const dealt = applied.total;
+    const defenseNote = describeDefenseEffects(applied.lines);
+    if (multiplier > 0 && dealt === 0) statusLbl = applied.lines.every(l => l.immune) ? 'IMUNE' : 'RESISTIU';
 
     if (dealt > 0) {
       t.hp = Math.max(0, t.hp - dealt);
       spawnFloatingText(t.col, t.row, `✨ ${statusLbl} -${dealt} PV`, '#e9d5ff');
     } else {
-      spawnFloatingText(t.col, t.row, `🛡️ ERROU`, '#94a3b8');
+      spawnFloatingText(t.col, t.row, multiplier > 0 ? `🛡️ ${statusLbl}` : '🛡️ ERROU', '#94a3b8');
     }
 
-    hitSummaries.push(`<strong>${t.name}</strong> [Acerto ${atkTotal} vs CA ${t.ac}: ${statusLbl} → -${dealt} PV${t.hp === 0 ? ' 💀MORTO' : ''}]`);
+    hitSummaries.push(`<strong>${t.name}</strong> [Acerto ${atkTotal} vs CA ${t.ac}: ${statusLbl} → -${dealt} PV${defenseNote ? ` (${defenseNote})` : ''}${t.hp === 0 ? ' 💀MORTO' : ''}]`);
   }
 
   addLog(`✨ <strong>${caster.name}</strong> lançou <strong>${spell.name}</strong> (${'◆'.repeat(cost)}) · dano base ${dmg.total} = ${formatDamageParts(dmg.parts)}: ${hitSummaries.join(' | ')}.`);
@@ -3951,6 +4182,12 @@ function syncCombatUI() {
   hpBar.style.width = `${hpPct}%`;
   hpBar.dataset.level = hpPct > 50 ? 'high' : (hpPct > 25 ? 'mid' : 'low');
 
+  const defChips = ['resistances', 'weaknesses'].flatMap(k => (activeUnit[k] || []).map(e => defenseChipHTML(k, e)))
+    .concat((activeUnit.immunities || []).map(e => defenseChipHTML('immunities', e))).join('');
+  const defBox = document.getElementById('combatUnitDefenses');
+  defBox.innerHTML = defChips;
+  defBox.classList.toggle('hidden', !defChips);
+
   const fBadge = document.getElementById('combatUnitFactionBadge');
   fBadge.className = `badge ${activeUnit.faction === 'hero' ? 'badge-hero' : 'badge-villain'}`;
   fBadge.textContent = activeUnit.faction === 'hero' ? 'HERÓI' : 'VILÃO';
@@ -4195,6 +4432,8 @@ function syncInspectorUI() {
     btn.classList.toggle('active', parseFloat(btn.dataset.m) === u.moveSpeed);
   });
 
+  renderDefenseEditor(u);
+
   const ewList = document.getElementById('editorWeaponList');
   ewList.innerHTML = u.weapons.map((w, idx) => editorCardHTML({
     kind: 'weapon', idx,
@@ -4416,6 +4655,61 @@ function removeExtraDamage(kind, idx, extraIdx) {
   if (!target || !target.extra) return;
   target.extra.splice(extraIdx, 1);
   syncInspectorUI();
+}
+
+/* ---------- Resistências, fraquezas e imunidades ---------- */
+const DEFENSE_KINDS = {
+  resistances: { label: 'Resistência', cls: 'tag-cold', icon: '−' },
+  weaknesses: { label: 'Fraqueza', cls: 'tag-fire', icon: '+' },
+  immunities: { label: 'Imunidade', cls: 'tag-holy', icon: '∅' }
+};
+
+function defenseChipHTML(kind, entry) {
+  const text = kind === 'immunities' ? `imune a ${escapeHtml(entry)}` : `${kind === 'resistances' ? 'res.' : 'fraq.'} ${escapeHtml(entry.type)} ${entry.value}`;
+  return `<span class="tag ${DEFENSE_KINDS[kind].cls}">${text}</span>`;
+}
+
+/** Linhas de defesa na aba Base: lista com remover + formulário de inclusão. */
+function renderDefenseEditor(u) {
+  const box = document.getElementById('defenseList');
+  const rows = [];
+  for (const kind of Object.keys(DEFENSE_KINDS)) {
+    (u[kind] || []).forEach((entry, idx) => {
+      rows.push(`
+        <div class="rune-row">
+          <span><strong>${DEFENSE_KINDS[kind].label}</strong> · ${kind === 'immunities' ? escapeHtml(entry) : `${escapeHtml(entry.type)} ${entry.value}`}</span>
+          <button class="btn btn-sm btn-ghost btn-icon" onclick="removeDefense('${kind}', ${idx})" aria-label="Remover ${DEFENSE_KINDS[kind].label.toLowerCase()}"><svg class="icon"><use href="#i-x"/></svg></button>
+        </div>`);
+    });
+  }
+  box.innerHTML = rows.length ? rows.join('') : '<p class="hint">Nenhuma defesa. Dano de qualquer tipo é causado por inteiro.</p>';
+  document.getElementById('defenseValueField').classList.toggle('hidden', document.getElementById('defenseKind').value === 'immunities');
+}
+
+function addDefenseToSelectedUnit() {
+  const u = selectedUnit();
+  if (!u) return;
+  const kind = document.getElementById('defenseKind').value;
+  const type = document.getElementById('defenseType').value;
+  const value = parseInt(document.getElementById('defenseValue').value, 10);
+  if (!DEFENSE_TYPES.includes(type)) return;
+  if (kind === 'immunities') {
+    if (!u.immunities.includes(type)) u.immunities.push(type);
+  } else {
+    if (!(value > 0)) { addLog('⚠️ Informe um valor maior que zero para a defesa.'); return; }
+    const existing = u[kind].find(d => d.type === type);
+    if (existing) existing.value = value; else u[kind].push({ type, value });
+  }
+  syncInspectorUI();
+  syncCombatUI();
+}
+
+function removeDefense(kind, idx) {
+  const u = selectedUnit();
+  if (!u || !Array.isArray(u[kind])) return;
+  u[kind].splice(idx, 1);
+  syncInspectorUI();
+  syncCombatUI();
 }
 
 function setSelectedShieldBonus(bonus) {
@@ -4665,12 +4959,16 @@ function spawnUnitFromTemplate(templateId, col, row) {
     weapons: JSON.parse(JSON.stringify(tpl.weapons)).map(normalizeWeapon),
     spells: JSON.parse(JSON.stringify(tpl.spells)).map(normalizeSpell),
     items: JSON.parse(JSON.stringify(tpl.items)),
+    resistances: JSON.parse(JSON.stringify(tpl.resistances || [])),
+    weaknesses: JSON.parse(JSON.stringify(tpl.weaknesses || [])),
+    immunities: JSON.parse(JSON.stringify(tpl.immunities || [])),
     actions: 3,
     reaction: true,
     shieldRaised: false,
     strikesMade: 0,
     initiative: 10
   };
+  normalizeDefenses(newUnit);
   recalculateUnitFromSheet(newUnit, true);
   newUnit.initiative = Math.floor(Math.random() * 20) + 1 + (newUnit.sheet?.derived?.perception || 5);
 
@@ -4697,7 +4995,10 @@ function registerCustomTemplate() {
     sheet: current && current.sheet ? JSON.parse(JSON.stringify(current.sheet)) : JSON.parse(JSON.stringify(fallbackSheet)),
     weapons: current ? JSON.parse(JSON.stringify(current.weapons)) : [{ name: 'Espada Longa', atkBonus: 9, dmgDie: '1d8', dmgBonus: 4, reach: 1.5 }],
     spells: current ? JSON.parse(JSON.stringify(current.spells)) : [{ ...SPELL_CATALOG.relampago }, { ...SPELL_CATALOG.bola_de_fogo }],
-    items: current ? JSON.parse(JSON.stringify(current.items)) : [{ ...ITEM_CATALOG.pocao_menor }]
+    items: current ? JSON.parse(JSON.stringify(current.items)) : [{ ...ITEM_CATALOG.pocao_menor }],
+    resistances: current ? JSON.parse(JSON.stringify(current.resistances || [])) : [],
+    weaknesses: current ? JSON.parse(JSON.stringify(current.weaknesses || [])) : [],
+    immunities: current ? JSON.parse(JSON.stringify(current.immunities || [])) : []
   };
   UNIT_TEMPLATES.push(newTpl);
   STATE.selectedTemplateId = newTpl.id;
@@ -4859,6 +5160,7 @@ function applyLoadedPayload(data) {
       u.weapons = (u.weapons || []).map(normalizeWeapon);
       u.spells = (u.spells || []).map(normalizeSpell);
       u.shieldRaised = !!u.shieldRaised;
+      normalizeDefenses(u);
       recalculateUnitFromSheet(u, false);
     });
   }

@@ -140,3 +140,91 @@ test('escapeHtml e cleanText neutralizam marcação', () => {
   assert.equal(R.cleanText('  <b>Orc</b> '), 'bOrc/b');
   assert.equal(R.escapeHtml(null), '');
 });
+
+/* ---------- Resistências, fraquezas e imunidades ---------- */
+const part = (type, total, kind = 'base') => ({ kind, type, total });
+
+test('sem defesas o dano passa inteiro', () => {
+  const r = R.applyDefenses([part('cortante', 9), part('fogo', 4, 'extra')], 1, {});
+  assert.equal(r.total, 13);
+  assert.equal(R.describeDefenseEffects(r.lines), '');
+});
+
+test('resistência reduz só o tipo correspondente e nunca abaixo de zero', () => {
+  const target = { resistances: [{ type: 'fogo', value: 5 }] };
+  const r = R.applyDefenses([part('cortante', 9), part('fogo', 4, 'extra')], 1, target);
+  assert.equal(r.total, 9, 'fogo 4 − 5 = 0; cortante intacto');
+  const fire = plain(r.lines).find(l => l.type === 'fogo');
+  assert.equal(fire.resisted, 4);
+  assert.equal(R.describeDefenseEffects(r.lines), 'fogo: resistência −4');
+});
+
+test('fraqueza soma ao dano do tipo e só quando houve dano daquele tipo', () => {
+  const target = { weaknesses: [{ type: 'gélido', value: 3 }] };
+  assert.equal(R.applyDefenses([part('cortante', 8)], 1, target).total, 8);
+  const r = R.applyDefenses([part('cortante', 8), part('gélido', 4, 'extra')], 1, target);
+  assert.equal(r.total, 8 + 4 + 3);
+  assert.equal(R.describeDefenseEffects(r.lines), 'gélido: fraqueza +3');
+});
+
+test('imunidade zera o tipo e anula a fraqueza', () => {
+  const target = { immunities: ['veneno'], weaknesses: [{ type: 'veneno', value: 9 }] };
+  const r = R.applyDefenses([part('perfurante', 6), part('veneno', 5, 'extra')], 1, target);
+  assert.equal(r.total, 6);
+  assert.match(R.describeDefenseEffects(r.lines), /veneno: imune/);
+});
+
+test('grupos físico, energia e todos', () => {
+  assert.equal(R.defenseMatches('físico', 'cortante'), true);
+  assert.equal(R.defenseMatches('físico', 'fogo'), false);
+  assert.equal(R.defenseMatches('energia', 'elétrico'), true);
+  assert.equal(R.defenseMatches('energia', 'perfurante'), false);
+  assert.equal(R.defenseMatches('todos', 'mental'), true);
+
+  const target = { resistances: [{ type: 'físico', value: 5 }] };
+  assert.equal(R.applyDefenses([part('contundente', 12)], 1, target).total, 7);
+  assert.equal(R.applyDefenses([part('fogo', 12)], 1, target).total, 12);
+});
+
+test('com várias resistências aplicáveis vale a maior, sem somar', () => {
+  const target = { resistances: [{ type: 'físico', value: 3 }, { type: 'cortante', value: 7 }, { type: 'todos', value: 2 }] };
+  assert.equal(R.applyDefenses([part('cortante', 10)], 1, target).total, 3);
+});
+
+test('crítico dobra o dano ANTES das defesas', () => {
+  const target = { resistances: [{ type: 'fogo', value: 5 }] };
+  // fogo 6 dobrado = 12; menos 5 de resistência = 7 (e não 6−5 = 1, dobrado = 2)
+  assert.equal(R.applyDefenses([part('fogo', 6)], 2, target).total, 7);
+});
+
+test('metade de dano (0.5) arredonda para baixo por tipo antes das defesas', () => {
+  assert.equal(R.applyDefenses([part('fogo', 9)], 0.5, {}).total, 4);
+  const target = { weaknesses: [{ type: 'fogo', value: 2 }] };
+  assert.equal(R.applyDefenses([part('fogo', 9)], 0.5, target).total, 6);
+});
+
+test('dano de precisão conta como o tipo da arma', () => {
+  const target = { resistances: [{ type: 'cortante', value: 4 }] };
+  const r = R.applyDefenses([part('cortante', 8), part('precisão', 5, 'extra')], 1, target);
+  assert.equal(r.total, 9, '(8 + 5) cortante − 4');
+  assert.equal(plain(r.lines).length, 1);
+});
+
+test('dano sem tipo é tratado à parte e só "todos" o afeta', () => {
+  const t1 = { resistances: [{ type: 'fogo', value: 5 }] };
+  assert.equal(R.applyDefenses([part('', 7)], 1, t1).total, 7);
+  const t2 = { resistances: [{ type: 'todos', value: 3 }] };
+  assert.equal(R.applyDefenses([part('', 7)], 1, t2).total, 4);
+});
+
+test('normalizeDefenses descarta tipos inválidos, valores ruins e normaliza imunidades', () => {
+  const u = R.normalizeDefenses({
+    resistances: [{ type: 'fogo', value: 5.9 }, { type: 'banana', value: 3 }, { type: 'gélido', value: 0 }, null],
+    weaknesses: 'x',
+    immunities: ['veneno', 'xyz', 'físico']
+  });
+  assert.deepEqual(plain(u.resistances), [{ type: 'fogo', value: 5 }]);
+  assert.deepEqual(plain(u.weaknesses), []);
+  assert.deepEqual(plain(u.immunities), ['veneno', 'físico']);
+  assert.equal(R.DEFENSE_TYPES.includes('precisão'), false, 'precisão não é um tipo de defesa');
+});

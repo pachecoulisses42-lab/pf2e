@@ -69,6 +69,12 @@ function syncCombatUI() {
   hpBar.style.width = `${hpPct}%`;
   hpBar.dataset.level = hpPct > 50 ? 'high' : (hpPct > 25 ? 'mid' : 'low');
 
+  const defChips = ['resistances', 'weaknesses'].flatMap(k => (activeUnit[k] || []).map(e => defenseChipHTML(k, e)))
+    .concat((activeUnit.immunities || []).map(e => defenseChipHTML('immunities', e))).join('');
+  const defBox = document.getElementById('combatUnitDefenses');
+  defBox.innerHTML = defChips;
+  defBox.classList.toggle('hidden', !defChips);
+
   const fBadge = document.getElementById('combatUnitFactionBadge');
   fBadge.className = `badge ${activeUnit.faction === 'hero' ? 'badge-hero' : 'badge-villain'}`;
   fBadge.textContent = activeUnit.faction === 'hero' ? 'HERÓI' : 'VILÃO';
@@ -313,6 +319,8 @@ function syncInspectorUI() {
     btn.classList.toggle('active', parseFloat(btn.dataset.m) === u.moveSpeed);
   });
 
+  renderDefenseEditor(u);
+
   const ewList = document.getElementById('editorWeaponList');
   ewList.innerHTML = u.weapons.map((w, idx) => editorCardHTML({
     kind: 'weapon', idx,
@@ -534,6 +542,61 @@ function removeExtraDamage(kind, idx, extraIdx) {
   if (!target || !target.extra) return;
   target.extra.splice(extraIdx, 1);
   syncInspectorUI();
+}
+
+/* ---------- Resistências, fraquezas e imunidades ---------- */
+const DEFENSE_KINDS = {
+  resistances: { label: 'Resistência', cls: 'tag-cold', icon: '−' },
+  weaknesses: { label: 'Fraqueza', cls: 'tag-fire', icon: '+' },
+  immunities: { label: 'Imunidade', cls: 'tag-holy', icon: '∅' }
+};
+
+function defenseChipHTML(kind, entry) {
+  const text = kind === 'immunities' ? `imune a ${escapeHtml(entry)}` : `${kind === 'resistances' ? 'res.' : 'fraq.'} ${escapeHtml(entry.type)} ${entry.value}`;
+  return `<span class="tag ${DEFENSE_KINDS[kind].cls}">${text}</span>`;
+}
+
+/** Linhas de defesa na aba Base: lista com remover + formulário de inclusão. */
+function renderDefenseEditor(u) {
+  const box = document.getElementById('defenseList');
+  const rows = [];
+  for (const kind of Object.keys(DEFENSE_KINDS)) {
+    (u[kind] || []).forEach((entry, idx) => {
+      rows.push(`
+        <div class="rune-row">
+          <span><strong>${DEFENSE_KINDS[kind].label}</strong> · ${kind === 'immunities' ? escapeHtml(entry) : `${escapeHtml(entry.type)} ${entry.value}`}</span>
+          <button class="btn btn-sm btn-ghost btn-icon" onclick="removeDefense('${kind}', ${idx})" aria-label="Remover ${DEFENSE_KINDS[kind].label.toLowerCase()}"><svg class="icon"><use href="#i-x"/></svg></button>
+        </div>`);
+    });
+  }
+  box.innerHTML = rows.length ? rows.join('') : '<p class="hint">Nenhuma defesa. Dano de qualquer tipo é causado por inteiro.</p>';
+  document.getElementById('defenseValueField').classList.toggle('hidden', document.getElementById('defenseKind').value === 'immunities');
+}
+
+function addDefenseToSelectedUnit() {
+  const u = selectedUnit();
+  if (!u) return;
+  const kind = document.getElementById('defenseKind').value;
+  const type = document.getElementById('defenseType').value;
+  const value = parseInt(document.getElementById('defenseValue').value, 10);
+  if (!DEFENSE_TYPES.includes(type)) return;
+  if (kind === 'immunities') {
+    if (!u.immunities.includes(type)) u.immunities.push(type);
+  } else {
+    if (!(value > 0)) { addLog('⚠️ Informe um valor maior que zero para a defesa.'); return; }
+    const existing = u[kind].find(d => d.type === type);
+    if (existing) existing.value = value; else u[kind].push({ type, value });
+  }
+  syncInspectorUI();
+  syncCombatUI();
+}
+
+function removeDefense(kind, idx) {
+  const u = selectedUnit();
+  if (!u || !Array.isArray(u[kind])) return;
+  u[kind].splice(idx, 1);
+  syncInspectorUI();
+  syncCombatUI();
 }
 
 function setSelectedShieldBonus(bonus) {

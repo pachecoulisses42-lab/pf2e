@@ -5,7 +5,7 @@ SCULPT_SVGS.goblin = () => T.frame('goblin', {
   faction: 'villain', accent: '#e24b3a', bg: ['#4a2a1c', '#0e0806'],
   art: (id) => {
     const skin = '#7fae4c';
-    const f = T.face(id, { skin, eye: '#ffd23a', brow: '#1d2a0e', browW: 4.4, smile: 1, squint: 0.4, ears: 'pointed', nose: 1.9, w: 34, h: 36, eyeGlow: true });
+    const f = T.face(id, { skin, eye: '#ffd23a', brow: '#1d2a0e', browW: 1.5, smile: 1, squint: 0.45, tilt: 0.7, ears: 'pointed', nose: 1.9, w: 34, h: 36, chin: 0.3, eyeGlow: true });
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'rag', '#8a5a3a', '#2e1a10')}${T.cloth(id, 'rust', '#c98a5a', '#5a2e18')}`,
       body: `
@@ -92,7 +92,7 @@ SCULPT_SVGS.bandido = () => T.frame('bandido', {
   faction: 'villain', accent: '#d8283e', bg: ['#4a1620', '#0d0507'],
   art: (id) => {
     const skin = '#c79a74';
-    const f = T.face(id, { skin, eye: '#e0b060', brow: '#120a06', browW: 4.2, smile: -0.2, squint: 0.7, h: 35, w: 31 });
+    const f = T.face(id, { skin, eye: '#e0b060', brow: '#120a06', browW: 1.4, smile: 0.3, squint: 0.75, tilt: 0.6, h: 35, w: 31, chin: 0.5 });
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'hood', '#5a1a24', '#12070a')}${T.cloth(id, 'mask', '#e23a4a', '#7a1020')}${T.cloth(id, 'vest', '#4a3a34', '#150e0c')}${T.lin(`shade_${id}`, [[0, '#000', 0.65], [0.6, '#000', 0.1], [1, '#000', 0]], [0, 0, 0, 1])}`,
       back: `<path d="M44 256 C40 196 66 164 104 156 L152 156 C190 164 216 196 212 256Z" fill="url(#hood_${id})" stroke="#0a0406" stroke-width="3"/>`,
@@ -105,6 +105,8 @@ SCULPT_SVGS.bandido = () => T.frame('bandido', {
         <rect x="118" y="214" width="20" height="18" rx="3" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2"/>
         <rect x="124" y="219" width="8" height="8" rx="1.500" fill="#1c0e0c"/>
         <path d="M60 206 l8 -8 l8 8 l-8 8z M180 206 l8 -8 l8 8 l-8 8z" fill="url(#steel_${id})" stroke="#0a0406" stroke-width="2"/>
+        <path d="M96 128 L160 128 L168 186 Q128 202 88 186Z" fill="url(#mask_${id})" stroke="#3a0810" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M100 150 Q128 160 156 150" stroke="#ff8a96" stroke-width="1.8" fill="none" opacity="0.5"/>
         ${f.head}
         <!-- cicatriz sobre o olho -->
         <path d="M110 80 L124 122" stroke="#7a2a30" stroke-width="3" stroke-linecap="round"/>
@@ -118,6 +120,7 @@ SCULPT_SVGS.bandido = () => T.frame('bandido', {
         <!-- capuz -->
         <path d="M128 28 C86 32 68 70 76 124 C78 142 88 156 98 164 L100 120 C94 96 102 74 116 66 C122 62 134 62 140 66 C154 74 162 96 156 120 L158 164 C168 156 178 142 180 124 C188 70 170 32 128 28Z" fill="url(#hood_${id})" stroke="#0a0406" stroke-width="3.200" stroke-linejoin="round"/>
         <path d="M102 100 C96 82 104 70 118 64 C124 62 132 62 138 64 C152 70 160 82 154 100 C146 90 110 90 102 100Z" fill="url(#shade_${id})"/>
+        <path d="M102 100 C96 82 104 70 118 64 C124 62 132 62 138 64 C152 70 160 82 154 100 C146 90 110 90 102 100Z" fill="url(#hatch_${id})" opacity="0.5"/>
         <path d="M94 58 Q106 42 128 36" stroke="#ff8a96" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.4"/>`,
       over: `
         <g>

@@ -131,3 +131,83 @@ function escapeHtml(str) {
 function cleanText(str) {
   return String(str ?? '').replace(/[<>]/g, '').trim();
 }
+
+/* ---------- Resistências, fraquezas e imunidades ---------- */
+const PHYSICAL_TYPES = ['cortante', 'perfurante', 'contundente'];
+const ENERGY_TYPES = ['fogo', 'gélido', 'elétrico', 'ácido', 'sônico', 'força', 'vital'];
+/** Além dos tipos de dano, defesas aceitam estes grupos. */
+const DEFENSE_GROUPS = ['físico', 'energia', 'todos'];
+const DEFENSE_TYPES = [...DAMAGE_TYPES.filter((t) => t !== 'precisão'), ...DEFENSE_GROUPS];
+
+/** Uma defesa do tipo `entryType` vale para o dano de tipo `damageType`? */
+function defenseMatches(entryType, damageType) {
+  if (entryType === 'todos') return true;
+  if (entryType === damageType) return true;
+  if (entryType === 'físico') return PHYSICAL_TYPES.includes(damageType);
+  if (entryType === 'energia') return ENERGY_TYPES.includes(damageType);
+  return false;
+}
+
+/**
+ * Aplica imunidades, resistências e fraquezas de `target` ao pacote de dano.
+ *  - `multiplier` (1, 2 no crítico, 0.5 em metade) é aplicado antes das defesas.
+ *  - Dano de "precisão" conta como o tipo da arma/magia (parte base).
+ *  - Por tipo vale a maior resistência e a maior fraqueza aplicáveis.
+ *  - Fraqueza só soma se algum dano daquele tipo foi causado e o alvo não é imune.
+ * Retorna { total, lines: [{ type, raw, resisted, weakness, immune, final }] }.
+ */
+function applyDefenses(parts, multiplier, target) {
+  const baseType = (parts[0] && parts[0].type) || '';
+  const buckets = new Map();
+  for (const p of parts) {
+    const eff = (p.type === 'precisão' ? baseType : p.type) || 'sem tipo';
+    buckets.set(eff, (buckets.get(eff) || 0) + Math.floor(p.total * multiplier));
+  }
+
+  const resistances = (target && target.resistances) || [];
+  const weaknesses = (target && target.weaknesses) || [];
+  const immunities = (target && target.immunities) || [];
+  const best = (list, type) => list.reduce((m, d) => (defenseMatches(d.type, type) ? Math.max(m, d.value) : m), 0);
+
+  const lines = [];
+  let total = 0;
+  for (const [type, raw] of buckets) {
+    const immune = immunities.some((t) => defenseMatches(t, type));
+    let final = 0;
+    let resisted = 0;
+    let weakness = 0;
+    if (!immune) {
+      resisted = Math.min(raw, best(resistances, type));
+      weakness = raw > 0 ? best(weaknesses, type) : 0;
+      final = raw - resisted + weakness;
+    }
+    lines.push({ type, raw, resisted, weakness, immune, final });
+    total += final;
+  }
+  return { total, lines };
+}
+
+/** "fogo: resistência −5 · gélido: fraqueza +3 · veneno: imune" — só o que mudou algo. */
+function describeDefenseEffects(lines) {
+  return lines
+    .filter((l) => l.immune || l.resisted > 0 || l.weakness > 0)
+    .map((l) => {
+      const bits = [];
+      if (l.immune) bits.push('imune');
+      if (l.resisted > 0) bits.push(`resistência −${l.resisted}`);
+      if (l.weakness > 0) bits.push(`fraqueza +${l.weakness}`);
+      return `${l.type}: ${bits.join(', ')}`;
+    })
+    .join(' · ');
+}
+
+/** Garante a forma { resistances:[{type,value}], weaknesses:[...], immunities:[type] } em qualquer peça. */
+function normalizeDefenses(unit) {
+  const clean = (list) => (Array.isArray(list) ? list : [])
+    .filter((d) => d && DEFENSE_TYPES.includes(d.type) && Number.isFinite(d.value) && d.value > 0)
+    .map((d) => ({ type: d.type, value: Math.floor(d.value) }));
+  unit.resistances = clean(unit.resistances);
+  unit.weaknesses = clean(unit.weaknesses);
+  unit.immunities = (Array.isArray(unit.immunities) ? unit.immunities : []).filter((t) => DEFENSE_TYPES.includes(t));
+  return unit;
+}

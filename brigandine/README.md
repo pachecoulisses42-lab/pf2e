@@ -32,12 +32,12 @@ src/
     components.css        Botões, segmentado, chips, campos, acordeão, cartões, pips, abas…
     layout.css            Casca do app, painéis, HUD do tabuleiro, gaveta de registro
   js/                     Concatenados em ordem alfabética
-    00a-token-kit.js      Kit de ilustração dos tokens (gradientes, rosto, pauldron, moldura)
+    00a-token-kit.js      Kit de ilustração dos tokens (filtros de quadrinhos, rosto, pauldron, moldura)
     00b-tokens-heroes.js  9 heróis
     00c-tokens-villains.js 3 vilões
     00z-token-loader.js   Cache de imagens e pré-visualização (ids de SVG únicos)
     01-catalog.js         Catálogo de magias e itens
-    01b-rules.js          Regras puras: dados, tipos de dano, runas, pacote de dano
+    01b-rules.js          Regras puras: dados, tipos de dano, runas, pacote de dano, defesas
     02-sheet-engine.js    Cálculo da ficha PF2e (CA, testes, ataque, CD, escudo)
     03-templates.js       12 modelos de peça
     04-state.js           Estado global
@@ -63,7 +63,8 @@ dist/                     Saída versionada: app, CSS do design system, document
 - **Armas** (novo): criar e editar nome, alcance, dado, bônus, tipo de dano e bônus de ataque; opção de seguir a ficha ou usar valores próprios; **runas e dano adicional** (Flamejante, Gélida, Chocante, Corrosiva, Trovejante, Sagrada, Profana, Ataque furtivo ou dano personalizado). Cada dano extra é rolado à parte, aparece discriminado no registro e dobra no crítico.
 - **Magias** (novo): criar e editar custo (◆ a ◆◆◆), alcance, área (alvo único, linha, explosão), tamanho, dado, bônus, tipo de dano e danos adicionais.
 - **Erguer Escudo** (novo): dentro do comando **Ação**; gasta ◆, soma o bônus do escudo (padrão +2, configurável na aba Base) à CA e termina no início do próximo turno da peça. O token mostra o bônus.
-- **Tokens** (novo): 12 medalhões ilustrados em SVG (ver `dist/design-system.html`).
+- **Resistências, fraquezas e imunidades** (novo): por peça, na aba Base. Valem para qualquer tipo de dano e para os grupos *todo físico*, *toda energia* e *todos*. O dano é multiplicado (crítico ×2, metade ×½) antes das defesas; por tipo vale a maior resistência e a maior fraqueza; fraqueza só soma se houve dano daquele tipo; imunidade anula o tipo. Dano de precisão (ataque furtivo) conta como o tipo da arma. O registro mostra o que mudou (`fogo: resistência −5 · cortante: fraqueza +3`) e o painel de combate mostra as defesas do alvo ativo.
+- **Tokens** (novo): 12 medalhões em SVG com acabamento de quadrinhos — contorno de nanquim, sombra em cel shading, luz de recorte na cor do personagem, retícula, brilhos de metal e expressões próprias (ver `dist/design-system.html`).
 - Salvar no navegador, exportar e importar JSON. Arquivos antigos (v4) são aceitos; armas e magias são normalizadas ao importar.
 
 ## Decisões
@@ -86,4 +87,4 @@ Edite só `src/styles/tokens.css` para trocar cores, tipos e espaços. Component
 
 - As fontes (Bricolage Grotesque e Figtree) vêm do Google Fonts; offline cai para a fonte do sistema.
 - O teste de ponta a ponta não roda na CI do repositório; execute-o localmente.
-- Dano persistente, resistências e fraquezas por tipo ainda não são aplicados: o tipo de dano é informativo e aparece no registro.
+- Dano persistente e tipos especiais (sangramento, "contra mortos-vivos" etc.) não existem; resistências ignoram exceções ("exceto prata").

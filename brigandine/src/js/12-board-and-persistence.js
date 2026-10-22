@@ -149,12 +149,16 @@ function spawnUnitFromTemplate(templateId, col, row) {
     weapons: JSON.parse(JSON.stringify(tpl.weapons)).map(normalizeWeapon),
     spells: JSON.parse(JSON.stringify(tpl.spells)).map(normalizeSpell),
     items: JSON.parse(JSON.stringify(tpl.items)),
+    resistances: JSON.parse(JSON.stringify(tpl.resistances || [])),
+    weaknesses: JSON.parse(JSON.stringify(tpl.weaknesses || [])),
+    immunities: JSON.parse(JSON.stringify(tpl.immunities || [])),
     actions: 3,
     reaction: true,
     shieldRaised: false,
     strikesMade: 0,
     initiative: 10
   };
+  normalizeDefenses(newUnit);
   recalculateUnitFromSheet(newUnit, true);
   newUnit.initiative = Math.floor(Math.random() * 20) + 1 + (newUnit.sheet?.derived?.perception || 5);
 
@@ -181,7 +185,10 @@ function registerCustomTemplate() {
     sheet: current && current.sheet ? JSON.parse(JSON.stringify(current.sheet)) : JSON.parse(JSON.stringify(fallbackSheet)),
     weapons: current ? JSON.parse(JSON.stringify(current.weapons)) : [{ name: 'Espada Longa', atkBonus: 9, dmgDie: '1d8', dmgBonus: 4, reach: 1.5 }],
     spells: current ? JSON.parse(JSON.stringify(current.spells)) : [{ ...SPELL_CATALOG.relampago }, { ...SPELL_CATALOG.bola_de_fogo }],
-    items: current ? JSON.parse(JSON.stringify(current.items)) : [{ ...ITEM_CATALOG.pocao_menor }]
+    items: current ? JSON.parse(JSON.stringify(current.items)) : [{ ...ITEM_CATALOG.pocao_menor }],
+    resistances: current ? JSON.parse(JSON.stringify(current.resistances || [])) : [],
+    weaknesses: current ? JSON.parse(JSON.stringify(current.weaknesses || [])) : [],
+    immunities: current ? JSON.parse(JSON.stringify(current.immunities || [])) : []
   };
   UNIT_TEMPLATES.push(newTpl);
   STATE.selectedTemplateId = newTpl.id;
@@ -343,6 +350,7 @@ function applyLoadedPayload(data) {
       u.weapons = (u.weapons || []).map(normalizeWeapon);
       u.spells = (u.spells || []).map(normalizeSpell);
       u.shieldRaised = !!u.shieldRaised;
+      normalizeDefenses(u);
       recalculateUnitFromSheet(u, false);
     });
   }

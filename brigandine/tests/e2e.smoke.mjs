@@ -139,6 +139,73 @@ await check('editor de magia: criar, editar área e lançar causa dano com dano 
   assert.ok(r.lost >= 8 + 4, `dano ${r.lost} deveria incluir 2d6 + 1d6 elétrico`);
 });
 
+await check('resistência e fraqueza por tipo alteram o dano real do ataque e aparecem no registro', async () => {
+  const r = await page.evaluate(() => {
+    const [att, tgt] = STATE.units;
+    const run = () => {
+      att.actions = 3; att.strikesMade = 0; tgt.hp = tgt.maxHp = 500; tgt.ac = 1;
+      const logs = []; const origLog = addLog; addLog = (m) => logs.push(m);
+      const orig = Math.random; Math.random = () => 0.999; // d20=20 (crítico), dados no máximo
+      executeWeaponAttackAndDamage(att, tgt, att.weapons[0]);
+      Math.random = orig; addLog = origLog;
+      return { lost: 500 - tgt.hp, log: logs.join(' ') };
+    };
+    att.weapons[0] = normalizeWeapon({ name: 'Rúnica', dmgDie: '1d4', dmgBonus: 0, dmgType: 'cortante', manual: true, atkBonus: 100,
+      extra: [{ name: 'Flamejante', die: '1d6', bonus: 0, type: 'fogo' }] });
+    tgt.resistances = []; tgt.weaknesses = []; tgt.immunities = [];
+    const plain = run();                                   // (4 + 6) x2 = 20
+    tgt.resistances = [{ type: 'fogo', value: 5 }];
+    const resisted = run();                                // cortante 8 + (12 - 5) = 15
+    tgt.weaknesses = [{ type: 'cortante', value: 3 }];
+    const weak = run();                                    // (8 + 3) + 7 = 18
+    tgt.immunities = ['fogo'];
+    const immune = run();                                  // (8 + 3) + 0 = 11
+    return { plain: plain.lost, resisted: resisted.lost, weak: weak.lost, immune: immune.lost, log: immune.log };
+  });
+  assert.equal(r.plain, 20);
+  assert.equal(r.resisted, 15);
+  assert.equal(r.weak, 18);
+  assert.equal(r.immune, 11);
+  assert.match(r.log, /fogo: imune/);
+  assert.match(r.log, /cortante: fraqueza \+3/);
+});
+
+await check('magia em área aplica defesas por alvo e a interface adiciona/remove defesas', async () => {
+  const r = await page.evaluate(() => {
+    setAppMode('setup');
+    const u = STATE.units[1];
+    u.resistances = []; u.weaknesses = []; u.immunities = [];
+    STATE.selectedUnitId = u.id;
+    syncInspectorUI();
+    document.getElementById('defenseKind').value = 'resistances';
+    document.getElementById('defenseType').value = 'físico';
+    document.getElementById('defenseValue').value = '4';
+    addDefenseToSelectedUnit();
+    document.getElementById('defenseKind').value = 'immunities';
+    document.getElementById('defenseType').value = 'veneno';
+    addDefenseToSelectedUnit();
+    const added = { res: JSON.parse(JSON.stringify(u.resistances)), imm: [...u.immunities], rows: document.querySelectorAll('#defenseList .rune-row').length };
+    removeDefense('immunities', 0);
+    const after = { imm: [...u.immunities], rows: document.querySelectorAll('#defenseList .rune-row').length };
+
+    const [caster, , other] = STATE.units;
+    caster.col = 0; caster.row = 0; caster.actions = 3;
+    const sp = normalizeSpell({ name: 'Brasas', cost: 2, range: 18, areaType: 'burst', areaSize: 9, dmgDie: '1d6', dmgType: 'fogo', manual: true, atkBonus: 100 });
+    caster.spells.push(sp);
+    other.col = 2; other.row = 0; other.hp = other.maxHp = 500; other.ac = 1; other.immunities = ['fogo']; other.resistances = []; other.weaknesses = [];
+    const orig = Math.random; Math.random = () => 0.999;
+    executeSpellCastOnCell(caster, sp, { col: 2, row: 0 }, other, false);
+    Math.random = orig;
+    return { added, after, immuneLost: 500 - other.hp };
+  });
+  assert.deepEqual(r.added.res, [{ type: 'físico', value: 4 }]);
+  assert.deepEqual(r.added.imm, ['veneno']);
+  assert.equal(r.added.rows, 2);
+  assert.deepEqual(r.after.imm, []);
+  assert.equal(r.after.rows, 1);
+  assert.equal(r.immuneLost, 0, 'alvo imune a fogo não sofre dano da magia de fogo');
+});
+
 await check('exportar/importar mantém armas com runas', async () => {
   const r = await page.evaluate(() => {
     const u = STATE.units[0];

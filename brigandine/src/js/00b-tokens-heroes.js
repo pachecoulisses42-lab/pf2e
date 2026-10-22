@@ -6,7 +6,7 @@ const T = TK;
 SCULPT_SVGS.guerreiro = () => T.frame('guerreiro', {
   faction: 'hero', accent: '#4fa3e0', bg: ['#2b4a68', '#0d1a28'],
   art: (id) => {
-    const f = T.face(id, { skin: '#e3b48c', eye: '#3f78a8', brow: '#3a2615', smile: 0.15, h: 36 });
+    const f = T.face(id, { skin: '#e3b48c', eye: '#3f78a8', brow: '#3a2615', smile: 0.2, h: 36, chin: 0.5, tilt: 0.45, stubble: true, browW: 1.25 });
     return {
       defs: `${T.skinDefs(id, '#e3b48c')}${T.cloth(id, 'tabard', '#5da3dc', '#1c4468')}${T.cloth(id, 'cape', '#2f6a9c', '#0e2539')}${T.cloth(id, 'plume', '#e5483d', '#7f1612')}`,
       back: `<path d="M44 256 C40 196 66 164 104 156 L152 156 C190 164 216 196 212 256Z" fill="url(#cape_${id})" stroke="#0a1622" stroke-width="3"/>
@@ -26,7 +26,8 @@ SCULPT_SVGS.guerreiro = () => T.frame('guerreiro', {
         <path d="M93 86 Q128 66 163 86 L163 96 Q128 78 93 96Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2"/>
         <path d="M124 80 L132 80 L131 108 Q128 111 125 108Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="2"/>
         <path d="M91 96 L97 128 L110 120 L108 94Z M165 96 L159 128 L146 120 L148 94Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="2.4" stroke-linejoin="round"/>
-        <path d="M102 62 Q116 50 134 49" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>`,
+        <path d="M102 62 Q116 50 134 49" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity="0.7"/>
+        ${T.gl(110, 58, 1.1, 20)}${T.gl(68, 190, 0.9, 0)}`,
       over: `
         <path d="M128 46 C112 22 140 6 172 16 C162 28 156 40 146 50Z" fill="url(#plume_${id})" stroke="#4a0c09" stroke-width="2.4"/>
         <g>
@@ -36,6 +37,7 @@ SCULPT_SVGS.guerreiro = () => T.frame('guerreiro', {
           <rect x="213.5" y="188" width="11" height="26" rx="3" fill="url(#leather_${id})" stroke="#1a0e06" stroke-width="2"/>
           <path d="M214 194 H224 M214 200 H224 M214 206 H224" stroke="#1a0e06" stroke-width="1.5" opacity="0.7"/>
           <circle cx="219" cy="220" r="8" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.2"/>
+          ${T.gl(219, 52, 1.5, 0)}${T.gl(217, 120, 0.9, 0)}
         </g>
         <g>
           <circle cx="62" cy="206" r="38" fill="url(#steel_${id})" stroke="#101722" stroke-width="3.5"/>
@@ -51,7 +53,7 @@ SCULPT_SVGS.guerreiro = () => T.frame('guerreiro', {
 SCULPT_SVGS.paladino = () => T.frame('paladino', {
   faction: 'hero', accent: '#f4d36a', bg: ['#6b5a2a', '#1c1608'],
   art: (id) => {
-    const f = T.face(id, { skin: '#efc7a2', eye: '#5aa0d8', brow: '#b58a3a', smile: 0.5, h: 36 });
+    const f = T.face(id, { skin: '#efc7a2', eye: '#5aa0d8', brow: '#b58a3a', smile: 0.7, h: 36, chin: 0.3, tilt: -0.05, lashes: true });
     return {
       defs: `${T.skinDefs(id, '#efc7a2')}${T.cloth(id, 'tabard', '#ffffff', '#cfc7b0')}${T.cloth(id, 'hair', '#ffe48a', '#b3822a')}${T.cloth(id, 'cape', '#fff6d6', '#b9a66a')}${T.rad(`halo_${id}`, [[0.55, '#ffe9a0', 0.9], [0.8, '#ffd45a', 0.35], [1, '#ffd45a', 0]], [0.5, 0.5, 0.5])}`,
       glow: `<circle cx="128" cy="96" r="78" fill="url(#halo_${id})"/>
@@ -72,7 +74,8 @@ SCULPT_SVGS.paladino = () => T.frame('paladino', {
         <path d="M94 86 Q128 62 162 86" fill="none" stroke="url(#gold_${id})" stroke-width="6" stroke-linecap="round"/>
         <path d="M94 86 Q128 62 162 86" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity="0.7"/>
         <path d="M95 84 L62 64 L72 82 L56 88 L82 98Z M161 84 L194 64 L184 82 L200 88 L174 98Z" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M128 66 L134 76 L128 86 L122 76Z" fill="#7fd3ff" stroke="#fff" stroke-width="1.5"/>`,
+        <path d="M128 66 L134 76 L128 86 L122 76Z" fill="#7fd3ff" stroke="#fff" stroke-width="1.5"/>
+        ${T.gl(128, 74, 1.1, 0)}${T.gl(104, 70, 0.8, 0)}${T.gl(160, 70, 0.8, 0)}`,
       over: `
         <g>
           <path d="M37 18 L45 40 L44 176 L30 176 L29 40Z" fill="url(#steelv_${id})" stroke="#101722" stroke-width="2.6" stroke-linejoin="round"/>
@@ -82,6 +85,7 @@ SCULPT_SVGS.paladino = () => T.frame('paladino', {
           <rect x="31.500" y="190" width="11" height="26" rx="3" fill="url(#leather_${id})" stroke="#1a0e06" stroke-width="2"/>
           <circle cx="37" cy="222" r="8" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="2.2"/>
           <path d="M37 6 V18 M20 14 L28 26 M54 14 L46 26" stroke="#ffe9a0" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
+          ${T.gl(37, 16, 1.7, 0)}${T.gl(37, 110, 1, 0)}
         </g>
         <g>
           <path d="M184 168 H252 V214 C252 236 224 246 218 250 C212 246 184 236 184 214Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="3.5" stroke-linejoin="round"/>
@@ -97,7 +101,7 @@ SCULPT_SVGS.barbaro = () => T.frame('barbaro', {
   faction: 'hero', accent: '#e0703a', bg: ['#6a3a22', '#1a0d07'],
   art: (id) => {
     const skin = '#86a066';
-    const f = T.face(id, { skin, eye: '#e3a73c', brow: '#1c1a10', smile: -0.7, squint: 0.55, browW: 5.2, w: 36, h: 38, ears: 'pointed', nose: 1.4 });
+    const f = T.face(id, { skin, eye: '#e3a73c', brow: '#1c1a10', smile: 0.9, squint: 0.6, browW: 1.7, tilt: 0.85, w: 36, h: 38, chin: 0.62, teeth: 'snarl', ears: 'pointed', nose: 1.4 });
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'fur', '#d9bc8a', '#6b4a28')}${T.cloth(id, 'mohawk', '#e5522a', '#6e1608')}`,
       body: `
@@ -129,6 +133,7 @@ SCULPT_SVGS.barbaro = () => T.frame('barbaro', {
           <path d="M219 52 C192 38 176 66 184 100 C198 90 210 88 219 92Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="3" stroke-linejoin="round"/>
           <path d="M219 52 C246 38 254 66 250 100 C238 90 228 88 219 92Z" fill="url(#steel_${id})" stroke="#101722" stroke-width="3" stroke-linejoin="round"/>
           <path d="M190 66 C192 80 196 88 206 92" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+          ${T.gl(196, 70, 1.2, 0)}${T.gl(240, 74, 1, 0)}
           <path d="M219 48 L219 30" stroke="url(#steel_${id})" stroke-width="7" stroke-linecap="round"/>
           <circle cx="219" cy="214" r="13" fill="url(#skin_${id})" stroke="#2a3418" stroke-width="2.6"/>
         </g>`
@@ -140,7 +145,7 @@ SCULPT_SVGS.clerigo = () => T.frame('clerigo', {
   faction: 'hero', accent: '#f0c64a', bg: ['#6a5a30', '#17120a'],
   art: (id) => {
     const skin = '#dc9f7a';
-    const f = T.face(id, { skin, eye: '#4a6f8a', brow: '#9a4f20', browW: 6, smile: 0.2, w: 35, h: 36, nose: 1.5 });
+    const f = T.face(id, { skin, eye: '#4a6f8a', brow: '#9a4f20', browW: 1.8, smile: 0.35, w: 35, h: 36, chin: 0.5, tilt: 0.1, nose: 1.5 });
     const braid = (x, y0) => [0, 1, 2, 3].map(i => `<ellipse cx="${x}" cy="${y0 + i * 9}" rx="5" ry="5.5" fill="url(#beard_${id})" stroke="#5a2a0c" stroke-width="1.6"/>`).join('') + `<circle cx="${x}" cy="${y0 + 38}" r="3.4" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="1.2"/>`;
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'beard', '#d9782f', '#7a3512')}${T.cloth(id, 'robe', '#fff4cc', '#c9a85a')}${T.cloth(id, 'mail', '#9aa7b8', '#3b4656')}`,
@@ -175,6 +180,7 @@ SCULPT_SVGS.clerigo = () => T.frame('clerigo', {
           ${[0, 45, 90, 135, 180, 225, 270, 315].map(a => `<path d="M37 ${58 - 24} l-4 -8 l8 0z" transform="rotate(${a} 37 58)" fill="url(#gold_${id})" stroke="#5a3f0e" stroke-width="1.6"/>`).join('')}
           <circle cx="37" cy="58" r="6" fill="#fff4cc" stroke="#5a3f0e" stroke-width="1.6"/>
           <path d="M20 46 Q26 38 36 36" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.65"/>
+          ${T.gl(26, 44, 1.2, 0)}
           <circle cx="37" cy="226" r="12" fill="url(#skin_${id})" stroke="#5a2a0c" stroke-width="2.6"/>
         </g>`
     };
@@ -185,7 +191,7 @@ SCULPT_SVGS.bardo = () => T.frame('bardo', {
   faction: 'hero', accent: '#d85fb0', bg: ['#5a2a56', '#140a16'],
   art: (id) => {
     const skin = '#eab793';
-    const f = T.face(id, { skin, eye: '#5e9a4a', brow: '#2a1810', smile: 1, lashes: true, h: 36, w: 32 });
+    const f = T.face(id, { skin, eye: '#5e9a4a', brow: '#2a1810', smile: 1, lashes: true, h: 36, w: 32, chin: 0.28, tilt: -0.3, teeth: 'grin', wink: true });
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'coat', '#b9418e', '#47123a')}${T.cloth(id, 'hat', '#8a2f78', '#36103a')}${T.cloth(id, 'feather', '#ffffff', '#d4c5e6')}${T.cloth(id, 'hair', '#6b3a22', '#241008')}`,
       back: `<path d="M84 90 C70 124 78 156 92 176 L164 176 C178 156 186 124 172 90Z" fill="url(#hair_${id})" stroke="#1c0c06" stroke-width="2.4"/>`,
@@ -233,7 +239,7 @@ SCULPT_SVGS.feiticeiro = () => T.frame('feiticeiro', {
   faction: 'hero', accent: '#f0587f', bg: ['#6a1f3c', '#180610'],
   art: (id) => {
     const skin = '#eebfa8';
-    const f = T.face(id, { skin, eye: '#ffb07a', brow: '#6a1a10', smile: 0.5, eyeGlow: true, lashes: true, h: 36, w: 31, squint: 0.15 });
+    const f = T.face(id, { skin, eye: '#ffb07a', brow: '#6a1a10', smile: 0.7, eyeGlow: true, lashes: true, h: 36, w: 31, squint: 0.3, tilt: 0.35, chin: 0.26 });
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'coat', '#c9406a', '#3e0f26')}${T.cloth(id, 'flame', '#ffd25a', '#d8261e')}${T.rad(`aura_${id}`, [[0, '#ff7aa8', 0.55], [1, '#ff7aa8', 0]], [0.5, 0.5, 0.5])}${T.lin(`crystal_${id}`, [[0, '#ffe6f1'], [0.5, '#ff8fbc'], [1, '#a31650']], [0, 0, 1, 1])}`,
       glow: `<circle cx="128" cy="108" r="96" fill="url(#aura_${id})"/>`,
@@ -258,6 +264,7 @@ SCULPT_SVGS.feiticeiro = () => T.frame('feiticeiro', {
           <path d="M212 54 L232 78 L224 118 L200 118 L192 78Z" fill="url(#crystal_${id})" stroke="#4a0c28" stroke-width="3" stroke-linejoin="round"/>
           <path d="M212 54 L212 118 M192 78 L232 78 M200 118 L212 78 L224 118" stroke="#fff" stroke-width="1.5" opacity="0.55" fill="none"/>
           <path d="M200 66 L210 60" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+          ${T.gl(203, 66, 1.3, 0)}${T.gl(226, 108, 0.8, 0)}
         </g>
         <g>
           <path d="M54 170 C28 176 26 214 46 232 C40 214 56 206 58 190 C66 200 72 212 64 232 C84 218 84 184 54 170Z" fill="url(#flame_${id})" stroke="#5a0f0a" stroke-width="2.6" stroke-linejoin="round"/>
@@ -271,7 +278,7 @@ SCULPT_SVGS.mago = () => T.frame('mago', {
   faction: 'hero', accent: '#8d76e8', bg: ['#2f2a66', '#0b0a20'],
   art: (id) => {
     const skin = '#e6c2a0';
-    const f = T.face(id, { skin, eye: '#58a0e0', brow: '#d8dce6', browW: 4.6, smile: 0.3, w: 31, h: 35, nose: 1.4 });
+    const f = T.face(id, { skin, eye: '#58a0e0', brow: '#d8dce6', browW: 1.7, smile: 0.4, w: 31, h: 35, chin: 0.3, tilt: -0.2, nose: 1.4 });
     const stars = [[76, 232], [92, 214], [112, 244], [150, 238], [168, 214], [184, 236], [64, 208], [196, 210]]
       .map(([x, y]) => `<path d="M${x} ${y - 5} l1.6 3.4 l3.6 .6 l-2.6 2.6 l.6 3.6 l-3.2 -1.8 l-3.2 1.8 l.6 -3.6 l-2.6 -2.6 l3.6 -.6z" fill="#ffe9a0" opacity="0.9"/>`).join('');
     return {
@@ -306,6 +313,7 @@ SCULPT_SVGS.mago = () => T.frame('mago', {
           <circle cx="219" cy="66" r="34" fill="url(#aura_${id})"/>
           <path d="M219 38 L238 58 L228 90 L210 90 L200 58Z" fill="url(#orb_${id})" stroke="#173a5a" stroke-width="2.8" stroke-linejoin="round" transform="rotate(8 219 64)"/>
           <path d="M214 46 L206 58" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
+          ${T.gl(212, 50, 1.3, 0)}
           <path d="M221 88 C212 120 224 180 216 250" fill="none" stroke="url(#wood_${id})" stroke-width="10" stroke-linecap="round"/>
           <path d="M221 88 C212 120 224 180 216 250" fill="none" stroke="#1d1006" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="2 12"/>
           <path d="M206 100 Q219 108 232 100" stroke="url(#gold_${id})" stroke-width="4" fill="none" stroke-linecap="round"/>
@@ -318,7 +326,7 @@ SCULPT_SVGS.ranger = () => T.frame('ranger', {
   faction: 'hero', accent: '#6fc45a', bg: ['#25472c', '#07140a'],
   art: (id) => {
     const skin = '#d4a47c';
-    const f = T.face(id, { skin, eye: '#8fd86a', brow: '#2a1a10', smile: 0.1, squint: 0.3, eyeGlow: true, h: 35, w: 31 });
+    const f = T.face(id, { skin, eye: '#8fd86a', brow: '#2a1a10', smile: 0, squint: 0.5, eyeGlow: true, h: 35, w: 31, chin: 0.36, tilt: 0.4, stubble: true });
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'hood', '#5f9a4a', '#143018')}${T.cloth(id, 'cloak', '#4c8240', '#10271a')}${T.lin(`shade_${id}`, [[0, '#000', 0.65], [0.55, '#000', 0.1], [1, '#000', 0]], [0, 0, 0, 1])}`,
       back: `<g>
@@ -339,6 +347,7 @@ SCULPT_SVGS.ranger = () => T.frame('ranger', {
         <!-- capuz -->
         <path d="M128 28 C88 34 70 70 78 120 C80 138 88 152 98 160 L100 124 C94 96 100 72 114 62 C120 58 136 58 142 62 C156 72 162 96 156 124 L158 160 C168 152 176 138 178 120 C186 70 168 34 128 28Z" fill="url(#hood_${id})" stroke="#07140a" stroke-width="3.2" stroke-linejoin="round"/>
         <path d="M100 124 C94 96 100 72 114 62 C120 58 136 58 142 62 C156 72 162 96 156 124 C146 100 110 100 100 124Z" fill="url(#shade_${id})"/>
+        <path d="M100 124 C94 96 100 72 114 62 C120 58 136 58 142 62 C156 72 162 96 156 124 C146 100 110 100 100 124Z" fill="url(#hatch_${id})" opacity="0.4"/>
         <path d="M96 60 Q108 40 128 36" stroke="#d6ffb8" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.5"/>`,
       over: `
         <g>
@@ -357,7 +366,7 @@ SCULPT_SVGS.rogue = () => T.frame('rogue', {
   faction: 'hero', accent: '#5fd0b4', bg: ['#1f3c3a', '#060f10'],
   art: (id) => {
     const skin = '#c9a384';
-    const f = T.face(id, { skin, eye: '#d8fff0', brow: '#1a1210', smile: 0, squint: 0.65, eyeGlow: true, h: 34, w: 30 });
+    const f = T.face(id, { skin, eye: '#d8fff0', brow: '#1a1210', smile: 0, squint: 0.75, eyeGlow: true, h: 34, w: 30, chin: 0.3, tilt: 0.55 });
     return {
       defs: `${T.skinDefs(id, skin)}${T.cloth(id, 'hood', '#3b5a58', '#0a1616')}${T.cloth(id, 'leatherd', '#3a4a48', '#0c1514')}${T.lin(`shade_${id}`, [[0, '#000', 0.7], [0.5, '#000', 0.15], [1, '#000', 0]], [0, 0, 0, 1])}`,
       back: `<path d="M44 256 C40 196 66 164 104 156 L152 156 C190 164 216 196 212 256Z" fill="url(#hood_${id})" stroke="#050c0c" stroke-width="3"/>`,
@@ -368,6 +377,8 @@ SCULPT_SVGS.rogue = () => T.frame('rogue', {
         <path d="M64 256 L172 184 M192 256 L84 184" stroke="url(#leather_${id})" stroke-width="5" opacity="0.9"/>
         ${[0, 1, 2, 3].map(i => `<g transform="translate(${96 + i * 14} ${204 + i * 4}) rotate(-34)"><path d="M0 0 L3 -12 L6 0Z" fill="url(#steel_${id})" stroke="#050c0c" stroke-width="1.2"/><rect x="0" y="0" width="6" height="7" fill="url(#leather_${id})" stroke="#050c0c" stroke-width="1"/></g>`).join('')}
         <rect x="122" y="210" width="12" height="14" rx="2" fill="url(#steel_${id})" stroke="#050c0c" stroke-width="1.6"/>
+        <path d="M96 126 L160 126 L170 184 Q128 200 86 184Z" fill="url(#hood_${id})" stroke="#050c0c" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M100 150 Q128 160 156 150 M98 166 Q128 178 158 166" stroke="#6fa09a" stroke-width="1.6" fill="none" opacity="0.4"/>
         ${f.head}
         <!-- máscara cobrindo o rosto -->
         <path d="M94 114 C100 108 156 108 162 114 L160 136 C150 152 106 152 96 136Z" fill="url(#hood_${id})" stroke="#050c0c" stroke-width="2.6" stroke-linejoin="round"/>
@@ -375,6 +386,7 @@ SCULPT_SVGS.rogue = () => T.frame('rogue', {
         <!-- capuz profundo -->
         <path d="M128 26 C84 30 66 68 74 122 C76 142 86 158 98 166 L100 118 C94 94 102 74 116 66 C122 62 134 62 140 66 C154 74 162 94 156 118 L158 166 C170 158 180 142 182 122 C190 68 172 30 128 26Z" fill="url(#hood_${id})" stroke="#050c0c" stroke-width="3.2" stroke-linejoin="round"/>
         <path d="M102 100 C96 82 104 70 118 64 C124 62 132 62 138 64 C152 70 160 82 154 100 C146 90 110 90 102 100Z" fill="url(#shade_${id})"/>
+        <path d="M102 100 C96 82 104 70 118 64 C124 62 132 62 138 64 C152 70 160 82 154 100 C146 90 110 90 102 100Z" fill="url(#hatch_${id})" opacity="0.5"/>
         <path d="M94 56 Q106 40 128 34" stroke="#9fe8d6" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.45"/>`,
       over: `
         <g>
