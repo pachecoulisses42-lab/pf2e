@@ -183,8 +183,12 @@ CHIBI_SVGS.ranger = () => CB.frame('c_ranger', {
       ${ccap(96, 150, 170, 196, 6, '#5a3a22')}
       ${cb('M100 176 Q128 187 156 176 L156 185 Q128 196 100 185Z', '#5a3a22')}${cc(128, 184, 5, '#c9a850', 3)}
       ${carm(1, 176, 168, '#8a9a58', '#f3d0b0')}
-      <path d="M32 40 C-4 100 -4 170 32 226" fill="none" stroke="${CI}" stroke-width="14" stroke-linecap="round"/><path d="M32 40 C-4 100 -4 170 32 226" fill="none" stroke="#9a6a3a" stroke-width="8" stroke-linecap="round"/><path d="M32 40 L40 134 L32 226" fill="none" stroke="#f3ead2" stroke-width="2"/>
-      ${carm(-1, 40, 134, '#8a9a58', '#f3d0b0')}
+      <g transform="translate(30 0)">
+        <path d="M32 40 C-4 100 -4 170 32 226" fill="none" stroke="${CI}" stroke-width="14" stroke-linecap="round"/><path d="M32 40 C-4 100 -4 170 32 226" fill="none" stroke="#9a6a3a" stroke-width="8" stroke-linecap="round"/>
+        <path d="M32 40 L32 226" fill="none" stroke="#f3ead2" stroke-width="2"/>
+        <rect x="-4" y="118" width="18" height="32" rx="5" fill="#5a3a22" stroke="${CI}" stroke-width="3.6"/>
+      </g>
+      ${carm(-1, 36, 134, '#8a9a58', '#f3d0b0')}
       ${h.back}
       ${cb('M72 96 C60 52 98 30 128 30 C158 30 196 52 184 96 C178 70 156 56 128 56 C100 56 78 70 72 96Z M70 90 C58 124 70 150 84 158Z M186 90 C198 124 186 150 172 158Z', '#f4f1ea')}
       ${h.head}
