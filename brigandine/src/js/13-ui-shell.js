@@ -62,6 +62,8 @@ document.addEventListener('keydown', (e) => {
     document.getElementById('sidebarLeft').classList.remove('open');
     toggleSheet(false);
   }
+  // Ctrl/⌘+S salva a cena aberta (ou cria uma)
+  if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); saveActiveScene(); return; }
   // Q / E giram a peça selecionada (montagem) ou a da vez (combate), fora de campos de texto
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
   if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'q' || e.key === 'e' || e.key === 'Q' || e.key === 'E')) {
@@ -112,4 +114,5 @@ function applyPrefs() {
   const prefs = readPrefs();
   setTheme(prefs.theme || 'parchment');
   if (prefs.tokenStyle && (TOKEN_STYLES[prefs.tokenStyle] || RETIRED_TOKEN_STYLES[prefs.tokenStyle])) chooseTokenStyle(prefs.tokenStyle);
+  if (prefs.combatLogOpen === false) document.getElementById('combatLogPanel').open = false;
 }

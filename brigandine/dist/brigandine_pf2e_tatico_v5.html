@@ -504,6 +504,41 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .range-ends { display: flex; justify-content: space-between; font-size: var(--text-2xs); color: var(--text-3); }
 .shape-controls select { width: auto; }
 
+/* Cenas de combate: botão no cabeçalho, janela e cartões */
+.scene-chip { max-width: 260px; }
+.scene-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+.scene-chip .dirty-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); display: none; }
+.scene-chip.dirty .dirty-dot { display: inline-block; }
+.scenes-dialog, .choice-dialog { margin: auto; border: 0; border-radius: var(--r-lg, 12px); background: var(--ink-850); color: var(--text); box-shadow: var(--shadow-pop); padding: var(--s-4); }
+.scenes-dialog { width: min(760px, calc(100vw - 24px)); max-height: calc(100vh - 32px); display: none; flex-direction: column; gap: var(--s-3); }
+.scenes-dialog[open] { display: flex; }
+.scenes-dialog::backdrop, .choice-dialog::backdrop { background: rgba(10, 6, 2, 0.55); }
+.scenes-head { display: flex; align-items: center; justify-content: space-between; }
+.scenes-head h2 { margin: 0; font-family: var(--font-display); font-size: var(--text-lg); }
+.scenes-toolbar { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.scenes-toolbar input[type="text"] { flex: 1 1 200px; }
+.scenes-list { display: flex; flex-direction: column; gap: var(--s-2); overflow-y: auto; min-height: 120px; padding: 2px; }
+.scene-card { display: grid; grid-template-columns: 120px 1fr; gap: var(--s-3); padding: var(--s-2); border-radius: var(--r-md); background: var(--ink-900); box-shadow: inset 0 0 0 1px var(--line); }
+.scene-card.active { box-shadow: inset 0 0 0 2px var(--accent); }
+.scene-thumb { width: 120px; aspect-ratio: 3 / 2; border-radius: 6px; overflow: hidden; background: var(--ink-950); display: grid; place-items: center; color: var(--text-3); }
+.scene-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.scene-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.scene-name { font-weight: 700; font-size: var(--text-md); }
+.scene-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: var(--text-2xs); color: var(--text-3); align-items: center; }
+.scene-notes { width: 100%; resize: vertical; font: inherit; font-size: var(--text-xs); }
+.scene-actions { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.scene-actions .grow { flex: 1; }
+.choice-dialog { width: min(440px, calc(100vw - 24px)); }
+.choice-buttons { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: flex-end; }
+@media (max-width: 600px) {
+  .scenes-dialog { padding: var(--s-3); }
+  .scene-card { grid-template-columns: 96px 1fr; }
+  .scene-thumb { width: 96px; }
+  .scene-chip .label-long, .scene-chip .scene-chip-name { display: none; }
+  .scene-chip { width: 34px; padding: 0; justify-content: center; position: relative; }
+  .scene-chip .dirty-dot { position: absolute; top: 4px; right: 4px; }
+}
+
 /* --- layout.css --- */
 /* ==========================================================================
    Brigandine DS — Layout do app (shell, painéis, HUD)
@@ -728,6 +763,11 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .tip-good { color: var(--strike); font-weight: 700; }
 .tip-warn { color: var(--supply); font-weight: 700; }
 .tip-bad { color: var(--text-3); font-weight: 700; }
+
+/* Registro no painel de combate (a gaveta inferior fica só na montagem) */
+body.mode-combat .log-dock { display: none; }
+.combat-log-panel { height: auto; max-height: min(420px, 48vh); padding: 0 2px; }
+.log-section .log-tools { display: flex; justify-content: flex-end; }
 
 /* --- theme-parchment.css --- */
 /* ==========================================================================
@@ -1088,6 +1128,9 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
   </div>
 
   <div class="header-actions">
+    <button id="sceneHeaderBtn" class="btn scene-chip" onclick="openScenesDialog()" title="Cenas de combate">
+      <svg class="icon"><use href="#i-hex"/></svg><span class="label-long">Cenas ·</span><span id="sceneHeaderLabel" class="scene-chip-name">Sem cena</span><span class="dirty-dot" aria-hidden="true"></span>
+    </button>
     <details class="menu" id="fileMenu">
       <summary class="btn" aria-label="Arquivo"><svg class="icon"><use href="#i-folder"/></svg><span class="label-long">Arquivo</span><svg class="icon label-long"><use href="#i-chevron"/></svg></summary>
       <div class="menu-pop">
@@ -1100,6 +1143,32 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
     </details>
   </div>
 </header>
+
+<!-- ============================ CENAS ============================ -->
+<dialog id="scenesDialog" class="scenes-dialog" aria-labelledby="scenesTitle">
+  <div class="scenes-head">
+    <h2 id="scenesTitle">Cenas de combate</h2>
+    <button class="btn btn-ghost btn-icon" onclick="closeScenesDialog()" aria-label="Fechar"><svg class="icon"><use href="#i-x"/></svg></button>
+  </div>
+  <p class="hint">Monte encontros com antecedência e abra cada um na hora certa. <strong>Iniciar combate</strong> usa uma cópia: a cena preparada não muda. Salvar durante o combate guarda o progresso para <strong>Continuar</strong> depois.</p>
+  <div class="scenes-toolbar">
+    <button id="scenesSaveBtn" class="btn btn-primary" onclick="saveActiveScene()"><svg class="icon"><use href="#i-save"/></svg>Salvar</button>
+    <button class="btn" onclick="createSceneFromBoard(false)"><svg class="icon"><use href="#i-copy"/></svg>Nova a partir do tabuleiro</button>
+    <button class="btn" onclick="createSceneFromBoard(true)"><svg class="icon"><use href="#i-plus"/></svg>Nova em branco</button>
+  </div>
+  <div class="scenes-toolbar">
+    <input type="text" placeholder="Buscar cena por nome ou anotação" aria-label="Buscar cena" oninput="setSceneQuery(this.value)">
+    <button class="btn btn-ghost" onclick="exportAllScenes()"><svg class="icon"><use href="#i-download"/></svg>Exportar todas</button>
+    <label class="btn btn-ghost"><svg class="icon"><use href="#i-upload"/></svg>Importar<input type="file" accept=".json,application/json" class="sr-only" onchange="importScenesFile(event)"></label>
+  </div>
+  <div id="scenesList" class="scenes-list"></div>
+  <p id="scenesStorageInfo" class="hint"></p>
+</dialog>
+
+<dialog id="choiceDialog" class="choice-dialog">
+  <p id="choiceMessage"></p>
+  <div id="choiceButtons" class="choice-buttons"></div>
+</dialog>
 
 <div class="workspace">
 
@@ -1359,6 +1428,16 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
           </div>
         </details>
         <button class="btn btn-danger btn-block" onclick="endCombatSession()"><svg class="icon"><use href="#i-stop"/></svg>Encerrar combate</button>
+      </div>
+
+      <div class="panel-section">
+        <details id="combatLogPanel" class="more log-section" open ontoggle="if (typeof savePrefs === 'function') savePrefs({ combatLogOpen: this.open })">
+          <summary><svg class="icon"><use href="#i-list"/></svg>Registro de dados e ações<span class="summary-meta num" id="combatLogCount"></span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+          <div class="more-body">
+            <div class="log-tools"><button class="btn btn-sm btn-ghost" onclick="clearCombatLog()"><svg class="icon"><use href="#i-trash"/></svg>Limpar registro</button></div>
+            <div id="combatPanelLog" class="combat-log combat-log-panel" aria-live="polite"></div>
+          </div>
+        </details>
       </div>
     </div>
   </aside>
@@ -5381,6 +5460,7 @@ function initApp() {
   populateDemoBattle();
   resetCamera();
   applyPrefs();
+  initScenes();
   addLog('📜 <strong>Brigandine v5 pronto.</strong> Monte o tabuleiro e as peças, depois inicie o combate.');
 }
 
@@ -5448,6 +5528,7 @@ function endCombatSession() {
   }
   addLog('⏹ <strong>Combate encerrado!</strong> Ações e reações restauradas. Retornando ao Modo Montagem & Edição do tabuleiro.');
   setAppMode('setup');
+  if (SCENES.activeId) afterCombatInScene();
 }
 
 
@@ -5902,6 +5983,7 @@ function requestRender() {
     requestAnimationFrame(() => {
       renderQueued = false;
       renderBoard();
+      scheduleSceneHeaderUpdate();
     });
   }
 }
@@ -8721,6 +8803,7 @@ function renderPieceGallery() {
     box.appendChild(card);
   };
   for (const t of shown) render(t, container, 'piece');
+  if (typeof scheduleLibrarySave === 'function') scheduleLibrarySave();
   if (animalBox) for (const t of UNIT_TEMPLATES.filter(isAnimalTemplate)) render(t, animalBox, 'animal');
 }
 
@@ -8900,18 +8983,33 @@ function resetCamera() {
   requestRender();
 }
 
+const LOG_BOX_IDS = ['combatLogBox', 'combatPanelLog']; // gaveta da montagem e painel de combate
+const LOG_MAX_ENTRIES = 400;
+
 function addLog(htmlMsg) {
-  const box = document.getElementById('combatLogBox');
-  const item = document.createElement('div');
-  item.className = 'log-entry';
-  item.innerHTML = htmlMsg;
-  box.prepend(item);
+  for (const id of LOG_BOX_IDS) {
+    const box = document.getElementById(id);
+    if (!box) continue;
+    const item = document.createElement('div');
+    item.className = 'log-entry';
+    item.innerHTML = htmlMsg;
+    box.prepend(item);
+    while (box.childElementCount > LOG_MAX_ENTRIES) box.lastElementChild.remove();
+  }
   document.getElementById('logPeek').innerHTML = htmlMsg;
+  updateLogCount();
+}
+
+function updateLogCount() {
+  const n = document.getElementById('combatPanelLog')?.childElementCount || 0;
+  const el = document.getElementById('combatLogCount');
+  if (el) el.textContent = n ? String(n) : '';
 }
 
 function clearCombatLog() {
-  document.getElementById('combatLogBox').innerHTML = '';
+  for (const id of LOG_BOX_IDS) { const box = document.getElementById(id); if (box) box.innerHTML = ''; }
   document.getElementById('logPeek').textContent = 'Registro de ações e rolagens';
+  updateLogCount();
 }
 
 function saveStateToLocal() {
@@ -8984,6 +9082,13 @@ function importJSON(event) {
 function applyLoadedPayload(data) {
   if (data.grid) {
     STATE.grid = { ...STATE.grid, ...data.grid };
+    // mapa de fundo salvo como imagem: recria a imagem (antes ficava salvo mas não aparecia ao carregar)
+    bgImageObj = null;
+    if (typeof STATE.grid.bgImageData === 'string' && /^data:image\//.test(STATE.grid.bgImageData)) {
+      const img = new Image();
+      img.onload = () => { bgImageObj = img; requestRender(); };
+      img.src = STATE.grid.bgImageData;
+    } else STATE.grid.bgImageData = null;
     setGridType(STATE.grid.type);
     setGridSize(STATE.grid.cols, STATE.grid.rows);
     setCellScale(STATE.grid.cellScale);
@@ -9464,6 +9569,279 @@ function selectOnly(unit) {
   return true;
 }
 
+/* ===== 12d-scenes-model.js ===== */
+/* ============================================================================
+   15d. CENAS — modelo (funções puras)
+   Uma cena guarda o tabuleiro preparado (`snapshot`) e, se houver, o combate em
+   andamento (`progress`). Ver docs/ARQUITETURA-CENAS.md.
+   ============================================================================ */
+
+const SCENE_VERSION = 1;
+
+/** Copia o tabuleiro (sem a biblioteca de modelos). inCombat inclui rodada, peça da vez e modo. */
+function captureBoard(state, inCombat = false) {
+  const board = JSON.parse(JSON.stringify({
+    grid: state.grid,
+    terrainMap: state.terrainMap,
+    objects: state.objects,
+    effects: state.effects,
+    effectZones: state.effectZones,
+    layers: state.layers,
+    units: state.units
+  }));
+  if (inCombat) {
+    board.combat = {
+      round: state.combat.round,
+      activeUnitId: state.combat.activeUnitId,
+      mode: 'combat',
+      flashLights: JSON.parse(JSON.stringify(state.flashLights || []))
+    };
+  }
+  return board;
+}
+
+/** Impressão digital do tabuleiro para saber se há alterações não salvas (ignora câmera e seleção). */
+function boardFingerprint(board) {
+  const b = { ...board };
+  delete b.combat;
+  return hashString(JSON.stringify(b));
+}
+
+function sceneStats(board) {
+  const units = (board && board.units) || [];
+  return {
+    heroes: units.filter(u => u.faction === 'hero').length,
+    villains: units.filter(u => u.faction !== 'hero').length,
+    cols: board?.grid?.cols || 0,
+    rows: board?.grid?.rows || 0
+  };
+}
+
+/** Nome sem repetir: "Emboscada", "Emboscada (2)", "Emboscada (3)"… */
+function uniqueSceneName(base, existingNames) {
+  const clean = cleanText(base) || 'Cena';
+  const taken = new Set(existingNames.map(n => n.toLowerCase()));
+  if (!taken.has(clean.toLowerCase())) return clean;
+  const root = clean.replace(/\s*\(\d+\)$/, '');
+  for (let i = 2; ; i++) {
+    const name = `${root} (${i})`;
+    if (!taken.has(name.toLowerCase())) return name;
+  }
+}
+
+function newSceneId() {
+  return `sc_${Date.now().toString(36)}_${Math.floor(Math.random() * 1e6).toString(36)}`;
+}
+
+/** Cena nova a partir de um tabuleiro. */
+function makeScene({ name, notes = '', board, order = 0, thumb = '', now = Date.now() }) {
+  return {
+    id: newSceneId(), version: SCENE_VERSION,
+    name: cleanText(name) || 'Cena', notes: cleanText(notes),
+    order, createdAt: now, updatedAt: now, thumb,
+    stats: sceneStats(board),
+    snapshot: board, progress: null
+  };
+}
+
+/** Separa metadados (lista leve) do corpo (tabuleiros). */
+function splitScene(scene) {
+  const { snapshot, progress, ...meta } = scene;
+  return { meta: { ...meta, hasProgress: !!progress }, body: { id: scene.id, snapshot, progress: progress || null } };
+}
+
+function joinScene(meta, body) {
+  const { hasProgress, ...rest } = meta;
+  return { ...rest, snapshot: body ? body.snapshot : null, progress: body ? body.progress : null };
+}
+
+/** Ordena pela posição e, em empate, pela criação. */
+function sortScenes(metas) {
+  return [...metas].sort((a, b) => (a.order - b.order) || (a.createdAt - b.createdAt));
+}
+
+/** Move uma cena uma posição para cima (-1) ou para baixo (+1). Devolve as metas com `order` refeito. */
+function moveScene(metas, id, dir) {
+  const list = sortScenes(metas);
+  const i = list.findIndex(m => m.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= list.length) return list.map((m, k) => ({ ...m, order: k }));
+  [list[i], list[j]] = [list[j], list[i]];
+  return list.map((m, k) => ({ ...m, order: k }));
+}
+
+/** Valida uma cena vinda de arquivo; devolve null se não servir. Ids e nomes são refeitos fora daqui. */
+function normalizeImportedScene(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const board = raw.snapshot && typeof raw.snapshot === 'object' ? raw.snapshot
+    : (raw.grid || raw.units ? raw : null); // aceita também um arquivo de tabuleiro comum
+  if (!board || !Array.isArray(board.units)) return null;
+  const now = Date.now();
+  return {
+    id: typeof raw.id === 'string' && /^sc_[\w]+$/.test(raw.id) ? raw.id : newSceneId(),
+    version: SCENE_VERSION,
+    name: cleanText(raw.name) || 'Cena importada',
+    notes: cleanText(raw.notes),
+    order: Number.isFinite(raw.order) ? raw.order : 0,
+    createdAt: Number.isFinite(raw.createdAt) ? raw.createdAt : now,
+    updatedAt: Number.isFinite(raw.updatedAt) ? raw.updatedAt : now,
+    thumb: typeof raw.thumb === 'string' && /^data:image\/(jpeg|png|webp);base64,/.test(raw.thumb) ? raw.thumb : '',
+    stats: sceneStats(board),
+    snapshot: board,
+    progress: raw.progress && Array.isArray(raw.progress.units) ? raw.progress : null
+  };
+}
+
+/** Arquivo de campanha: todas as cenas + modelos do usuário. */
+function buildCampaignFile(scenes, library) {
+  return { kind: 'brigandine-campaign', version: SCENE_VERSION, exportedAt: new Date().toISOString(), scenes, library: library || [] };
+}
+
+/** Lê arquivo de campanha, de cena única ou de tabuleiro. Devolve { scenes, library }. */
+function parseScenesFile(data) {
+  if (data && data.kind === 'brigandine-campaign' && Array.isArray(data.scenes)) {
+    return { scenes: data.scenes.map(normalizeImportedScene).filter(Boolean), library: Array.isArray(data.library) ? data.library : [] };
+  }
+  if (data && data.kind === 'brigandine-scene') {
+    const s = normalizeImportedScene(data.scene);
+    return { scenes: s ? [s] : [], library: [] };
+  }
+  const s = normalizeImportedScene(data);
+  return { scenes: s ? [s] : [], library: Array.isArray(data?.templates) ? data.templates : [] };
+}
+
+/* ===== 12e-scene-store.js ===== */
+/* ============================================================================
+   15e. CENAS — repositório
+   Mesma interface assíncrona sobre IndexedDB (principal), localStorage (reserva)
+   ou memória (último recurso). Metadados e tabuleiros ficam separados para a
+   lista abrir rápido.
+   ============================================================================ */
+
+const SCENE_DB_NAME = 'brigandine';
+const SCENE_DB_VERSION = 1;
+
+function idbRequest(req) {
+  return new Promise((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function makeIdbBackend(db) {
+  const tx = (stores, mode) => db.transaction(stores, mode);
+  const done = (t) => new Promise((resolve, reject) => {
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+    t.onabort = () => reject(t.error || new Error('transação abortada'));
+  });
+  return {
+    kind: 'indexeddb',
+    listMeta: () => idbRequest(tx(['sceneMeta'], 'readonly').objectStore('sceneMeta').getAll()),
+    async get(id) {
+      const t = tx(['sceneMeta', 'sceneBody'], 'readonly');
+      const [meta, body] = await Promise.all([idbRequest(t.objectStore('sceneMeta').get(id)), idbRequest(t.objectStore('sceneBody').get(id))]);
+      return meta ? joinScene(meta, body) : null;
+    },
+    async put(scene) {
+      const { meta, body } = splitScene(scene);
+      const t = tx(['sceneMeta', 'sceneBody'], 'readwrite');
+      t.objectStore('sceneMeta').put(meta);
+      t.objectStore('sceneBody').put(body);
+      await done(t);
+    },
+    async putMetas(metas) {
+      const t = tx(['sceneMeta'], 'readwrite');
+      for (const m of metas) t.objectStore('sceneMeta').put(m);
+      await done(t);
+    },
+    async remove(id) {
+      const t = tx(['sceneMeta', 'sceneBody'], 'readwrite');
+      t.objectStore('sceneMeta').delete(id);
+      t.objectStore('sceneBody').delete(id);
+      await done(t);
+    },
+    async getKV(key) {
+      const row = await idbRequest(tx(['kv'], 'readonly').objectStore('kv').get(key));
+      return row ? row.value : null;
+    },
+    async setKV(key, value) {
+      const t = tx(['kv'], 'readwrite');
+      t.objectStore('kv').put({ key, value });
+      await done(t);
+    }
+  };
+}
+
+function openSceneDb() {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === 'undefined') { reject(new Error('sem IndexedDB')); return; }
+    const req = indexedDB.open(SCENE_DB_NAME, SCENE_DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('sceneMeta')) db.createObjectStore('sceneMeta', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('sceneBody')) db.createObjectStore('sceneBody', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv', { keyPath: 'key' });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+    req.onblocked = () => reject(new Error('banco bloqueado por outra aba'));
+  });
+}
+
+/** Reserva/memória: `storage` é localStorage ou um Map com a mesma cara. */
+function makeKeyValueBackend(storage, kind) {
+  const META = 'brigandine_scene_meta_v1';
+  const read = (k) => { const v = storage.getItem(k); return v ? JSON.parse(v) : null; };
+  const write = (k, v) => storage.setItem(k, JSON.stringify(v));
+  const metas = () => read(META) || [];
+  return {
+    kind,
+    listMeta: async () => metas(),
+    async get(id) {
+      const meta = metas().find(m => m.id === id);
+      return meta ? joinScene(meta, read(`brigandine_scene_${id}`)) : null;
+    },
+    async put(scene) {
+      const { meta, body } = splitScene(scene);
+      write(`brigandine_scene_${scene.id}`, body); // corpo primeiro: se faltar espaço, a lista não aponta para nada
+      write(META, [...metas().filter(m => m.id !== scene.id), meta]);
+    },
+    async putMetas(list) {
+      const byId = new Map(metas().map(m => [m.id, m]));
+      for (const m of list) byId.set(m.id, m);
+      write(META, [...byId.values()]);
+    },
+    async remove(id) {
+      storage.removeItem(`brigandine_scene_${id}`);
+      write(META, metas().filter(m => m.id !== id));
+    },
+    getKV: async (key) => read(`brigandine_kv_${key}`),
+    setKV: async (key, value) => write(`brigandine_kv_${key}`, value)
+  };
+}
+
+function memoryStorage() {
+  const m = new Map();
+  return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) };
+}
+
+/** Escolhe o melhor armazenamento disponível. Nunca rejeita: no pior caso, memória. */
+async function openSceneStore() {
+  try {
+    return makeIdbBackend(await openSceneDb());
+  } catch (e) {
+    try {
+      const probe = '__brigandine_probe__';
+      localStorage.setItem(probe, '1');
+      localStorage.removeItem(probe);
+      return makeKeyValueBackend(localStorage, 'localstorage');
+    } catch (e2) {
+      return makeKeyValueBackend(memoryStorage(), 'memory');
+    }
+  }
+}
+
 /* ===== 13-ui-shell.js ===== */
 /* ============================================================================
    19. UI SHELL — menus, gaveta de registro, painéis responsivos
@@ -9529,6 +9907,8 @@ document.addEventListener('keydown', (e) => {
     document.getElementById('sidebarLeft').classList.remove('open');
     toggleSheet(false);
   }
+  // Ctrl/⌘+S salva a cena aberta (ou cria uma)
+  if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); saveActiveScene(); return; }
   // Q / E giram a peça selecionada (montagem) ou a da vez (combate), fora de campos de texto
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
   if (!typing && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'q' || e.key === 'e' || e.key === 'Q' || e.key === 'E')) {
@@ -9579,6 +9959,493 @@ function applyPrefs() {
   const prefs = readPrefs();
   setTheme(prefs.theme || 'parchment');
   if (prefs.tokenStyle && (TOKEN_STYLES[prefs.tokenStyle] || RETIRED_TOKEN_STYLES[prefs.tokenStyle])) chooseTokenStyle(prefs.tokenStyle);
+  if (prefs.combatLogOpen === false) document.getElementById('combatLogPanel').open = false;
+}
+
+/* ===== 13b-scenes-ui.js ===== */
+/* ============================================================================
+   19b. CENAS — interface
+   Janela "Cenas" (cabeçalho): criar, abrir, iniciar, continuar, salvar, duplicar,
+   ordenar, anotar, excluir, exportar e importar cenas de combate. A cena aberta
+   aparece no cabeçalho com um ponto quando há alterações não salvas.
+   ============================================================================ */
+
+const SCENES = {
+  store: null,       // repositório (IndexedDB, localStorage ou memória)
+  metas: [],         // lista leve
+  activeId: null,    // cena aberta no tabuleiro
+  savedPrint: null,  // impressão digital do último salvamento/abertura
+  builtinIds: null,  // ids dos modelos que vêm com o app (não vão para a biblioteca)
+  libraryPrint: null,
+  query: ''
+};
+
+/* ---------------- Início ---------------- */
+
+async function initScenes() {
+  SCENES.builtinIds = new Set(UNIT_TEMPLATES.map(t => t.id));
+  SCENES.store = await openSceneStore();
+  try {
+    const lib = await SCENES.store.getKV('library');
+    if (Array.isArray(lib)) mergeLibrary(lib);
+    SCENES.metas = await SCENES.store.listMeta();
+  } catch (e) {
+    addLog(`⚠️ Não foi possível ler as cenas salvas: ${escapeHtml(e.message)}.`);
+  }
+  SCENES.libraryPrint = libraryFingerprint();
+  markBoardSaved();
+  updateSceneHeader();
+  if (SCENES.metas.length) addLog(`🎬 ${SCENES.metas.length} cena(s) de combate salvas. Abra em <strong>Cenas</strong>, no topo.`);
+  if (SCENES.store.kind !== 'indexeddb') {
+    addLog(SCENES.store.kind === 'memory'
+      ? '⚠️ Este navegador não deixa guardar cenas: elas valem só até fechar a página. Use <strong>Exportar</strong> nas Cenas.'
+      : 'ℹ️ Cenas guardadas no armazenamento simples do navegador (≈5 MB). Mapas de fundo grandes podem não caber: exporte uma cópia.');
+  }
+  window.addEventListener('beforeunload', (e) => {
+    if (SCENES.activeId && isBoardDirty()) { e.preventDefault(); e.returnValue = ''; }
+  });
+}
+
+/* ---------------- Biblioteca de modelos (galeria) ---------------- */
+
+function customTemplates() {
+  return UNIT_TEMPLATES.filter(t => !SCENES.builtinIds || !SCENES.builtinIds.has(t.id));
+}
+
+function libraryFingerprint() {
+  return hashString(JSON.stringify(customTemplates()));
+}
+
+/** Acrescenta modelos guardados que ainda não estão na galeria (ids novos). */
+function mergeLibrary(list) {
+  const have = new Set(UNIT_TEMPLATES.map(t => t.id));
+  let added = 0;
+  for (const t of list) {
+    if (!t || typeof t !== 'object' || !t.sheet || have.has(t.id)) continue;
+    repairPieceToken(t);
+    UNIT_TEMPLATES.push(t);
+    have.add(t.id);
+    added++;
+  }
+  if (added) renderPieceGallery();
+  return added;
+}
+
+let librarySaveTimer = null;
+/** Guarda os modelos do usuário quando a galeria muda (com atraso para juntar mudanças). */
+function scheduleLibrarySave() {
+  if (!SCENES.store) return;
+  clearTimeout(librarySaveTimer);
+  librarySaveTimer = setTimeout(async () => {
+    const print = libraryFingerprint();
+    if (print === SCENES.libraryPrint) return;
+    try {
+      await SCENES.store.setKV('library', customTemplates());
+      SCENES.libraryPrint = print;
+    } catch (e) {
+      addLog(`⚠️ Não foi possível guardar os modelos: ${escapeHtml(e.message)}.`);
+    }
+  }, 600);
+}
+
+/* ---------------- Alterações não salvas ---------------- */
+
+function currentBoardPrint() {
+  return boardFingerprint(captureBoard(STATE));
+}
+
+function markBoardSaved() {
+  SCENES.savedPrint = currentBoardPrint();
+  updateSceneHeader();
+}
+
+function isBoardDirty() {
+  return SCENES.savedPrint !== null && currentBoardPrint() !== SCENES.savedPrint;
+}
+
+let sceneHeaderTimer = null;
+/** O ponto de "não salvo" no cabeçalho é recalculado sem pressa depois das mudanças. */
+function scheduleSceneHeaderUpdate() {
+  if (!SCENES.store) return;
+  clearTimeout(sceneHeaderTimer);
+  sceneHeaderTimer = setTimeout(updateSceneHeader, 700);
+}
+
+function activeMeta() {
+  return SCENES.metas.find(m => m.id === SCENES.activeId) || null;
+}
+
+function updateSceneHeader() {
+  const label = document.getElementById('sceneHeaderLabel');
+  if (!label) return;
+  const meta = activeMeta();
+  const dirty = isBoardDirty();
+  label.textContent = meta ? meta.name : 'Sem cena';
+  document.getElementById('sceneHeaderBtn').classList.toggle('dirty', dirty);
+  document.getElementById('sceneHeaderBtn').title = meta
+    ? `Cena aberta: ${meta.name}${dirty ? ' (alterações não salvas)' : ''}`
+    : 'Cenas de combate';
+}
+
+/* ---------------- Escolha com botões (Salvar / Descartar / Cancelar…) ---------------- */
+
+/** Mostra uma pergunta com botões e devolve o valor escolhido (ou null ao cancelar/fechar). */
+function askChoice(message, options) {
+  return new Promise((resolve) => {
+    const dlg = document.getElementById('choiceDialog');
+    document.getElementById('choiceMessage').innerHTML = message;
+    const box = document.getElementById('choiceButtons');
+    box.innerHTML = '';
+    const finish = (v) => { dlg.close(); resolve(v); };
+    for (const o of options) {
+      const b = document.createElement('button');
+      b.className = `btn ${o.kind || ''}`;
+      b.textContent = o.label;
+      b.onclick = () => finish(o.value);
+      box.appendChild(b);
+    }
+    dlg.onclose = () => resolve(null);
+    dlg.onclick = (e) => { if (e.target === dlg) finish(null); };
+    dlg.showModal();
+  });
+}
+
+/** Antes de trocar o tabuleiro: salvar, descartar ou cancelar. Devolve true se pode seguir. */
+async function confirmLeaveBoard(actionLabel) {
+  if (!isBoardDirty()) return true;
+  const meta = activeMeta();
+  const choice = await askChoice(
+    meta ? `A cena <strong>${escapeHtml(meta.name)}</strong> tem alterações não salvas. ${escapeHtml(actionLabel)} mesmo assim?`
+      : `O tabuleiro atual não está salvo em nenhuma cena. ${escapeHtml(actionLabel)} mesmo assim?`,
+    [
+      { label: meta ? 'Salvar e seguir' : 'Salvar como cena e seguir', value: 'save', kind: 'btn-primary' },
+      { label: 'Descartar alterações', value: 'discard', kind: 'btn-danger' },
+      { label: 'Cancelar', value: null, kind: 'btn-ghost' }
+    ]);
+  if (choice === 'save') return (await saveActiveScene()) !== null;
+  return choice === 'discard';
+}
+
+/* ---------------- Miniatura ---------------- */
+
+/** Foto pequena do tabuleiro (JPEG 240 px), recortada na área da grade. */
+function sceneThumbnail() {
+  try {
+    renderBoard();
+    const s = STATE.camera.basePx * STATE.camera.zoom;
+    const a = getCellPixelCenter(0, 0), b = getCellPixelCenter(STATE.grid.cols - 1, STATE.grid.rows - 1);
+    const dpr = canvas.width / Math.max(1, canvas.clientWidth);
+    const x = Math.max(0, (a.x - s * 0.6) * dpr), y = Math.max(0, (a.y - s * 0.6) * dpr);
+    const w = Math.min(canvas.width - x, (b.x - a.x + s * 1.2) * dpr), h = Math.min(canvas.height - y, (b.y - a.y + s * 1.2) * dpr);
+    if (w < 10 || h < 10) return '';
+    const out = document.createElement('canvas');
+    out.width = 240;
+    out.height = Math.max(60, Math.round(240 * h / w));
+    out.getContext('2d').drawImage(canvas, x, y, w, h, 0, 0, out.width, out.height);
+    return out.toDataURL('image/jpeg', 0.72);
+  } catch (e) {
+    return '';
+  }
+}
+
+/* ---------------- Salvar / criar ---------------- */
+
+async function persistScene(scene) {
+  try {
+    await SCENES.store.put(scene);
+    const { meta } = splitScene(scene);
+    SCENES.metas = [...SCENES.metas.filter(m => m.id !== scene.id), meta];
+    scheduleLibrarySave();
+    return true;
+  } catch (e) {
+    const quota = /quota/i.test(e.name + e.message);
+    addLog(`⚠️ Não foi possível salvar a cena${quota ? ': o espaço do navegador acabou' : ''} (${escapeHtml(e.message)}). Use <strong>Exportar</strong> para guardar em arquivo.`);
+    return false;
+  }
+}
+
+/**
+ * Salva o tabuleiro na cena aberta: na montagem grava a cena preparada; no combate grava o
+ * progresso (a cena preparada fica intacta). Sem cena aberta, cria uma nova. Devolve o id ou null.
+ */
+async function saveActiveScene() {
+  if (!SCENES.activeId) return createSceneFromBoard();
+  const scene = await SCENES.store.get(SCENES.activeId);
+  if (!scene) return createSceneFromBoard();
+  const inCombat = STATE.mode === 'combat';
+  if (inCombat) scene.progress = captureBoard(STATE, true);
+  else { scene.snapshot = captureBoard(STATE); scene.thumb = sceneThumbnail() || scene.thumb; scene.stats = sceneStats(scene.snapshot); }
+  scene.updatedAt = Date.now();
+  if (!(await persistScene(scene))) return null;
+  markBoardSaved();
+  addLog(inCombat
+    ? `💾 Progresso do combate salvo em <strong>${escapeHtml(scene.name)}</strong> (rodada ${STATE.combat.round}). A cena preparada continua intacta.`
+    : `💾 Cena <strong>${escapeHtml(scene.name)}</strong> salva.`);
+  renderScenesDialog();
+  return scene.id;
+}
+
+/** Nova cena com o tabuleiro atual (ou vazio). Vira a cena aberta. */
+async function createSceneFromBoard(blank = false) {
+  if (blank && !(await confirmLeaveBoard('Começar uma cena em branco'))) return null;
+  if (blank) {
+    STATE.units = []; STATE.terrainMap = {}; STATE.objects = [];
+    for (const t of Object.keys(STATE.effects)) STATE.effects[t] = {};
+    STATE.effectZones = []; STATE.flashLights = [];
+    clearBackgroundMap();
+    setAppMode('setup');
+    syncInspectorUI();
+  }
+  const name = uniqueSceneName(blank ? 'Cena em branco' : `Cena ${SCENES.metas.length + 1}`, SCENES.metas.map(m => m.name));
+  const scene = makeScene({ name, board: captureBoard(STATE), order: SCENES.metas.length, thumb: sceneThumbnail() });
+  if (STATE.mode === 'combat') scene.progress = captureBoard(STATE, true);
+  if (!(await persistScene(scene))) return null;
+  SCENES.activeId = scene.id;
+  markBoardSaved();
+  addLog(`🎬 Cena <strong>${escapeHtml(scene.name)}</strong> criada. Dê um nome e anotações na janela Cenas.`);
+  renderScenesDialog(scene.id);
+  return scene.id;
+}
+
+/* ---------------- Abrir / iniciar / continuar ---------------- */
+
+/** Coloca um tabuleiro salvo no tabuleiro (mesmo caminho do Importar JSON). */
+function applyBoard(board) {
+  applyLoadedPayload(JSON.parse(JSON.stringify(board)));
+  STATE.flashLights = [];
+  resetCamera();
+}
+
+/**
+ * mode: 'open' (montagem), 'start' (combate novo com iniciativa) ou 'resume' (continua o progresso).
+ */
+async function openScene(id, mode = 'open') {
+  if (id !== SCENES.activeId || mode !== 'open') {
+    const label = { open: 'Abrir a cena', start: 'Iniciar o combate', resume: 'Continuar o combate' }[mode];
+    if (!(await confirmLeaveBoard(label))) return false;
+  }
+  const scene = await SCENES.store.get(id);
+  if (!scene || !scene.snapshot) { addLog('⚠️ Cena não encontrada.'); return false; }
+  const board = mode === 'resume' && scene.progress ? scene.progress : scene.snapshot;
+  setAppMode('setup');
+  applyBoard(board);
+  SCENES.activeId = id;
+  if (mode === 'resume' && board.combat) {
+    setAppMode('combat');
+    STATE.combat.round = board.combat.round || 1;
+    if (STATE.units.some(u => u.id === board.combat.activeUnitId)) STATE.combat.activeUnitId = board.combat.activeUnitId;
+    STATE.flashLights = JSON.parse(JSON.stringify(board.combat.flashLights || []));
+    STATE.selectedUnitId = STATE.combat.activeUnitId;
+    syncCombatUI();
+    addLog(`▶️ Combate de <strong>${escapeHtml(scene.name)}</strong> retomado na rodada ${STATE.combat.round}.`);
+  } else if (mode === 'start') {
+    setAppMode('combat');
+    rollAllInitiatives();
+    addLog(`⚔️ Cena <strong>${escapeHtml(scene.name)}</strong> iniciada. A cena preparada não muda; <em>Salvar</em> no combate guarda o progresso.`);
+  } else {
+    addLog(`🎬 Cena <strong>${escapeHtml(scene.name)}</strong> aberta para montagem.`);
+  }
+  // a referência do "não salvo" é o que está gravado para este modo
+  SCENES.savedPrint = boardFingerprint(captureBoard(STATE));
+  updateSceneHeader();
+  closeScenesDialog();
+  requestRender();
+  return true;
+}
+
+/** Ao encerrar o combate numa cena: voltar ao preparado ou manter o tabuleiro como ficou. */
+async function afterCombatInScene() {
+  const meta = activeMeta();
+  if (!meta) return;
+  const scene = await SCENES.store.get(meta.id);
+  if (scene && scene.progress) { scene.progress = null; await persistScene(scene); }
+  const choice = await askChoice(
+    `Combate de <strong>${escapeHtml(meta.name)}</strong> encerrado. Como deixar o tabuleiro?`,
+    [
+      { label: 'Voltar à cena preparada', value: 'restore', kind: 'btn-primary' },
+      { label: 'Manter como terminou', value: 'keep', kind: 'btn-ghost' }
+    ]);
+  if (choice === 'restore' && scene) {
+    applyBoard(scene.snapshot);
+    SCENES.savedPrint = currentBoardPrint();
+    addLog(`↩️ Tabuleiro voltou à cena preparada <strong>${escapeHtml(meta.name)}</strong>.`);
+  }
+  updateSceneHeader();
+  renderScenesDialog();
+}
+
+/* ---------------- Organizar ---------------- */
+
+async function updateSceneMeta(id, patch) {
+  const scene = await SCENES.store.get(id);
+  if (!scene) return;
+  if ('name' in patch) scene.name = uniqueSceneName(patch.name, SCENES.metas.filter(m => m.id !== id).map(m => m.name));
+  if ('notes' in patch) scene.notes = cleanText(patch.notes);
+  scene.updatedAt = Date.now();
+  await persistScene(scene);
+  updateSceneHeader();
+  renderScenesDialog();
+}
+
+async function duplicateScene(id) {
+  const scene = await SCENES.store.get(id);
+  if (!scene) return;
+  const copy = { ...JSON.parse(JSON.stringify(scene)), id: newSceneId(), progress: null,
+    name: uniqueSceneName(`${scene.name} (cópia)`, SCENES.metas.map(m => m.name)),
+    order: SCENES.metas.length, createdAt: Date.now(), updatedAt: Date.now() };
+  if (await persistScene(copy)) addLog(`⧉ Cena duplicada: <strong>${escapeHtml(copy.name)}</strong>.`);
+  renderScenesDialog(copy.id);
+}
+
+async function moveSceneInList(id, dir) {
+  const metas = moveScene(SCENES.metas, id, dir);
+  try { await SCENES.store.putMetas(metas); SCENES.metas = metas; } catch (e) { addLog(`⚠️ ${escapeHtml(e.message)}`); }
+  renderScenesDialog();
+}
+
+async function deleteScene(id) {
+  const meta = SCENES.metas.find(m => m.id === id);
+  if (!meta) return;
+  const ok = await askChoice(`Excluir a cena <strong>${escapeHtml(meta.name)}</strong>? Isso não pode ser desfeito (exporte antes se quiser guardar).`,
+    [{ label: 'Excluir', value: true, kind: 'btn-danger' }, { label: 'Cancelar', value: null, kind: 'btn-ghost' }]);
+  if (!ok) return;
+  await SCENES.store.remove(id);
+  SCENES.metas = SCENES.metas.filter(m => m.id !== id);
+  if (SCENES.activeId === id) { SCENES.activeId = null; updateSceneHeader(); }
+  addLog(`🗑️ Cena <strong>${escapeHtml(meta.name)}</strong> excluída.`);
+  renderScenesDialog();
+}
+
+/* ---------------- Exportar / importar ---------------- */
+
+function downloadJSON(obj, filename) {
+  const blob = new Blob([JSON.stringify(obj)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+const fileSafe = (s) => normalizeSearchText(s).replace(/ /g, '_').slice(0, 40) || 'cena';
+
+async function exportScene(id) {
+  const scene = await SCENES.store.get(id);
+  if (scene) downloadJSON({ kind: 'brigandine-scene', version: SCENE_VERSION, scene }, `brigandine_cena_${fileSafe(scene.name)}.json`);
+}
+
+async function exportAllScenes() {
+  const scenes = [];
+  for (const m of sortScenes(SCENES.metas)) { const s = await SCENES.store.get(m.id); if (s) scenes.push(s); }
+  downloadJSON(buildCampaignFile(scenes, customTemplates()), 'brigandine_campanha.json');
+  addLog(`📦 ${scenes.length} cena(s) e ${customTemplates().length} modelo(s) exportados em <em>brigandine_campanha.json</em>.`);
+}
+
+/** Importa campanha, cena única ou tabuleiro comum como cena(s) novas (ids e nomes repetidos são trocados). */
+async function importScenesData(data) {
+  const { scenes, library } = parseScenesFile(data);
+  const libAdded = mergeLibrary(library);
+  let added = 0;
+  for (const s of scenes) {
+    if (SCENES.metas.some(m => m.id === s.id)) s.id = newSceneId();
+    s.name = uniqueSceneName(s.name, SCENES.metas.map(m => m.name));
+    s.order = SCENES.metas.length;
+    if (await persistScene(s)) added++;
+  }
+  if (libAdded) scheduleLibrarySave();
+  addLog(added || libAdded
+    ? `📥 ${added} cena(s) importada(s)${libAdded ? ` e ${libAdded} modelo(s) na galeria` : ''}.`
+    : '⚠️ O arquivo não tem cenas válidas.');
+  renderScenesDialog();
+  return added;
+}
+
+function importScenesFile(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try { await importScenesData(JSON.parse(e.target.result)); }
+    catch (err) { addLog(`⚠️ ${escapeHtml(file.name)}: ${escapeHtml(err.message)}`); }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------------- Janela ---------------- */
+
+function openScenesDialog() {
+  closeMenus();
+  renderScenesDialog();
+  const dlg = document.getElementById('scenesDialog');
+  if (!dlg.open) dlg.showModal();
+}
+
+function closeScenesDialog() {
+  const dlg = document.getElementById('scenesDialog');
+  if (dlg && dlg.open) dlg.close();
+}
+
+function setSceneQuery(q) {
+  SCENES.query = q;
+  renderScenesDialog();
+}
+
+function formatSceneDate(ms) {
+  try { return new Date(ms).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+  catch (e) { return ''; }
+}
+
+/** Desenha a lista. focusId: cena cujo nome recebe o foco (acabou de ser criada). */
+function renderScenesDialog(focusId = null) {
+  const list = document.getElementById('scenesList');
+  if (!list) return;
+  const active = activeMeta();
+  const dirty = isBoardDirty();
+  document.getElementById('scenesSaveBtn').textContent = active
+    ? (STATE.mode === 'combat' ? `Salvar progresso em “${active.name}”` : `Salvar “${active.name}”`)
+    : 'Salvar tabuleiro como cena nova';
+  document.getElementById('scenesStorageInfo').textContent =
+    { indexeddb: 'Guardadas neste navegador.', localstorage: 'Guardadas no armazenamento simples do navegador (≈5 MB).', memory: 'Atenção: só até fechar a página — exporte.' }[SCENES.store?.kind] || '';
+  const q = normalizeSearchText(SCENES.query);
+  const metas = sortScenes(SCENES.metas).filter(m => !q || normalizeSearchText(`${m.name} ${m.notes}`).includes(q));
+  if (!SCENES.metas.length) {
+    list.innerHTML = `<div class="empty"><svg class="icon"><use href="#i-folder"/></svg><strong>Nenhuma cena ainda</strong><span>Monte o tabuleiro e use <em>Salvar tabuleiro como cena nova</em>, ou comece uma <em>cena em branco</em>.</span></div>`;
+    return;
+  }
+  if (!metas.length) { list.innerHTML = '<p class="hint">Nenhuma cena com esse nome.</p>'; return; }
+  list.innerHTML = metas.map((m, i) => {
+    const isActive = m.id === SCENES.activeId;
+    const st = m.stats || {};
+    return `<article class="scene-card${isActive ? ' active' : ''}" data-id="${m.id}">
+      <div class="scene-thumb">${m.thumb ? `<img src="${m.thumb}" alt="">` : '<svg class="icon"><use href="#i-hex"/></svg>'}</div>
+      <div class="scene-body">
+        <input type="text" class="scene-name" value="${escapeHtml(m.name)}" aria-label="Nome da cena" onchange="updateSceneMeta('${m.id}', { name: this.value })">
+        <div class="scene-meta">
+          <span>${st.heroes || 0} heróis · ${st.villains || 0} vilões · ${st.cols || 0}×${st.rows || 0}</span>
+          <span>${formatSceneDate(m.updatedAt)}</span>
+          ${isActive ? `<span class="badge badge-accent">Aberta${dirty ? ' · não salva' : ''}</span>` : ''}
+          ${m.hasProgress ? '<span class="badge">Combate em andamento</span>' : ''}
+        </div>
+        <textarea class="scene-notes" rows="2" placeholder="Anotações do mestre (objetivo, gatilhos, tesouro…)" aria-label="Anotações" onchange="updateSceneMeta('${m.id}', { notes: this.value })">${escapeHtml(m.notes || '')}</textarea>
+        <div class="scene-actions">
+          <button class="btn btn-sm" onclick="openScene('${m.id}', 'open')"><svg class="icon"><use href="#i-wrench"/></svg>Abrir</button>
+          <button class="btn btn-sm btn-primary" onclick="openScene('${m.id}', 'start')"><svg class="icon"><use href="#i-swords"/></svg>Iniciar combate</button>
+          ${m.hasProgress ? `<button class="btn btn-sm" onclick="openScene('${m.id}', 'resume')"><svg class="icon"><use href="#i-play"/></svg>Continuar</button>` : ''}
+          <span class="grow"></span>
+          <button class="btn btn-sm btn-ghost btn-icon" title="Subir" aria-label="Subir" ${i === 0 || q ? 'disabled' : ''} onclick="moveSceneInList('${m.id}', -1)"><svg class="icon"><use href="#i-chevron-up"/></svg></button>
+          <button class="btn btn-sm btn-ghost btn-icon" title="Descer" aria-label="Descer" ${i === metas.length - 1 || q ? 'disabled' : ''} onclick="moveSceneInList('${m.id}', 1)"><svg class="icon"><use href="#i-chevron"/></svg></button>
+          <button class="btn btn-sm btn-ghost btn-icon" title="Duplicar" aria-label="Duplicar" onclick="duplicateScene('${m.id}')"><svg class="icon"><use href="#i-copy"/></svg></button>
+          <button class="btn btn-sm btn-ghost btn-icon" title="Exportar" aria-label="Exportar" onclick="exportScene('${m.id}')"><svg class="icon"><use href="#i-download"/></svg></button>
+          <button class="btn btn-sm btn-ghost btn-icon" title="Excluir" aria-label="Excluir" onclick="deleteScene('${m.id}')"><svg class="icon"><use href="#i-trash"/></svg></button>
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+  if (focusId) {
+    const input = list.querySelector(`.scene-card[data-id="${focusId}"] .scene-name`);
+    if (input && document.getElementById('scenesDialog').open) { input.focus(); input.select(); }
+  }
 }
 
 /* ===== 14-unit-tip.js ===== */

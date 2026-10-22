@@ -122,6 +122,7 @@ function renderPieceGallery() {
     box.appendChild(card);
   };
   for (const t of shown) render(t, container, 'piece');
+  if (typeof scheduleLibrarySave === 'function') scheduleLibrarySave();
   if (animalBox) for (const t of UNIT_TEMPLATES.filter(isAnimalTemplate)) render(t, animalBox, 'animal');
 }
 
@@ -301,18 +302,33 @@ function resetCamera() {
   requestRender();
 }
 
+const LOG_BOX_IDS = ['combatLogBox', 'combatPanelLog']; // gaveta da montagem e painel de combate
+const LOG_MAX_ENTRIES = 400;
+
 function addLog(htmlMsg) {
-  const box = document.getElementById('combatLogBox');
-  const item = document.createElement('div');
-  item.className = 'log-entry';
-  item.innerHTML = htmlMsg;
-  box.prepend(item);
+  for (const id of LOG_BOX_IDS) {
+    const box = document.getElementById(id);
+    if (!box) continue;
+    const item = document.createElement('div');
+    item.className = 'log-entry';
+    item.innerHTML = htmlMsg;
+    box.prepend(item);
+    while (box.childElementCount > LOG_MAX_ENTRIES) box.lastElementChild.remove();
+  }
   document.getElementById('logPeek').innerHTML = htmlMsg;
+  updateLogCount();
+}
+
+function updateLogCount() {
+  const n = document.getElementById('combatPanelLog')?.childElementCount || 0;
+  const el = document.getElementById('combatLogCount');
+  if (el) el.textContent = n ? String(n) : '';
 }
 
 function clearCombatLog() {
-  document.getElementById('combatLogBox').innerHTML = '';
+  for (const id of LOG_BOX_IDS) { const box = document.getElementById(id); if (box) box.innerHTML = ''; }
   document.getElementById('logPeek').textContent = 'Registro de ações e rolagens';
+  updateLogCount();
 }
 
 function saveStateToLocal() {
@@ -385,6 +401,13 @@ function importJSON(event) {
 function applyLoadedPayload(data) {
   if (data.grid) {
     STATE.grid = { ...STATE.grid, ...data.grid };
+    // mapa de fundo salvo como imagem: recria a imagem (antes ficava salvo mas não aparecia ao carregar)
+    bgImageObj = null;
+    if (typeof STATE.grid.bgImageData === 'string' && /^data:image\//.test(STATE.grid.bgImageData)) {
+      const img = new Image();
+      img.onload = () => { bgImageObj = img; requestRender(); };
+      img.src = STATE.grid.bgImageData;
+    } else STATE.grid.bgImageData = null;
     setGridType(STATE.grid.type);
     setGridSize(STATE.grid.cols, STATE.grid.rows);
     setCellScale(STATE.grid.cellScale);

@@ -8,6 +8,7 @@ function requestRender() {
     requestAnimationFrame(() => {
       renderQueued = false;
       renderBoard();
+      scheduleSceneHeaderUpdate();
     });
   }
 }

@@ -23,7 +23,11 @@ a partir de `src/`. Interface e textos em português.
 npm run check                      # build + testes de unidade
 PLAYWRIGHT_REQUIRE_FROM=/usr/lib/node_modules/ CHROMIUM_PATH=<chrome> node tests/e2e.smoke.mjs
 PLAYWRIGHT_REQUIRE_FROM=/usr/lib/node_modules/ CHROMIUM_PATH=<chrome> node tests/e2e.mobile.mjs
+PLAYWRIGHT_REQUIRE_FROM=/usr/lib/node_modules/ CHROMIUM_PATH=<chrome> node tests/e2e.scenes.mjs
 ```
+
+Cenas de combate: ver `docs/ARQUITETURA-CENAS.md`. Tudo que entra no tabuleiro precisa estar em
+`captureBoard` (12d) e em `applyLoadedPayload` (12) para ser salvo e reaberto nas cenas.
 
 Módulos JS são concatenados em ordem alfabética num único script: nomes globais não podem se repetir
 (há um teste que compila o pacote inteiro).

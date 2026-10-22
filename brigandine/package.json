@@ -7,7 +7,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node --test tests/*.test.mjs",
-    "test:e2e": "node tests/e2e.smoke.mjs",
+    "test:e2e": "node tests/e2e.smoke.mjs && node tests/e2e.scenes.mjs",
     "test:e2e:mobile": "node tests/e2e.mobile.mjs",
     "check": "npm run build && npm test"
   },

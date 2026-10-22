@@ -36,6 +36,9 @@
   </div>
 
   <div class="header-actions">
+    <button id="sceneHeaderBtn" class="btn scene-chip" onclick="openScenesDialog()" title="Cenas de combate">
+      <svg class="icon"><use href="#i-hex"/></svg><span class="label-long">Cenas ·</span><span id="sceneHeaderLabel" class="scene-chip-name">Sem cena</span><span class="dirty-dot" aria-hidden="true"></span>
+    </button>
     <details class="menu" id="fileMenu">
       <summary class="btn" aria-label="Arquivo"><svg class="icon"><use href="#i-folder"/></svg><span class="label-long">Arquivo</span><svg class="icon label-long"><use href="#i-chevron"/></svg></summary>
       <div class="menu-pop">
@@ -48,6 +51,32 @@
     </details>
   </div>
 </header>
+
+<!-- ============================ CENAS ============================ -->
+<dialog id="scenesDialog" class="scenes-dialog" aria-labelledby="scenesTitle">
+  <div class="scenes-head">
+    <h2 id="scenesTitle">Cenas de combate</h2>
+    <button class="btn btn-ghost btn-icon" onclick="closeScenesDialog()" aria-label="Fechar"><svg class="icon"><use href="#i-x"/></svg></button>
+  </div>
+  <p class="hint">Monte encontros com antecedência e abra cada um na hora certa. <strong>Iniciar combate</strong> usa uma cópia: a cena preparada não muda. Salvar durante o combate guarda o progresso para <strong>Continuar</strong> depois.</p>
+  <div class="scenes-toolbar">
+    <button id="scenesSaveBtn" class="btn btn-primary" onclick="saveActiveScene()"><svg class="icon"><use href="#i-save"/></svg>Salvar</button>
+    <button class="btn" onclick="createSceneFromBoard(false)"><svg class="icon"><use href="#i-copy"/></svg>Nova a partir do tabuleiro</button>
+    <button class="btn" onclick="createSceneFromBoard(true)"><svg class="icon"><use href="#i-plus"/></svg>Nova em branco</button>
+  </div>
+  <div class="scenes-toolbar">
+    <input type="text" placeholder="Buscar cena por nome ou anotação" aria-label="Buscar cena" oninput="setSceneQuery(this.value)">
+    <button class="btn btn-ghost" onclick="exportAllScenes()"><svg class="icon"><use href="#i-download"/></svg>Exportar todas</button>
+    <label class="btn btn-ghost"><svg class="icon"><use href="#i-upload"/></svg>Importar<input type="file" accept=".json,application/json" class="sr-only" onchange="importScenesFile(event)"></label>
+  </div>
+  <div id="scenesList" class="scenes-list"></div>
+  <p id="scenesStorageInfo" class="hint"></p>
+</dialog>
+
+<dialog id="choiceDialog" class="choice-dialog">
+  <p id="choiceMessage"></p>
+  <div id="choiceButtons" class="choice-buttons"></div>
+</dialog>
 
 <div class="workspace">
 
@@ -307,6 +336,16 @@
           </div>
         </details>
         <button class="btn btn-danger btn-block" onclick="endCombatSession()"><svg class="icon"><use href="#i-stop"/></svg>Encerrar combate</button>
+      </div>
+
+      <div class="panel-section">
+        <details id="combatLogPanel" class="more log-section" open ontoggle="if (typeof savePrefs === 'function') savePrefs({ combatLogOpen: this.open })">
+          <summary><svg class="icon"><use href="#i-list"/></svg>Registro de dados e ações<span class="summary-meta num" id="combatLogCount"></span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+          <div class="more-body">
+            <div class="log-tools"><button class="btn btn-sm btn-ghost" onclick="clearCombatLog()"><svg class="icon"><use href="#i-trash"/></svg>Limpar registro</button></div>
+            <div id="combatPanelLog" class="combat-log combat-log-panel" aria-live="polite"></div>
+          </div>
+        </details>
       </div>
     </div>
   </aside>

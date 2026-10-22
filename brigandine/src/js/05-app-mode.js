@@ -14,6 +14,7 @@ function initApp() {
   populateDemoBattle();
   resetCamera();
   applyPrefs();
+  initScenes();
   addLog('📜 <strong>Brigandine v5 pronto.</strong> Monte o tabuleiro e as peças, depois inicie o combate.');
 }
 
@@ -81,5 +82,6 @@ function endCombatSession() {
   }
   addLog('⏹ <strong>Combate encerrado!</strong> Ações e reações restauradas. Retornando ao Modo Montagem & Edição do tabuleiro.');
   setAppMode('setup');
+  if (SCENES.activeId) afterCombatInScene();
 }
 

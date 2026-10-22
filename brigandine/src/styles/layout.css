@@ -221,3 +221,8 @@
 .tip-good { color: var(--strike); font-weight: 700; }
 .tip-warn { color: var(--supply); font-weight: 700; }
 .tip-bad { color: var(--text-3); font-weight: 700; }
+
+/* Registro no painel de combate (a gaveta inferior fica só na montagem) */
+body.mode-combat .log-dock { display: none; }
+.combat-log-panel { height: auto; max-height: min(420px, 48vh); padding: 0 2px; }
+.log-section .log-tools { display: flex; justify-content: flex-end; }
