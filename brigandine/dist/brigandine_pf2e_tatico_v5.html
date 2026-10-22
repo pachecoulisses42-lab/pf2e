@@ -621,6 +621,28 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
   .mode-switch { justify-self: center; }
 }
 
+/* ---------- Tooltip do alvo (defesas + prévia do ataque) ---------- */
+.unit-tip {
+  position: absolute; top: 0; left: 0; z-index: 8; width: 250px; pointer-events: none;
+  display: flex; flex-direction: column; gap: var(--s-2);
+  padding: var(--s-3); border-radius: var(--r-md);
+  background: rgba(16, 20, 26, 0.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-pop), 0 0 0 1px var(--line-strong);
+  font-size: var(--text-xs);
+}
+.tip-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+.tip-head strong { font-family: var(--font-display); font-size: var(--text-md); }
+.tip-stats { display: flex; align-items: center; justify-content: space-between; color: var(--text-2); }
+.tip-stats b { color: var(--text); font-family: var(--font-display); font-size: var(--text-md); }
+.tip-sep { height: 1px; background: var(--line-strong); margin: 2px 0; }
+.tip-title { font-weight: 700; color: var(--text); }
+.tip-grid { display: grid; grid-template-columns: 1fr auto; gap: 3px var(--s-3); color: var(--text-2); }
+.tip-grid b { color: var(--text); text-align: right; }
+.tip-note { color: var(--text-2); line-height: 1.4; }
+.tip-good { color: var(--strike); font-weight: 700; }
+.tip-warn { color: var(--supply); font-weight: 700; }
+.tip-bad { color: var(--text-3); font-weight: 700; }
+
 </style>
 </head>
 <body class="mode-setup">
@@ -864,6 +886,7 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
     </div>
 
     <canvas id="battleCanvas"></canvas>
+    <div id="unitTip" class="unit-tip hidden" role="tooltip"></div>
 
     <div class="canvas-bottom-hud">
       <div class="hint-pill" id="hudInstructionText">Clique em uma peça para editar sua ficha.</div>
@@ -1009,7 +1032,17 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 
           <div id="editTabBase" class="hidden stack-3">
             <div class="field">
-              <div class="field-label"><span>Aparência do token</span></div>
+              <div class="field-label"><span>Imagem do token</span><strong id="tokenSourceLabel">Ilustração padrão</strong></div>
+              <div class="row">
+                <label class="btn" style="flex:1" title="PNG, JPG, WebP, GIF ou SVG de até 10 MB"><svg class="icon"><use href="#i-image"/></svg>Importar imagem<input type="file" accept="image/*,.svg" onchange="handleCustomTokenUpload(event)"></label>
+                <button id="btnRemoveToken" class="btn btn-ghost hidden" onclick="removeCustomToken()"><svg class="icon"><use href="#i-undo"/></svg>Usar padrão</button>
+              </div>
+              <label id="tokenFrameField" class="check hidden"><input type="checkbox" id="chkTokenFrame" onchange="setCustomTokenFrame(this.checked)"> Recortar em círculo com moldura (desmarque para PNG transparente)</label>
+              <p class="hint">Dica: arraste uma imagem direto sobre uma peça no tabuleiro.</p>
+            </div>
+
+            <div class="field">
+              <div class="field-label"><span>Ilustração padrão</span></div>
               <select id="inspTokenSelect" onchange="changeSelectedUnitToken(this.value)">
                 <option value="guerreiro">Guerreiro</option>
                 <option value="barbaro">Bárbaro</option>
@@ -1995,13 +2028,58 @@ SCULPT_SVGS.bandido = () => T.frame('bandido', {
    1c. TOKENS — carregamento (cache de imagens e pré-visualização HTML)
    ============================================================================ */
 const SVG_IMAGE_CACHE = {};
-function getUnitTokenImage(unitOrSculpt, customDataUrl = null) {
+
+/** Hash curto para chaves de cache de imagens grandes (djb2). */
+function hashString(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36) + str.length.toString(36);
+}
+
+/**
+ * Token a partir de uma imagem do usuário.
+ *  framed = true  -> recortada em círculo, dentro do aro (ouro para heróis, ferro para vilões)
+ *  framed = false -> imagem inteira, sem moldura (ideal para PNG com fundo transparente)
+ */
+function buildCustomTokenSVG(dataUrl, { faction = 'hero', framed = true } = {}) {
+  if (!framed) {
+    return `<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg"><image href="${dataUrl}" x="0" y="0" width="256" height="256" preserveAspectRatio="xMidYMid meet"/></svg>`;
+  }
+  const hero = faction === 'hero';
+  const rim = hero ? ['#fff1b8', '#d9ac4a', '#6b4b12'] : ['#c9bcbc', '#5f4d50', '#1b1214'];
+  const stud = hero ? '#fff7d1' : '#ff5b5b';
+  return `<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cr" x1="0.1" y1="0" x2="0.9" y2="1"><stop offset="0" stop-color="${rim[0]}"/><stop offset="0.45" stop-color="${rim[1]}"/><stop offset="1" stop-color="${rim[2]}"/></linearGradient>
+    <clipPath id="cc"><circle cx="128" cy="128" r="108"/></clipPath>
+    <radialGradient id="cv" cx="0.5" cy="0.5" r="0.5"><stop offset="0.6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.5"/></radialGradient>
+  </defs>
+  <circle cx="128" cy="130" r="124" fill="#000" opacity="0.35"/>
+  <circle cx="128" cy="128" r="124" fill="url(#cr)"/>
+  <circle cx="128" cy="128" r="124.5" fill="none" stroke="#06060c" stroke-width="3"/>
+  <circle cx="128" cy="128" r="123" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="1.5"/>
+  <circle cx="128" cy="128" r="116" fill="none" stroke="${stud}" stroke-width="4.2" stroke-dasharray="1.2 20.6" stroke-linecap="round" opacity="0.9"/>
+  <circle cx="128" cy="128" r="111" fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="3"/>
+  <circle cx="128" cy="128" r="108" fill="#10141a"/>
+  <g clip-path="url(#cc)"><image href="${dataUrl}" x="20" y="20" width="216" height="216" preserveAspectRatio="xMidYMid slice"/><circle cx="128" cy="128" r="108" fill="url(#cv)"/></g>
+  <circle cx="128" cy="128" r="108" fill="none" stroke="#06060c" stroke-width="2"/>
+</svg>`;
+}
+
+/** Opções de renderização de um token personalizado a partir da peça/modelo. */
+function customTokenOptions(unitLike) {
+  return { faction: (unitLike && unitLike.faction) || 'hero', framed: !unitLike || unitLike.customTokenFrame !== false };
+}
+
+function getUnitTokenImage(unitOrSculpt, customDataUrl = null, options = {}) {
   if (customDataUrl) {
-    if (SVG_IMAGE_CACHE[customDataUrl]) return SVG_IMAGE_CACHE[customDataUrl];
+    const opts = { faction: 'hero', framed: true, ...options };
+    const key = `custom:${hashString(customDataUrl)}:${opts.faction}:${opts.framed}`;
+    if (SVG_IMAGE_CACHE[key]) return SVG_IMAGE_CACHE[key];
     const img = new Image();
-    img.src = customDataUrl;
+    img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(buildCustomTokenSVG(customDataUrl, opts));
     img.onload = () => requestRender();
-    SVG_IMAGE_CACHE[customDataUrl] = img;
+    SVG_IMAGE_CACHE[key] = img;
     return img;
   }
   const key = typeof unitOrSculpt === 'string' ? unitOrSculpt : unitOrSculpt.sculpt;
@@ -2026,9 +2104,9 @@ function uniquifySvgIds(svg) {
     .replace(/url\(#([^)]+)\)/g, (_, id) => `url(#${id}${suffix})`);
 }
 
-function getTokenPreviewHTML(sculptKey, customDataUrl = null) {
+function getTokenPreviewHTML(sculptKey, customDataUrl = null, options = {}) {
   if (customDataUrl) {
-    return `<img src="${customDataUrl}" alt="" style="width:100%; height:100%; object-fit:contain;"/>`;
+    return uniquifySvgIds(buildCustomTokenSVG(customDataUrl, { faction: 'hero', framed: true, ...options }));
   }
   const svgFn = SCULPT_SVGS[sculptKey] || SCULPT_SVGS.guerreiro;
   return uniquifySvgIds(svgFn());
@@ -2328,6 +2406,43 @@ function normalizeDefenses(unit) {
   unit.weaknesses = clean(unit.weaknesses);
   unit.immunities = (Array.isArray(unit.immunities) ? unit.immunities : []).filter((t) => DEFENSE_TYPES.includes(t));
   return unit;
+}
+
+/* ---------- Pré-visualização de ataque (tooltip no alvo) ---------- */
+/** Média arredondada de "NdM" + bônus (mínimo 1). */
+function averageRoll(dieStr, bonus = 0) {
+  const m = String(dieStr).match(/(\d+)d(\d+)/i);
+  if (!m) return Math.max(1, 1 + bonus);
+  return Math.max(1, Math.round(parseInt(m[1], 10) * (parseInt(m[2], 10) + 1) / 2 + bonus));
+}
+
+/** Mesmo formato de rollDamage, mas com o dano médio — sem aleatoriedade. */
+function averageDamage(src) {
+  const base = averageRoll(src.dmgDie, src.dmgBonus || 0);
+  const parts = [{ kind: 'base', label: src.name || '', type: src.dmgType || '', total: base }];
+  let total = base;
+  for (const x of (src.extra || [])) {
+    const t = averageRoll(x.die, x.bonus || 0);
+    parts.push({ kind: 'extra', label: x.name || '', type: x.type || '', total: t });
+    total += t;
+  }
+  return { total, parts };
+}
+
+/**
+ * Chances de um d20 + `toHit` contra `ac`, com as regras do motor:
+ * 1 natural sempre erra, 20 natural sempre é crítico, +10 sobre a CA é crítico.
+ */
+function attackOdds(toHit, ac) {
+  let hit = 0;
+  let crit = 0;
+  for (let face = 1; face <= 20; face++) {
+    if (face === 1) continue; // 1 natural sempre erra, mesmo com bônus enorme
+    const total = face + toHit;
+    if (face === 20 || total >= ac + 10) crit++;
+    else if (total >= ac) hit++;
+  }
+  return { hit: (hit + crit) / 20, crit: crit / 20 };
 }
 
 /* ===== 02-sheet-engine.js ===== */
@@ -3344,7 +3459,7 @@ function drawUnitToken(unit, isTargetable) {
     ctx.setLineDash([]);
   }
 
-  const img = getUnitTokenImage(unit.sculpt, unit.customTokenDataUrl);
+  const img = getUnitTokenImage(unit.sculpt, unit.customTokenDataUrl, customTokenOptions(unit));
   if (img && img.complete) {
     if (isDead) ctx.filter = 'grayscale(100%) brightness(38%)';
     ctx.drawImage(img, center.x - tokenR, center.y - tokenR, tokenR * 2, tokenR * 2);
@@ -3429,6 +3544,22 @@ function drawUnitToken(unit, isTargetable) {
 function initCanvasEvents() {
   canvas.addEventListener('pointerdown', onCanvasPointerDown);
   canvas.addEventListener('pointermove', onCanvasPointerMove);
+  canvas.addEventListener('pointerleave', hideUnitTip);
+  // Arrastar uma imagem sobre uma peça a transforma em token daquela peça.
+  canvas.addEventListener('dragover', (e) => {
+    if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) e.preventDefault();
+  });
+  canvas.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file) return;
+    const pt = getCanvasRelativeCoords(e);
+    const cell = pixelToCell(pt.x, pt.y);
+    const unit = cell && STATE.units.find(u => u.col === cell.col && u.row === cell.row);
+    if (!unit) { addLog('⚠️ Solte a imagem sobre uma peça para usá-la como token.'); return; }
+    STATE.selectedUnitId = unit.id;
+    applyTokenFile(unit, file);
+  });
   window.addEventListener('pointerup', onCanvasPointerUp);
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
@@ -3483,6 +3614,7 @@ function onCanvasPointerDown(e) {
 function onCanvasPointerMove(e) {
   const pt = getCanvasRelativeCoords(e);
   if (STATE.interaction.isPanning) {
+    hideUnitTip();
     STATE.camera.x = pt.x - STATE.interaction.panStart.x;
     STATE.camera.y = pt.y - STATE.interaction.panStart.y;
     requestRender();
@@ -3501,8 +3633,11 @@ function onCanvasPointerMove(e) {
     }
   }
 
+  updateUnitTip(e, cell);
+
   if (STATE.ruler.active && STATE.ruler.startCell && cell) {
     STATE.ruler.endCell = cell;
+    hideUnitTip();
     requestRender();
     return;
   }
@@ -4170,7 +4305,7 @@ function syncCombatUI() {
   if (!activeUnit) return;
   recalculateUnitFromSheet(activeUnit, false);
 
-  document.getElementById('combatUnitSculpt').innerHTML = getTokenPreviewHTML(activeUnit.sculpt, activeUnit.customTokenDataUrl);
+  document.getElementById('combatUnitSculpt').innerHTML = getTokenPreviewHTML(activeUnit.sculpt, activeUnit.customTokenDataUrl, customTokenOptions(activeUnit));
   document.getElementById('combatUnitName').textContent = activeUnit.name;
   document.getElementById('combatUnitLevel').textContent = activeUnit.sheet?.level || 1;
   document.getElementById('combatUnitAC').textContent = activeUnit.ac;
@@ -4408,9 +4543,14 @@ function syncInspectorUI() {
 
   recalculateUnitFromSheet(u, false);
 
-  document.getElementById('inspSculptPreview').innerHTML = getTokenPreviewHTML(u.sculpt, u.customTokenDataUrl);
+  document.getElementById('inspSculptPreview').innerHTML = getTokenPreviewHTML(u.sculpt, u.customTokenDataUrl, customTokenOptions(u));
   document.getElementById('inspNameInput').value = u.name;
   document.getElementById('inspTokenSelect').value = u.sculpt;
+  const hasCustom = !!u.customTokenDataUrl;
+  document.getElementById('btnRemoveToken').classList.toggle('hidden', !hasCustom);
+  document.getElementById('tokenFrameField').classList.toggle('hidden', !hasCustom);
+  document.getElementById('chkTokenFrame').checked = u.customTokenFrame !== false;
+  document.getElementById('tokenSourceLabel').textContent = hasCustom ? 'Imagem personalizada' : 'Ilustração padrão';
 
   const fBadge = document.getElementById('inspFactionBadge');
   fBadge.className = `badge ${u.faction === 'hero' ? 'badge-hero' : 'badge-villain'}`;
@@ -4478,20 +4618,76 @@ function changeSelectedUnitToken(newSculpt) {
   requestRender();
 }
 
+const TOKEN_MAX_FILE_BYTES = 10 * 1024 * 1024;
+const TOKEN_MAX_SIDE = 384;
+
+/**
+ * Prepara a imagem do usuário: SVG segue como está; imagens raster são reduzidas
+ * (lado maior 384 px) para não inflar o salvamento e o JSON exportado.
+ * Mantém PNG/WebP/GIF como PNG (preserva transparência) e JPEG como JPEG.
+ */
+function prepareTokenImage(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\//.test(file.type)) return reject(new Error('O arquivo não é uma imagem.'));
+    if (file.size > TOKEN_MAX_FILE_BYTES) return reject(new Error('Imagem maior que 10 MB.'));
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Não foi possível ler o arquivo.'));
+    reader.onload = () => {
+      if (file.type === 'image/svg+xml') return resolve(reader.result);
+      const img = new Image();
+      img.onerror = () => reject(new Error('Imagem inválida ou formato não suportado.'));
+      img.onload = () => {
+        const scale = Math.min(1, TOKEN_MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.max(1, Math.round(img.naturalWidth * scale));
+        const h = Math.max(1, Math.round(img.naturalHeight * scale));
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(file.type === 'image/jpeg' ? c.toDataURL('image/jpeg', 0.9) : c.toDataURL('image/png'));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function applyTokenFile(unit, file) {
+  try {
+    unit.customTokenDataUrl = await prepareTokenImage(file);
+    if (unit.customTokenFrame === undefined) unit.customTokenFrame = true;
+    addLog(`🖼️ Imagem aplicada como token de <strong>${escapeHtml(unit.name)}</strong>.`);
+    syncInspectorUI();
+    syncCombatUI();
+    renderPieceGallery();
+    requestRender();
+  } catch (err) {
+    addLog(`⚠️ ${escapeHtml(err.message)} Use PNG, JPG, WebP, GIF ou SVG de até 10 MB.`);
+  }
+}
+
 function handleCustomTokenUpload(event) {
   const file = event.target.files[0];
-  if (!file) return;
-  const u = STATE.units.find(x => x.id === STATE.selectedUnitId);
+  event.target.value = '';
+  const u = selectedUnit();
+  if (file && u) applyTokenFile(u, file);
+}
+
+function removeCustomToken() {
+  const u = selectedUnit();
   if (!u) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    u.customTokenDataUrl = e.target.result;
-    getUnitTokenImage(u.sculpt, u.customTokenDataUrl);
-    syncInspectorUI();
-    addLog(`🖼️ Token personalizado aplicado à peça <strong>${u.name}</strong>.`);
-    requestRender();
-  };
-  reader.readAsDataURL(file);
+  u.customTokenDataUrl = null;
+  syncInspectorUI();
+  syncCombatUI();
+  requestRender();
+}
+
+function setCustomTokenFrame(framed) {
+  const u = selectedUnit();
+  if (!u) return;
+  u.customTokenFrame = !!framed;
+  syncInspectorUI();
+  syncCombatUI();
+  requestRender();
 }
 
 function addWeaponToSelectedUnit() {
@@ -4932,7 +5128,7 @@ function renderPieceGallery() {
       renderPieceGallery();
     };
     card.innerHTML = `
-      ${getTokenPreviewHTML(t.sculpt, t.customTokenDataUrl)}
+      ${getTokenPreviewHTML(t.sculpt, t.customTokenDataUrl, customTokenOptions(t))}
       <div class="piece-card-name">${t.name}</div>
       <div class="piece-card-meta">Nív ${t.sheet?.level || 1} | ${t.moveSpeed}m</div>
     `;
@@ -4948,6 +5144,7 @@ function spawnUnitFromTemplate(templateId, col, row) {
     name: sameTypeCount > 0 ? `${tpl.name} ${sameTypeCount + 1}` : tpl.name,
     sculpt: tpl.sculpt,
     customTokenDataUrl: tpl.customTokenDataUrl || null,
+    customTokenFrame: tpl.customTokenFrame !== false,
     faction: tpl.faction,
     col,
     row,
@@ -4988,6 +5185,7 @@ function registerCustomTemplate() {
     name: current ? current.name : `Novo ${sculpt}`,
     sculpt,
     customTokenDataUrl: current ? current.customTokenDataUrl : null,
+    customTokenFrame: current ? current.customTokenFrame !== false : true,
     faction,
     moveSpeed: current ? current.moveSpeed : 9,
     maxHp: current ? current.maxHp : 36,
@@ -5212,6 +5410,115 @@ document.addEventListener('keydown', (e) => {
     document.getElementById('sidebarRight').classList.remove('open');
   }
 });
+
+/* ===== 14-unit-tip.js ===== */
+/* ============================================================================
+   20. TOOLTIP DO ALVO — defesas e prévia do ataque ao passar o cursor
+   ============================================================================ */
+const unitTipState = { unitId: null };
+
+function currentAttackSource(activeUnit) {
+  if (STATE.combat.mainMenu === 'attack') {
+    const w = activeUnit.weapons[STATE.combat.selectedWeaponIdx] || activeUnit.weapons[0];
+    return w ? { kind: 'weapon', src: w } : null;
+  }
+  if (STATE.combat.mainMenu === 'magic') {
+    const sp = activeUnit.spells[STATE.combat.selectedSpellIdx] || activeUnit.spells[0];
+    return sp ? { kind: 'spell', src: sp } : null;
+  }
+  return null;
+}
+
+/** Linha da prévia: quanto dano médio sobra depois das defesas do alvo. */
+function buildAttackPreviewHTML(attacker, target, source) {
+  const { kind, src } = source;
+  const map = kind === 'weapon' ? (attacker.strikesMade === 0 ? 0 : (attacker.strikesMade === 1 ? -5 : -10)) : 0;
+  const toHit = (src.atkBonus || 0) + map;
+  const odds = attackOdds(toHit, target.ac);
+  const avg = averageDamage(src);
+  const normal = applyDefenses(avg.parts, 1, target);
+  const crit = applyDefenses(avg.parts, 2, target);
+  const notes = describeDefenseEffects(normal.lines);
+  const pct = (p) => `${Math.round(p * 100)}%`;
+  const verdict = normal.total === 0 ? '<span class="tip-bad">sem dano</span>'
+    : normal.total > avg.total ? '<span class="tip-good">dano maior</span>'
+      : normal.total < avg.total ? '<span class="tip-warn">dano reduzido</span>' : '';
+  return `
+    <div class="tip-sep"></div>
+    <div class="tip-title">${escapeHtml(src.name)} <span class="faint">${signed(toHit)}${map ? ` (MAP ${map})` : ''}</span></div>
+    <div class="tip-grid">
+      <span>Acerto</span><b class="num">${pct(odds.hit)}</b>
+      <span>Crítico</span><b class="num">${pct(odds.crit)}</b>
+      <span>Dano médio</span><b class="num">${normal.total}${normal.total !== avg.total ? ` <small class="faint">de ${avg.total}</small>` : ''}</b>
+      <span>No crítico</span><b class="num">${crit.total}</b>
+    </div>
+    ${notes ? `<div class="tip-note">${escapeHtml(notes)}</div>` : ''}
+    ${verdict ? `<div class="tip-note">${verdict}</div>` : ''}
+    ${kind === 'spell' && src.areaType !== 'single' ? '<div class="tip-note faint">Em área: metade do dano se errar.</div>' : ''}`;
+}
+
+function buildUnitTipHTML(unit) {
+  recalculateUnitFromSheet(unit, false);
+  const chips = ['resistances', 'weaknesses'].flatMap(k => (unit[k] || []).map(e => defenseChipHTML(k, e)))
+    .concat((unit.immunities || []).map(e => defenseChipHTML('immunities', e))).join('');
+  const hpPct = Math.max(0, Math.min(100, (unit.hp / unit.maxHp) * 100));
+  const level = hpPct > 50 ? 'high' : (hpPct > 25 ? 'mid' : 'low');
+
+  let preview = '';
+  const attacker = STATE.mode === 'combat' ? STATE.units.find(u => u.id === STATE.combat.activeUnitId) : null;
+  if (attacker && attacker.id !== unit.id && unit.hp > 0 && attacker.hp > 0) {
+    const source = currentAttackSource(attacker);
+    if (source) preview = buildAttackPreviewHTML(attacker, unit, source);
+  }
+
+  return `
+    <div class="tip-head">
+      <strong>${escapeHtml(unit.name)}</strong>
+      <span class="badge ${unit.faction === 'hero' ? 'badge-hero' : 'badge-villain'}">${unit.faction === 'hero' ? 'HERÓI' : 'VILÃO'}</span>
+    </div>
+    <div class="tip-stats">
+      <span class="num"><b>${unit.hp}</b>/${unit.maxHp} PV</span>
+      <span class="ac-shield ${unit.shieldRaised ? 'raised' : ''}"><svg class="icon"><use href="#i-shield"/></svg>CA <span class="num">${unit.ac}</span></span>
+    </div>
+    <div class="hp-bar-outer"><div class="hp-bar-inner" data-level="${level}" style="width:${hpPct}%"></div></div>
+    <div class="chip-row">${chips || '<span class="faint">Sem resistências, fraquezas ou imunidades</span>'}</div>
+    ${preview}`;
+}
+
+function hideUnitTip() {
+  unitTipState.unitId = null;
+  const tip = document.getElementById('unitTip');
+  if (tip) tip.classList.add('hidden');
+}
+
+/** Mostra o tooltip da peça sob o cursor (ou esconde). `e` é o evento de ponteiro do canvas. */
+function updateUnitTip(e, cell) {
+  const tip = document.getElementById('unitTip');
+  if (!tip) return;
+  const interacting = STATE.interaction.isPanning || STATE.interaction.draggingUnitId || STATE.interaction.paintingTerrain
+    || (STATE.ruler.active && STATE.ruler.startCell);
+  const unit = cell && !interacting
+    ? (STATE.units.find(u => u.col === cell.col && u.row === cell.row && u.hp > 0) || STATE.units.find(u => u.col === cell.col && u.row === cell.row))
+    : null;
+  if (!unit) { hideUnitTip(); return; }
+
+  // reconstrói só quando a peça muda ou o contexto de ataque mudou (evita reflow a cada pixel)
+  const sig = [unit.id, unit.hp, unit.ac, STATE.mode, STATE.combat.mainMenu, STATE.combat.selectedWeaponIdx, STATE.combat.selectedSpellIdx, STATE.combat.activeUnitId, (STATE.units.find(u => u.id === STATE.combat.activeUnitId) || {}).strikesMade].join('|');
+  if (tip.dataset.sig !== sig) {
+    tip.innerHTML = buildUnitTipHTML(unit);
+    tip.dataset.sig = sig;
+  }
+  unitTipState.unitId = unit.id;
+  tip.classList.remove('hidden');
+
+  const stage = tip.parentElement.getBoundingClientRect();
+  const margin = 14;
+  let x = e.clientX - stage.left + margin;
+  let y = e.clientY - stage.top + margin;
+  if (x + tip.offsetWidth > stage.width - 8) x = e.clientX - stage.left - tip.offsetWidth - margin;
+  if (y + tip.offsetHeight > stage.height - 8) y = Math.max(8, stage.height - tip.offsetHeight - 8);
+  tip.style.transform = `translate(${Math.max(8, x)}px, ${Math.max(8, y)}px)`;
+}
 
 </script>
 </body>

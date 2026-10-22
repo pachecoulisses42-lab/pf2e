@@ -206,6 +206,75 @@ await check('magia em área aplica defesas por alvo e a interface adiciona/remov
   assert.equal(r.immuneLost, 0, 'alvo imune a fogo não sofre dano da magia de fogo');
 });
 
+await check('tooltip do alvo mostra defesas e prévia do ataque com números corretos', async () => {
+  const pos = await page.evaluate(() => {
+    const att = STATE.units[0], gob = STATE.units[1];
+    gob.resistances = [{ type: 'físico', value: 3 }]; gob.weaknesses = [{ type: 'fogo', value: 5 }]; gob.immunities = ['veneno']; gob.hp = gob.maxHp = 40;
+    recalculateUnitFromSheet(gob, false); gob.sheet.armorItemBonus += 17 - gob.ac; recalculateUnitFromSheet(gob, false);
+    att.weapons[0] = normalizeWeapon({ name: 'Espada Flamejante', dmgDie: '1d8', dmgBonus: 4, dmgType: 'cortante', manual: true, atkBonus: 12,
+      extra: [{ name: 'Flamejante', die: '1d6', type: 'fogo' }] });
+    att.strikesMade = 0; att.hp = att.maxHp;
+    setAppMode('combat'); selectActiveTurnUnit(att.id); selectCombatMainMenu('attack');
+    const c = getCellPixelCenter(gob.col, gob.row);
+    const r = document.getElementById('battleCanvas').getBoundingClientRect();
+    return { x: r.left + c.x, y: r.top + c.y };
+  });
+  await page.mouse.move(pos.x - 30, pos.y);
+  await page.mouse.move(pos.x, pos.y);
+  const text = await page.evaluate(() => document.getElementById('unitTip').innerText);
+  assert.match(text, /res\. físico 3/);
+  assert.match(text, /fraq\. fogo 5/);
+  assert.match(text, /imune a veneno/);
+  assert.match(text, /Acerto\s+80%/);
+  assert.match(text, /Crítico\s+30%/);
+  assert.match(text, /Dano médio\s+15/);
+  await page.mouse.move(10, 10); // sai do tabuleiro
+  const hidden = await page.evaluate(() => document.getElementById('unitTip').classList.contains('hidden'));
+  assert.equal(hidden, true);
+});
+
+await check('importar imagem como token: reduz, recorta, alterna moldura e volta ao padrão', async () => {
+  // gera um PNG grande (1200x800) no próprio navegador
+  const b64 = await page.evaluate(() => {
+    const c = document.createElement('canvas'); c.width = 1200; c.height = 800;
+    const x = c.getContext('2d'); x.fillStyle = '#d33'; x.fillRect(0, 0, 1200, 800); x.fillStyle = '#fc0'; x.fillRect(400, 200, 400, 400);
+    return c.toDataURL('image/png').split(',')[1];
+  });
+  await page.evaluate(() => { setAppMode('setup'); STATE.selectedUnitId = STATE.units[2].id; syncInspectorUI(); switchEditTab('base'); });
+  await page.setInputFiles('#editTabBase input[type=file]', { name: 'arte.png', mimeType: 'image/png', buffer: Buffer.from(b64, 'base64') });
+  await page.waitForFunction(() => selectedUnit().customTokenDataUrl);
+  const r = await page.evaluate(async () => {
+    const u = selectedUnit();
+    const img = new Image(); img.src = u.customTokenDataUrl; await img.decode();
+    const preview = document.getElementById('inspSculptPreview').innerHTML;
+    const framed = preview.includes('clip-path') && preview.includes('<image');
+    const label = document.getElementById('tokenSourceLabel').textContent;
+    setCustomTokenFrame(false);
+    const unframed = !document.getElementById('inspSculptPreview').innerHTML.includes('clip-path');
+    const canvasImg = getUnitTokenImage(u.sculpt, u.customTokenDataUrl, customTokenOptions(u));
+    removeCustomToken();
+    return { w: img.naturalWidth, h: img.naturalHeight, framed, unframed, label, back: u.customTokenDataUrl, cachedKey: !!canvasImg,
+      btnHidden: document.getElementById('btnRemoveToken').classList.contains('hidden'), after: document.getElementById('tokenSourceLabel').textContent };
+  });
+  assert.equal(Math.max(r.w, r.h), 384, 'lado maior reduzido para 384');
+  assert.equal(r.w / r.h, 1.5, 'proporção preservada');
+  assert.equal(r.framed, true);
+  assert.equal(r.unframed, true);
+  assert.equal(r.label, 'Imagem personalizada');
+  assert.equal(r.back, null);
+  assert.equal(r.btnHidden, true);
+  assert.equal(r.after, 'Ilustração padrão');
+});
+
+await check('arquivo que não é imagem é recusado com aviso e sem alterar a peça', async () => {
+  await page.evaluate(() => { STATE.selectedUnitId = STATE.units[2].id; syncInspectorUI(); });
+  await page.setInputFiles('#editTabBase input[type=file]', { name: 'nota.txt', mimeType: 'text/plain', buffer: Buffer.from('oi') });
+  await page.waitForTimeout(200);
+  const r = await page.evaluate(() => ({ custom: selectedUnit().customTokenDataUrl, log: document.getElementById('logPeek').textContent }));
+  assert.equal(r.custom, null);
+  assert.match(r.log, /não é uma imagem/);
+});
+
 await check('exportar/importar mantém armas com runas', async () => {
   const r = await page.evaluate(() => {
     const u = STATE.units[0];

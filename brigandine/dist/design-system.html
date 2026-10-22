@@ -621,6 +621,28 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
   .mode-switch { justify-self: center; }
 }
 
+/* ---------- Tooltip do alvo (defesas + prévia do ataque) ---------- */
+.unit-tip {
+  position: absolute; top: 0; left: 0; z-index: 8; width: 250px; pointer-events: none;
+  display: flex; flex-direction: column; gap: var(--s-2);
+  padding: var(--s-3); border-radius: var(--r-md);
+  background: rgba(16, 20, 26, 0.94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-pop), 0 0 0 1px var(--line-strong);
+  font-size: var(--text-xs);
+}
+.tip-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+.tip-head strong { font-family: var(--font-display); font-size: var(--text-md); }
+.tip-stats { display: flex; align-items: center; justify-content: space-between; color: var(--text-2); }
+.tip-stats b { color: var(--text); font-family: var(--font-display); font-size: var(--text-md); }
+.tip-sep { height: 1px; background: var(--line-strong); margin: 2px 0; }
+.tip-title { font-weight: 700; color: var(--text); }
+.tip-grid { display: grid; grid-template-columns: 1fr auto; gap: 3px var(--s-3); color: var(--text-2); }
+.tip-grid b { color: var(--text); text-align: right; }
+.tip-note { color: var(--text-2); line-height: 1.4; }
+.tip-good { color: var(--strike); font-weight: 700; }
+.tip-warn { color: var(--supply); font-weight: 700; }
+.tip-bad { color: var(--text-3); font-weight: 700; }
+
 body { overflow: auto; display: block; user-select: text; -webkit-user-select: text; }
 .doc { max-width: 1040px; margin: 0 auto; padding: var(--s-6) var(--s-4) 96px; display: flex; flex-direction: column; gap: 64px; }
 .doc h1 { font-size: var(--text-2xl); line-height: 1.1; }

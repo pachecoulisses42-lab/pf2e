@@ -360,7 +360,7 @@ function drawUnitToken(unit, isTargetable) {
     ctx.setLineDash([]);
   }
 
-  const img = getUnitTokenImage(unit.sculpt, unit.customTokenDataUrl);
+  const img = getUnitTokenImage(unit.sculpt, unit.customTokenDataUrl, customTokenOptions(unit));
   if (img && img.complete) {
     if (isDead) ctx.filter = 'grayscale(100%) brightness(38%)';
     ctx.drawImage(img, center.x - tokenR, center.y - tokenR, tokenR * 2, tokenR * 2);

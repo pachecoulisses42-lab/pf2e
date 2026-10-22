@@ -122,7 +122,7 @@ function renderPieceGallery() {
       renderPieceGallery();
     };
     card.innerHTML = `
-      ${getTokenPreviewHTML(t.sculpt, t.customTokenDataUrl)}
+      ${getTokenPreviewHTML(t.sculpt, t.customTokenDataUrl, customTokenOptions(t))}
       <div class="piece-card-name">${t.name}</div>
       <div class="piece-card-meta">Nív ${t.sheet?.level || 1} | ${t.moveSpeed}m</div>
     `;
@@ -138,6 +138,7 @@ function spawnUnitFromTemplate(templateId, col, row) {
     name: sameTypeCount > 0 ? `${tpl.name} ${sameTypeCount + 1}` : tpl.name,
     sculpt: tpl.sculpt,
     customTokenDataUrl: tpl.customTokenDataUrl || null,
+    customTokenFrame: tpl.customTokenFrame !== false,
     faction: tpl.faction,
     col,
     row,
@@ -178,6 +179,7 @@ function registerCustomTemplate() {
     name: current ? current.name : `Novo ${sculpt}`,
     sculpt,
     customTokenDataUrl: current ? current.customTokenDataUrl : null,
+    customTokenFrame: current ? current.customTokenFrame !== false : true,
     faction,
     moveSpeed: current ? current.moveSpeed : 9,
     maxHp: current ? current.maxHp : 36,

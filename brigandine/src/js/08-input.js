@@ -4,6 +4,22 @@
 function initCanvasEvents() {
   canvas.addEventListener('pointerdown', onCanvasPointerDown);
   canvas.addEventListener('pointermove', onCanvasPointerMove);
+  canvas.addEventListener('pointerleave', hideUnitTip);
+  // Arrastar uma imagem sobre uma peça a transforma em token daquela peça.
+  canvas.addEventListener('dragover', (e) => {
+    if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files')) e.preventDefault();
+  });
+  canvas.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file) return;
+    const pt = getCanvasRelativeCoords(e);
+    const cell = pixelToCell(pt.x, pt.y);
+    const unit = cell && STATE.units.find(u => u.col === cell.col && u.row === cell.row);
+    if (!unit) { addLog('⚠️ Solte a imagem sobre uma peça para usá-la como token.'); return; }
+    STATE.selectedUnitId = unit.id;
+    applyTokenFile(unit, file);
+  });
   window.addEventListener('pointerup', onCanvasPointerUp);
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
@@ -58,6 +74,7 @@ function onCanvasPointerDown(e) {
 function onCanvasPointerMove(e) {
   const pt = getCanvasRelativeCoords(e);
   if (STATE.interaction.isPanning) {
+    hideUnitTip();
     STATE.camera.x = pt.x - STATE.interaction.panStart.x;
     STATE.camera.y = pt.y - STATE.interaction.panStart.y;
     requestRender();
@@ -76,8 +93,11 @@ function onCanvasPointerMove(e) {
     }
   }
 
+  updateUnitTip(e, cell);
+
   if (STATE.ruler.active && STATE.ruler.startCell && cell) {
     STATE.ruler.endCell = cell;
+    hideUnitTip();
     requestRender();
     return;
   }

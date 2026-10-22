@@ -213,6 +213,7 @@
     </div>
 
     <canvas id="battleCanvas"></canvas>
+    <div id="unitTip" class="unit-tip hidden" role="tooltip"></div>
 
     <div class="canvas-bottom-hud">
       <div class="hint-pill" id="hudInstructionText">Clique em uma peça para editar sua ficha.</div>
@@ -358,7 +359,17 @@
 
           <div id="editTabBase" class="hidden stack-3">
             <div class="field">
-              <div class="field-label"><span>Aparência do token</span></div>
+              <div class="field-label"><span>Imagem do token</span><strong id="tokenSourceLabel">Ilustração padrão</strong></div>
+              <div class="row">
+                <label class="btn" style="flex:1" title="PNG, JPG, WebP, GIF ou SVG de até 10 MB"><svg class="icon"><use href="#i-image"/></svg>Importar imagem<input type="file" accept="image/*,.svg" onchange="handleCustomTokenUpload(event)"></label>
+                <button id="btnRemoveToken" class="btn btn-ghost hidden" onclick="removeCustomToken()"><svg class="icon"><use href="#i-undo"/></svg>Usar padrão</button>
+              </div>
+              <label id="tokenFrameField" class="check hidden"><input type="checkbox" id="chkTokenFrame" onchange="setCustomTokenFrame(this.checked)"> Recortar em círculo com moldura (desmarque para PNG transparente)</label>
+              <p class="hint">Dica: arraste uma imagem direto sobre uma peça no tabuleiro.</p>
+            </div>
+
+            <div class="field">
+              <div class="field-label"><span>Ilustração padrão</span></div>
               <select id="inspTokenSelect" onchange="changeSelectedUnitToken(this.value)">
                 <option value="guerreiro">Guerreiro</option>
                 <option value="barbaro">Bárbaro</option>

@@ -15,7 +15,8 @@ export function loadRules() {
     DAMAGE_TYPES, RUNE_PRESETS, SPELL_CATALOG, isValidDice, rollDiceExpression, rollDamage,
     formatDamageParts, describeDamage, shieldBonusOf, normalizeWeapon, normalizeSpell,
     escapeHtml, cleanText, recalculateUnitFromSheet,
-    applyDefenses, describeDefenseEffects, normalizeDefenses, defenseMatches, DEFENSE_TYPES
+    applyDefenses, describeDefenseEffects, normalizeDefenses, defenseMatches, DEFENSE_TYPES,
+    averageRoll, averageDamage, attackOdds
   })`, ctx);
 }
 

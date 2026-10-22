@@ -228,3 +228,32 @@ test('normalizeDefenses descarta tipos inválidos, valores ruins e normaliza imu
   assert.deepEqual(plain(u.immunities), ['veneno', 'físico']);
   assert.equal(R.DEFENSE_TYPES.includes('precisão'), false, 'precisão não é um tipo de defesa');
 });
+
+/* ---------- Prévia de ataque ---------- */
+test('averageRoll: média arredondada e nunca menor que 1', () => {
+  assert.equal(R.averageRoll('1d8', 4), 9);    // 4,5 + 4 = 8,5 -> 9
+  assert.equal(R.averageRoll('2d6', 0), 7);
+  assert.equal(R.averageRoll('1d4', -10), 1);
+  assert.equal(R.averageRoll('xyz', 3), 4);
+});
+
+test('averageDamage inclui runas, com o mesmo formato de rollDamage', () => {
+  const d = R.averageDamage({ name: 'Rúnica', dmgDie: '1d8', dmgBonus: 4, dmgType: 'cortante', extra: [{ name: 'Flamejante', die: '1d6', type: 'fogo' }] });
+  assert.deepEqual(plain(d.parts.map(p => [p.kind, p.type, p.total])), [['base', 'cortante', 9], ['extra', 'fogo', 4]]);
+  assert.equal(d.total, 13);
+  // encaixa direto em applyDefenses
+  assert.equal(R.applyDefenses(d.parts, 1, { weaknesses: [{ type: 'fogo', value: 5 }], resistances: [{ type: 'físico', value: 3 }] }).total, 15);
+});
+
+test('attackOdds segue as regras do motor (1 erra, 20 critica, +10 critica)', () => {
+  // +12 contra CA 17: acerta com 5..20 (16 faces); crítico com 20 ou total >= 27 (15..20 = 6 faces)
+  const o = R.attackOdds(12, 17);
+  assert.equal(o.hit, 16 / 20);
+  assert.equal(o.crit, 6 / 20);
+  // bônus enorme: só o 1 natural erra
+  assert.equal(R.attackOdds(100, 10).hit, 19 / 20);
+  // bônus ridículo: só o 20 natural acerta, e é crítico
+  const lo = R.attackOdds(-50, 30);
+  assert.equal(lo.hit, 1 / 20);
+  assert.equal(lo.crit, 1 / 20);
+});

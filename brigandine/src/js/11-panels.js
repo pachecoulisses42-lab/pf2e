@@ -57,7 +57,7 @@ function syncCombatUI() {
   if (!activeUnit) return;
   recalculateUnitFromSheet(activeUnit, false);
 
-  document.getElementById('combatUnitSculpt').innerHTML = getTokenPreviewHTML(activeUnit.sculpt, activeUnit.customTokenDataUrl);
+  document.getElementById('combatUnitSculpt').innerHTML = getTokenPreviewHTML(activeUnit.sculpt, activeUnit.customTokenDataUrl, customTokenOptions(activeUnit));
   document.getElementById('combatUnitName').textContent = activeUnit.name;
   document.getElementById('combatUnitLevel').textContent = activeUnit.sheet?.level || 1;
   document.getElementById('combatUnitAC').textContent = activeUnit.ac;
@@ -295,9 +295,14 @@ function syncInspectorUI() {
 
   recalculateUnitFromSheet(u, false);
 
-  document.getElementById('inspSculptPreview').innerHTML = getTokenPreviewHTML(u.sculpt, u.customTokenDataUrl);
+  document.getElementById('inspSculptPreview').innerHTML = getTokenPreviewHTML(u.sculpt, u.customTokenDataUrl, customTokenOptions(u));
   document.getElementById('inspNameInput').value = u.name;
   document.getElementById('inspTokenSelect').value = u.sculpt;
+  const hasCustom = !!u.customTokenDataUrl;
+  document.getElementById('btnRemoveToken').classList.toggle('hidden', !hasCustom);
+  document.getElementById('tokenFrameField').classList.toggle('hidden', !hasCustom);
+  document.getElementById('chkTokenFrame').checked = u.customTokenFrame !== false;
+  document.getElementById('tokenSourceLabel').textContent = hasCustom ? 'Imagem personalizada' : 'Ilustração padrão';
 
   const fBadge = document.getElementById('inspFactionBadge');
   fBadge.className = `badge ${u.faction === 'hero' ? 'badge-hero' : 'badge-villain'}`;
@@ -365,20 +370,76 @@ function changeSelectedUnitToken(newSculpt) {
   requestRender();
 }
 
+const TOKEN_MAX_FILE_BYTES = 10 * 1024 * 1024;
+const TOKEN_MAX_SIDE = 384;
+
+/**
+ * Prepara a imagem do usuário: SVG segue como está; imagens raster são reduzidas
+ * (lado maior 384 px) para não inflar o salvamento e o JSON exportado.
+ * Mantém PNG/WebP/GIF como PNG (preserva transparência) e JPEG como JPEG.
+ */
+function prepareTokenImage(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\//.test(file.type)) return reject(new Error('O arquivo não é uma imagem.'));
+    if (file.size > TOKEN_MAX_FILE_BYTES) return reject(new Error('Imagem maior que 10 MB.'));
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Não foi possível ler o arquivo.'));
+    reader.onload = () => {
+      if (file.type === 'image/svg+xml') return resolve(reader.result);
+      const img = new Image();
+      img.onerror = () => reject(new Error('Imagem inválida ou formato não suportado.'));
+      img.onload = () => {
+        const scale = Math.min(1, TOKEN_MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.max(1, Math.round(img.naturalWidth * scale));
+        const h = Math.max(1, Math.round(img.naturalHeight * scale));
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(file.type === 'image/jpeg' ? c.toDataURL('image/jpeg', 0.9) : c.toDataURL('image/png'));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function applyTokenFile(unit, file) {
+  try {
+    unit.customTokenDataUrl = await prepareTokenImage(file);
+    if (unit.customTokenFrame === undefined) unit.customTokenFrame = true;
+    addLog(`🖼️ Imagem aplicada como token de <strong>${escapeHtml(unit.name)}</strong>.`);
+    syncInspectorUI();
+    syncCombatUI();
+    renderPieceGallery();
+    requestRender();
+  } catch (err) {
+    addLog(`⚠️ ${escapeHtml(err.message)} Use PNG, JPG, WebP, GIF ou SVG de até 10 MB.`);
+  }
+}
+
 function handleCustomTokenUpload(event) {
   const file = event.target.files[0];
-  if (!file) return;
-  const u = STATE.units.find(x => x.id === STATE.selectedUnitId);
+  event.target.value = '';
+  const u = selectedUnit();
+  if (file && u) applyTokenFile(u, file);
+}
+
+function removeCustomToken() {
+  const u = selectedUnit();
   if (!u) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    u.customTokenDataUrl = e.target.result;
-    getUnitTokenImage(u.sculpt, u.customTokenDataUrl);
-    syncInspectorUI();
-    addLog(`🖼️ Token personalizado aplicado à peça <strong>${u.name}</strong>.`);
-    requestRender();
-  };
-  reader.readAsDataURL(file);
+  u.customTokenDataUrl = null;
+  syncInspectorUI();
+  syncCombatUI();
+  requestRender();
+}
+
+function setCustomTokenFrame(framed) {
+  const u = selectedUnit();
+  if (!u) return;
+  u.customTokenFrame = !!framed;
+  syncInspectorUI();
+  syncCombatUI();
+  requestRender();
 }
 
 function addWeaponToSelectedUnit() {

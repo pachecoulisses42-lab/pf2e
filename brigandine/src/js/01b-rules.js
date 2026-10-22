@@ -211,3 +211,40 @@ function normalizeDefenses(unit) {
   unit.immunities = (Array.isArray(unit.immunities) ? unit.immunities : []).filter((t) => DEFENSE_TYPES.includes(t));
   return unit;
 }
+
+/* ---------- Pré-visualização de ataque (tooltip no alvo) ---------- */
+/** Média arredondada de "NdM" + bônus (mínimo 1). */
+function averageRoll(dieStr, bonus = 0) {
+  const m = String(dieStr).match(/(\d+)d(\d+)/i);
+  if (!m) return Math.max(1, 1 + bonus);
+  return Math.max(1, Math.round(parseInt(m[1], 10) * (parseInt(m[2], 10) + 1) / 2 + bonus));
+}
+
+/** Mesmo formato de rollDamage, mas com o dano médio — sem aleatoriedade. */
+function averageDamage(src) {
+  const base = averageRoll(src.dmgDie, src.dmgBonus || 0);
+  const parts = [{ kind: 'base', label: src.name || '', type: src.dmgType || '', total: base }];
+  let total = base;
+  for (const x of (src.extra || [])) {
+    const t = averageRoll(x.die, x.bonus || 0);
+    parts.push({ kind: 'extra', label: x.name || '', type: x.type || '', total: t });
+    total += t;
+  }
+  return { total, parts };
+}
+
+/**
+ * Chances de um d20 + `toHit` contra `ac`, com as regras do motor:
+ * 1 natural sempre erra, 20 natural sempre é crítico, +10 sobre a CA é crítico.
+ */
+function attackOdds(toHit, ac) {
+  let hit = 0;
+  let crit = 0;
+  for (let face = 1; face <= 20; face++) {
+    if (face === 1) continue; // 1 natural sempre erra, mesmo com bônus enorme
+    const total = face + toHit;
+    if (face === 20 || total >= ac + 10) crit++;
+    else if (total >= ac) hit++;
+  }
+  return { hit: (hit + crit) / 20, crit: crit / 20 };
+}
