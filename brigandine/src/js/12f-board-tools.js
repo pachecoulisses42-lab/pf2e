@@ -94,6 +94,25 @@ function eraseAt(cell, allowUnits = true) {
   return item;
 }
 
+/** Outro tabuleiro (carregar, cena, limpar, exemplo): o que foi apagado no anterior não volta. */
+function clearEraseUndo() {
+  eraseUndo.length = 0;
+}
+
+/** Casa livre mais próxima (para devolver uma peça cuja casa foi ocupada). */
+function nearestFreeCell(col, row) {
+  const taken = new Set(STATE.units.filter(u => u.hp > 0).map(u => `${u.col},${u.row}`));
+  let best = null, bestD = Infinity;
+  for (let r = 0; r < STATE.grid.rows; r++) {
+    for (let c = 0; c < STATE.grid.cols; c++) {
+      if (taken.has(`${c},${r}`) || cellBlocksUnits(c, r)) continue;
+      const d = cellDistanceMeters(col, row, c, r);
+      if (d < bestD) { bestD = d; best = { col: c, row: r }; }
+    }
+  }
+  return best;
+}
+
 function pushEraseUndo(entry) {
   eraseUndo.push(entry);
   if (eraseUndo.length > ERASE_UNDO_LIMIT) eraseUndo.shift();
@@ -104,6 +123,13 @@ function undoErase() {
   const e = eraseUndo.pop();
   if (!e) return false;
   if (e.kind === 'unit') {
+    // a casa pode ter sido ocupada depois de apagar: volta para a livre mais próxima
+    if (STATE.units.some(u => u.hp > 0 && u.col === e.unit.col && u.row === e.unit.row)) {
+      const free = nearestFreeCell(e.unit.col, e.unit.row);
+      if (!free) { eraseUndo.push(e); addLog('⚠️ Não há casa livre para devolver a peça.'); return false; }
+      e.unit.col = free.col;
+      e.unit.row = free.row;
+    }
     STATE.units.splice(Math.min(e.idx, STATE.units.length), 0, e.unit);
     STATE.effectZones.push(...e.zones);
     STATE.selectedUnitId = e.unit.id;
@@ -135,7 +161,7 @@ function editDragTo(cell) {
   const ref = d.item.ref;
   if (d.item.kind === 'unit') {
     const occupied = STATE.units.some(u => u !== ref && u.hp > 0 && u.col === cell.col && u.row === cell.row);
-    if (occupied) return;
+    if (occupied || cellBlocksUnits(cell.col, cell.row)) return;
   } else {
     // objeto e perigo dividem a casa, mas dois do mesmo tipo de coisa não
     const isHz = !!HAZARD_TYPES[ref.type];

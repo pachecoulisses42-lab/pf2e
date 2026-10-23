@@ -32,9 +32,14 @@ function resizeCanvas() {
    ============================================================================ */
 function setAppMode(mode) {
   finishAnimation();
+  const leavingSetup = STATE.mode === 'setup' && mode !== 'setup';
   STATE.mode = mode;
-  // lixeira e lápis são da montagem; a mão vale nos dois modos
-  if (mode !== 'setup' && STATE.hudTool && STATE.hudTool !== 'pan') { STATE.hudTool = null; closeBoardEditor(); }
+  // trocar de modo desliga régua, mão, lixeira e lápis: o primeiro clique no outro modo é do próprio modo
+  if (STATE.ruler.active) toggleRulerTool();
+  if (STATE.hudTool) { STATE.hudTool = null; closeBoardEditor(); }
+  STATE.spacePan = false;
+  // a peça/pincel escolhido na montagem não continua engatilhado (nem ao voltar do combate)
+  if (leavingSetup) releaseSetupSelection();
   if (mode !== 'combat') STATE.flashLights = []; // clarões de magia só existem durante o combate
   document.body.classList.toggle('mode-combat', mode === 'combat');
   document.body.classList.toggle('mode-setup', mode !== 'combat');
@@ -62,10 +67,10 @@ function setAppMode(mode) {
     headerStatus.textContent = 'Combate tático';
     hudInstruction.textContent = 'Escolha um comando: Ação, Mover, Magias, Itens ou Ficha.';
 
-    const alive = STATE.units.filter(u => u.hp > 0);
-    if (!STATE.combat.activeUnitId && alive.length > 0) {
+    // a peça da vez precisa existir e estar viva (as peças podem ter sido trocadas ou excluídas na montagem)
+    if (!STATE.units.some(u => u.id === STATE.combat.activeUnitId && u.hp > 0)) {
       sortInitiativeOrder();
-      STATE.combat.activeUnitId = alive[0].id;
+      STATE.combat.activeUnitId = STATE.units.find(u => u.hp > 0)?.id || null;
     }
     STATE.selectedUnitId = STATE.combat.activeUnitId;
     selectCombatMainMenu(STATE.combat.mainMenu);
@@ -78,6 +83,7 @@ function setAppMode(mode) {
 
 function endCombatSession() {
   STATE.combat.round = 1;
+  STATE.combat.activeUnitId = null; // o próximo combate começa no topo da iniciativa
   for (const u of STATE.units) {
     u.actions = 3;
     u.reaction = true;

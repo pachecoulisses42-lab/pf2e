@@ -827,6 +827,69 @@ await check('tokens 3D: seção na gaveta, seletor, caminhada, gestos de ataque/
   assert.equal(r.saved, 3);
 });
 
+await check('troca de modo: ferramenta da montagem não age no combate; régua/mão desligam; turno válido e na ordem; Ctrl+Z só na montagem; peça não entra em parede', async () => {
+  const r = await page.evaluate(() => {
+    const out = {};
+    setAppMode('setup');
+    populateDemoBattle();
+    // escolhe uma peça na Caixa de ferramentas e vai para o combate
+    document.querySelector('details[data-menu="tools"]').open = true;
+    STATE.openMenu = 'tools'; setSetupTool('piece'); STATE.selectedTemplateId = 't_goblin';
+    toggleRulerTool(); setHudTool('pan');
+    setAppMode('combat');
+    out.template = STATE.selectedTemplateId; out.ruler = STATE.ruler.active; out.hud = STATE.hudTool;
+    // clique numa casa vazia no combate não cria peça
+    const n = STATE.units.length;
+    const occ = new Set(STATE.units.map(u => `${u.col},${u.row}`));
+    let empty = null;
+    for (let c = 0; c < STATE.grid.cols && !empty; c++) for (let rr = 0; rr < STATE.grid.rows; rr++) if (!occ.has(`${c},${rr}`) && !STATE.terrainMap[`${c},${rr}`]) { empty = { col: c, row: rr }; break; }
+    setupTap(empty, null); setupPointerDown(empty, null);
+    out.unitsSame = STATE.units.length === n;
+    // peças trocadas na montagem: o combate escolhe uma peça da vez que existe
+    setAppMode('setup');
+    STATE.units = []; spawnUnitFromTemplate('t_guerreiro', 1, 1); spawnUnitFromTemplate('t_goblin', 3, 1); spawnUnitFromTemplate('t_mago', 5, 1);
+    setAppMode('combat');
+    out.activeOk = STATE.units.some(u => u.id === STATE.combat.activeUnitId && u.hp > 0);
+    // a peça da vez morre no próprio turno: o turno vai para a seguinte na iniciativa
+    rollAllInitiatives();
+    const order = STATE.units.map(u => u.id);
+    const cur = STATE.combat.activeUnitId;
+    STATE.units.find(u => u.id === cur).hp = 0;
+    nextTurn();
+    out.nextOk = STATE.combat.activeUnitId === order[(order.indexOf(cur) + 1) % order.length];
+    // Ctrl+Z não age no combate
+    setAppMode('setup');
+    STATE.units.find(u => u.id === cur).hp = 10;
+    const victim = STATE.units[0];
+    eraseAt({ col: victim.col, row: victim.row });
+    setAppMode('combat');
+    const before = STATE.units.length;
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+    out.undoBlockedInCombat = STATE.units.length === before;
+    setAppMode('setup');
+    // casa ocupada depois de apagar: a peça volta numa casa livre
+    spawnUnitFromTemplate('t_goblin', victim.col, victim.row);
+    undoErase();
+    out.noStack = new Set(STATE.units.filter(u => u.hp > 0).map(u => `${u.col},${u.row}`)).size === STATE.units.filter(u => u.hp > 0).length;
+    // outro tabuleiro apaga o histórico da lixeira
+    eraseAt({ col: STATE.units[0].col, row: STATE.units[0].row });
+    populateDemoBattle();
+    out.undoCleared = undoErase() === false;
+    // parede não recebe peça
+    STATE.terrainMap['12,9'] = 'wall';
+    STATE.openMenu = 'tools'; setSetupTool('piece'); STATE.selectedTemplateId = 't_goblin';
+    const k = STATE.units.length;
+    setupTap({ col: 12, row: 9 }, null);
+    out.wallBlocked = STATE.units.length === k;
+    delete STATE.terrainMap['12,9'];
+    // encerrar o combate zera a peça da vez
+    setAppMode('combat'); nextTurn(); endCombatSession();
+    out.endReset = STATE.combat.activeUnitId === null;
+    return out;
+  });
+  assert.deepEqual(r, { template: null, ruler: false, hud: null, unitsSame: true, activeOk: true, nextOk: true, undoBlockedInCombat: true, noStack: true, undoCleared: true, wallBlocked: true, endReset: true });
+});
+
 await check('sem erros de JavaScript durante o fluxo', async () => {
   assert.deepEqual(errors, []);
 });

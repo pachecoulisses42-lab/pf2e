@@ -239,6 +239,7 @@ async function importImagesAsTemplates(event) {
 }
 
 function populateDemoBattle() {
+  clearEraseUndo();
   STATE.units = [];
   STATE.terrainMap = {
     '6,3': 'wall', '6,4': 'wall', '7,7': 'difficult', '7,8': 'difficult'
@@ -269,6 +270,7 @@ function populateDemoBattle() {
 }
 
 function clearAllUnits() {
+  clearEraseUndo();
   STATE.units = [];
   STATE.terrainMap = {};
   STATE.objects = [];
@@ -409,6 +411,7 @@ function importJSON(event) {
 }
 
 function applyLoadedPayload(data) {
+  clearEraseUndo();
   if (data.grid) {
     STATE.grid = { ...STATE.grid, ...data.grid };
     // mapa de fundo salvo como imagem: recria a imagem (antes ficava salvo mas não aparecia ao carregar)

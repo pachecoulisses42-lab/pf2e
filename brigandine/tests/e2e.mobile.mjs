@@ -108,7 +108,8 @@ await check('Encerrar turno na barra da gaveta passa a vez', async () => {
 });
 
 await check('Montagem no celular: tocar numa célula vazia cria a peça, arrastar apenas move a câmera', async () => {
-  await page.evaluate(() => { setAppMode('setup'); STATE.setupTool = 'piece'; });
+  // ao voltar do combate nada fica escolhido: escolhe a peça de novo, como o usuário faria
+  await page.evaluate(() => { setAppMode('setup'); STATE.openMenu = 'tools'; setSetupTool('piece'); STATE.selectedTemplateId = 't_guerreiro'; });
   const empty = await page.evaluate(() => {
     for (let r = 0; r < STATE.grid.rows; r++) for (let c = 0; c < STATE.grid.cols; c++) if (!STATE.units.some(u => u.col === c && u.row === r)) return { c, r };
   });

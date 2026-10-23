@@ -169,7 +169,7 @@ function onCanvasPointerMove(e) {
     } else if (STATE.interaction.draggingUnitId && cell) {
       const dragged = STATE.units.find(u => u.id === STATE.interaction.draggingUnitId);
       const occupied = STATE.units.find(u => u.id !== dragged.id && u.col === cell.col && u.row === cell.row);
-      if (dragged && !occupied) {
+      if (dragged && !occupied && !cellBlocksUnits(cell.col, cell.row)) {
         dragged.col = cell.col;
         dragged.row = cell.row;
       }

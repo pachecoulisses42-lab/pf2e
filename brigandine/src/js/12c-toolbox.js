@@ -55,6 +55,22 @@ function deselectMenu(menu) {
   renderEnvPalettes();
 }
 
+/** Saindo da montagem: desfaz a escolha do menu aberto e qualquer pintura/arrasto em andamento. */
+function releaseSetupSelection() {
+  if (STATE.openMenu) deselectMenu(STATE.openMenu);
+  STATE.paint.start = null;
+  STATE.paint.preview = null;
+  STATE.interaction.paintingTerrain = false;
+  STATE.interaction.draggingUnitId = null;
+  touchState.pending = null;
+}
+
+/** Casa onde uma peça não pode ficar: parede, abismo, pedra, árvore… (mesma regra do movimento). */
+function cellBlocksUnits(col, row) {
+  const obj = STATE.objects.find(o => o.col === col && o.row === row && OBJECT_TYPES[o.type]);
+  return cellMoveMultiplier(STATE.terrainMap[`${col},${row}`], obj && obj.type) === null;
+}
+
 /** Ferramenta que o clique no tabuleiro usa agora (montagem). */
 function currentBoardTool() {
   if (STATE.openMenu === 'tools') return STATE.toolTab;
@@ -265,6 +281,7 @@ function placeObjectAt(cell) {
 
 /** Toque/clique simples já confirmado (no celular, ao soltar o dedo). */
 function setupTap(cell, clickedUnit) {
+  if (STATE.mode !== 'setup') return;
   const tool = currentBoardTool();
   if (tool === 'object' || tool === 'hazard') { placeObjectAt(cell); return; }
   if (clickedUnit) {
@@ -274,13 +291,15 @@ function setupTap(cell, clickedUnit) {
     return;
   }
   if (tool === 'piece' || tool === 'animal') {
-    if (STATE.selectedTemplateId) spawnUnitFromTemplate(STATE.selectedTemplateId, cell.col, cell.row);
+    if (STATE.selectedTemplateId && cellBlocksUnits(cell.col, cell.row)) addLog('⚠️ Essa casa não comporta uma peça (parede, abismo ou obstáculo).');
+    else if (STATE.selectedTemplateId) spawnUnitFromTemplate(STATE.selectedTemplateId, cell.col, cell.row);
     else addLog(tool === 'animal' ? '🐺 Escolha um animal na caixa de ferramentas antes de clicar no tabuleiro.' : '🧙 Escolha uma peça na galeria antes de clicar no tabuleiro.');
   }
 }
 
 /** Ao pousar o ponteiro (mouse). Devolve true se a ação já foi tratada aqui. */
 function setupPointerDown(cell, clickedUnit) {
+  if (STATE.mode !== 'setup') return false;
   const tool = currentBoardTool();
   if (tool === 'terrain' || tool === 'effect') return beginPaint(tool, cell, clickedUnit) || selectOnly(clickedUnit);
   if (tool === 'object' || tool === 'hazard') { placeObjectAt(cell); return true; }

@@ -6624,9 +6624,14 @@ function resizeCanvas() {
    ============================================================================ */
 function setAppMode(mode) {
   finishAnimation();
+  const leavingSetup = STATE.mode === 'setup' && mode !== 'setup';
   STATE.mode = mode;
-  // lixeira e lápis são da montagem; a mão vale nos dois modos
-  if (mode !== 'setup' && STATE.hudTool && STATE.hudTool !== 'pan') { STATE.hudTool = null; closeBoardEditor(); }
+  // trocar de modo desliga régua, mão, lixeira e lápis: o primeiro clique no outro modo é do próprio modo
+  if (STATE.ruler.active) toggleRulerTool();
+  if (STATE.hudTool) { STATE.hudTool = null; closeBoardEditor(); }
+  STATE.spacePan = false;
+  // a peça/pincel escolhido na montagem não continua engatilhado (nem ao voltar do combate)
+  if (leavingSetup) releaseSetupSelection();
   if (mode !== 'combat') STATE.flashLights = []; // clarões de magia só existem durante o combate
   document.body.classList.toggle('mode-combat', mode === 'combat');
   document.body.classList.toggle('mode-setup', mode !== 'combat');
@@ -6654,10 +6659,10 @@ function setAppMode(mode) {
     headerStatus.textContent = 'Combate tático';
     hudInstruction.textContent = 'Escolha um comando: Ação, Mover, Magias, Itens ou Ficha.';
 
-    const alive = STATE.units.filter(u => u.hp > 0);
-    if (!STATE.combat.activeUnitId && alive.length > 0) {
+    // a peça da vez precisa existir e estar viva (as peças podem ter sido trocadas ou excluídas na montagem)
+    if (!STATE.units.some(u => u.id === STATE.combat.activeUnitId && u.hp > 0)) {
       sortInitiativeOrder();
-      STATE.combat.activeUnitId = alive[0].id;
+      STATE.combat.activeUnitId = STATE.units.find(u => u.hp > 0)?.id || null;
     }
     STATE.selectedUnitId = STATE.combat.activeUnitId;
     selectCombatMainMenu(STATE.combat.mainMenu);
@@ -6670,6 +6675,7 @@ function setAppMode(mode) {
 
 function endCombatSession() {
   STATE.combat.round = 1;
+  STATE.combat.activeUnitId = null; // o próximo combate começa no topo da iniciativa
   for (const u of STATE.units) {
     u.actions = 3;
     u.reaction = true;
@@ -9612,7 +9618,7 @@ function onCanvasPointerMove(e) {
     } else if (STATE.interaction.draggingUnitId && cell) {
       const dragged = STATE.units.find(u => u.id === STATE.interaction.draggingUnitId);
       const occupied = STATE.units.find(u => u.id !== dragged.id && u.col === cell.col && u.row === cell.row);
-      if (dragged && !occupied) {
+      if (dragged && !occupied && !cellBlocksUnits(cell.col, cell.row)) {
         dragged.col = cell.col;
         dragged.row = cell.row;
       }
@@ -10138,17 +10144,22 @@ function rollAllInitiatives() {
 }
 
 function nextTurn() {
-  const alive = STATE.units.filter(u => u.hp > 0);
-  if (alive.length === 0) return;
-  const idx = alive.findIndex(u => u.id === STATE.combat.activeUnitId);
-  let nextIdx = idx + 1;
-  if (nextIdx >= alive.length) {
-    nextIdx = 0;
+  // segue a ordem da iniciativa a partir da peça da vez, mesmo que ela tenha morrido no próprio turno
+  const order = STATE.units;
+  if (!order.some(u => u.hp > 0)) return;
+  let i = order.findIndex(u => u.id === STATE.combat.activeUnitId);
+  let wrapped = false;
+  for (let step = 0; step < order.length; step++) {
+    i += 1;
+    if (i >= order.length) { i = 0; wrapped = true; }
+    if (order[i].hp > 0) break;
+  }
+  if (wrapped) {
     STATE.combat.round += 1;
     expireSpellFlashes(STATE.combat.round);
     addLog(`🔔 <strong>Início da Rodada ${STATE.combat.round}!</strong>`);
   }
-  const nextUnit = alive[nextIdx];
+  const nextUnit = order[i];
   STATE.combat.activeUnitId = nextUnit.id;
   STATE.selectedUnitId = nextUnit.id;
   nextUnit.actions = 3;
@@ -11427,6 +11438,7 @@ async function importImagesAsTemplates(event) {
 }
 
 function populateDemoBattle() {
+  clearEraseUndo();
   STATE.units = [];
   STATE.terrainMap = {
     '6,3': 'wall', '6,4': 'wall', '7,7': 'difficult', '7,8': 'difficult'
@@ -11457,6 +11469,7 @@ function populateDemoBattle() {
 }
 
 function clearAllUnits() {
+  clearEraseUndo();
   STATE.units = [];
   STATE.terrainMap = {};
   STATE.objects = [];
@@ -11597,6 +11610,7 @@ function importJSON(event) {
 }
 
 function applyLoadedPayload(data) {
+  clearEraseUndo();
   if (data.grid) {
     STATE.grid = { ...STATE.grid, ...data.grid };
     // mapa de fundo salvo como imagem: recria a imagem (antes ficava salvo mas não aparecia ao carregar)
@@ -11847,6 +11861,22 @@ function deselectMenu(menu) {
   renderEnvPalettes();
 }
 
+/** Saindo da montagem: desfaz a escolha do menu aberto e qualquer pintura/arrasto em andamento. */
+function releaseSetupSelection() {
+  if (STATE.openMenu) deselectMenu(STATE.openMenu);
+  STATE.paint.start = null;
+  STATE.paint.preview = null;
+  STATE.interaction.paintingTerrain = false;
+  STATE.interaction.draggingUnitId = null;
+  touchState.pending = null;
+}
+
+/** Casa onde uma peça não pode ficar: parede, abismo, pedra, árvore… (mesma regra do movimento). */
+function cellBlocksUnits(col, row) {
+  const obj = STATE.objects.find(o => o.col === col && o.row === row && OBJECT_TYPES[o.type]);
+  return cellMoveMultiplier(STATE.terrainMap[`${col},${row}`], obj && obj.type) === null;
+}
+
 /** Ferramenta que o clique no tabuleiro usa agora (montagem). */
 function currentBoardTool() {
   if (STATE.openMenu === 'tools') return STATE.toolTab;
@@ -12057,6 +12087,7 @@ function placeObjectAt(cell) {
 
 /** Toque/clique simples já confirmado (no celular, ao soltar o dedo). */
 function setupTap(cell, clickedUnit) {
+  if (STATE.mode !== 'setup') return;
   const tool = currentBoardTool();
   if (tool === 'object' || tool === 'hazard') { placeObjectAt(cell); return; }
   if (clickedUnit) {
@@ -12066,13 +12097,15 @@ function setupTap(cell, clickedUnit) {
     return;
   }
   if (tool === 'piece' || tool === 'animal') {
-    if (STATE.selectedTemplateId) spawnUnitFromTemplate(STATE.selectedTemplateId, cell.col, cell.row);
+    if (STATE.selectedTemplateId && cellBlocksUnits(cell.col, cell.row)) addLog('⚠️ Essa casa não comporta uma peça (parede, abismo ou obstáculo).');
+    else if (STATE.selectedTemplateId) spawnUnitFromTemplate(STATE.selectedTemplateId, cell.col, cell.row);
     else addLog(tool === 'animal' ? '🐺 Escolha um animal na caixa de ferramentas antes de clicar no tabuleiro.' : '🧙 Escolha uma peça na galeria antes de clicar no tabuleiro.');
   }
 }
 
 /** Ao pousar o ponteiro (mouse). Devolve true se a ação já foi tratada aqui. */
 function setupPointerDown(cell, clickedUnit) {
+  if (STATE.mode !== 'setup') return false;
   const tool = currentBoardTool();
   if (tool === 'terrain' || tool === 'effect') return beginPaint(tool, cell, clickedUnit) || selectOnly(clickedUnit);
   if (tool === 'object' || tool === 'hazard') { placeObjectAt(cell); return true; }
@@ -12532,6 +12565,25 @@ function eraseAt(cell, allowUnits = true) {
   return item;
 }
 
+/** Outro tabuleiro (carregar, cena, limpar, exemplo): o que foi apagado no anterior não volta. */
+function clearEraseUndo() {
+  eraseUndo.length = 0;
+}
+
+/** Casa livre mais próxima (para devolver uma peça cuja casa foi ocupada). */
+function nearestFreeCell(col, row) {
+  const taken = new Set(STATE.units.filter(u => u.hp > 0).map(u => `${u.col},${u.row}`));
+  let best = null, bestD = Infinity;
+  for (let r = 0; r < STATE.grid.rows; r++) {
+    for (let c = 0; c < STATE.grid.cols; c++) {
+      if (taken.has(`${c},${r}`) || cellBlocksUnits(c, r)) continue;
+      const d = cellDistanceMeters(col, row, c, r);
+      if (d < bestD) { bestD = d; best = { col: c, row: r }; }
+    }
+  }
+  return best;
+}
+
 function pushEraseUndo(entry) {
   eraseUndo.push(entry);
   if (eraseUndo.length > ERASE_UNDO_LIMIT) eraseUndo.shift();
@@ -12542,6 +12594,13 @@ function undoErase() {
   const e = eraseUndo.pop();
   if (!e) return false;
   if (e.kind === 'unit') {
+    // a casa pode ter sido ocupada depois de apagar: volta para a livre mais próxima
+    if (STATE.units.some(u => u.hp > 0 && u.col === e.unit.col && u.row === e.unit.row)) {
+      const free = nearestFreeCell(e.unit.col, e.unit.row);
+      if (!free) { eraseUndo.push(e); addLog('⚠️ Não há casa livre para devolver a peça.'); return false; }
+      e.unit.col = free.col;
+      e.unit.row = free.row;
+    }
     STATE.units.splice(Math.min(e.idx, STATE.units.length), 0, e.unit);
     STATE.effectZones.push(...e.zones);
     STATE.selectedUnitId = e.unit.id;
@@ -12573,7 +12632,7 @@ function editDragTo(cell) {
   const ref = d.item.ref;
   if (d.item.kind === 'unit') {
     const occupied = STATE.units.some(u => u !== ref && u.hp > 0 && u.col === cell.col && u.row === cell.row);
-    if (occupied) return;
+    if (occupied || cellBlocksUnits(cell.col, cell.row)) return;
   } else {
     // objeto e perigo dividem a casa, mas dois do mesmo tipo de coisa não
     const isHz = !!HAZARD_TYPES[ref.type];
@@ -12808,8 +12867,8 @@ document.addEventListener('keydown', (e) => {
     if (!STATE.spacePan) { STATE.spacePan = true; syncHudToolButtons(); }
     return;
   }
-  // Ctrl/⌘+Z: desfaz o que a lixeira apagou
-  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z') && !typingHere) {
+  // Ctrl/⌘+Z: desfaz o que a lixeira apagou (só na montagem: no combate não devolve peças ao tabuleiro)
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z') && !typingHere && STATE.mode === 'setup') {
     if (undoErase()) e.preventDefault();
     return;
   }

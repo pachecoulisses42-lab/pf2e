@@ -486,17 +486,22 @@ function rollAllInitiatives() {
 }
 
 function nextTurn() {
-  const alive = STATE.units.filter(u => u.hp > 0);
-  if (alive.length === 0) return;
-  const idx = alive.findIndex(u => u.id === STATE.combat.activeUnitId);
-  let nextIdx = idx + 1;
-  if (nextIdx >= alive.length) {
-    nextIdx = 0;
+  // segue a ordem da iniciativa a partir da peça da vez, mesmo que ela tenha morrido no próprio turno
+  const order = STATE.units;
+  if (!order.some(u => u.hp > 0)) return;
+  let i = order.findIndex(u => u.id === STATE.combat.activeUnitId);
+  let wrapped = false;
+  for (let step = 0; step < order.length; step++) {
+    i += 1;
+    if (i >= order.length) { i = 0; wrapped = true; }
+    if (order[i].hp > 0) break;
+  }
+  if (wrapped) {
     STATE.combat.round += 1;
     expireSpellFlashes(STATE.combat.round);
     addLog(`🔔 <strong>Início da Rodada ${STATE.combat.round}!</strong>`);
   }
-  const nextUnit = alive[nextIdx];
+  const nextUnit = order[i];
   STATE.combat.activeUnitId = nextUnit.id;
   STATE.selectedUnitId = nextUnit.id;
   nextUnit.actions = 3;

@@ -68,8 +68,8 @@ document.addEventListener('keydown', (e) => {
     if (!STATE.spacePan) { STATE.spacePan = true; syncHudToolButtons(); }
     return;
   }
-  // Ctrl/⌘+Z: desfaz o que a lixeira apagou
-  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z') && !typingHere) {
+  // Ctrl/⌘+Z: desfaz o que a lixeira apagou (só na montagem: no combate não devolve peças ao tabuleiro)
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z') && !typingHere && STATE.mode === 'setup') {
     if (undoErase()) e.preventDefault();
     return;
   }

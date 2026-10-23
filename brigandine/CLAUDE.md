@@ -16,6 +16,8 @@ a partir de `src/`. Interface e textos em português.
   apagar não custa ação. Tocha = emanação; lanterna = cone na direção da peça.
 - Só um menu da montagem aberto por vez; só o menu aberto age no tabuleiro; fechar um menu desfaz a escolha
   feita nele. Cada menu termina com a própria transparência (0 % a 90 %).
+- Trocar de modo (montagem ↔ combate) desfaz a escolha da montagem (peça, pincel, objeto, clima) e desliga
+  régua, mão, lixeira e lápis: nada da montagem age no combate, nem continua engatilhado ao voltar.
 
 ## Verificação antes de entregar
 
