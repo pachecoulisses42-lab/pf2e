@@ -3,7 +3,10 @@
    ============================================================================ */
 const TOKEN_STYLES = {
   chibi: { label: 'Chibi', svgs: CHIBI_SVGS },
-  topo: { label: 'Vista de cima', svgs: TOPDOWN_SVGS }
+  topo: { label: 'Vista de cima', svgs: TOPDOWN_SVGS },
+  // cel-shaded: os bonecos de 00o desenham a peça; os SVGs ficam só de reserva
+  cel: { label: 'Cel frente', svgs: CHIBI_SVGS },
+  celtopo: { label: 'Cel de cima', svgs: TOPDOWN_SVGS }
 };
 /** Estilos que deixaram de existir e o estilo que os substitui (preferências salvas). */
 const RETIRED_TOKEN_STYLES = { medalhao: 'topo' };

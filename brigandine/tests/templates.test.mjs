@@ -35,7 +35,7 @@ test('todo token existe também na vista de cima, e vice-versa', () => {
 });
 
 test('o estilo medalhão aposentado cai na vista de cima', () => {
-  assert.equal(Object.keys(T.TOKEN_STYLES).sort().join(), 'chibi,topo');
+  assert.equal(Object.keys(T.TOKEN_STYLES).sort().join(), 'cel,celtopo,chibi,topo');
   T.setTokenStyle('medalhao');
   assert.equal(T.activeStyle(), 'topo');
   T.setTokenStyle('chibi');

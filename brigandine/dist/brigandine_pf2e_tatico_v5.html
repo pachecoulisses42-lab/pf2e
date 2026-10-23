@@ -1348,6 +1348,10 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
               <button id="styleChibi" class="seg-btn active" onclick="chooseTokenStyle('chibi')">Token</button>
               <button id="styleTopo" class="seg-btn" onclick="chooseTokenStyle('topo')">Vista de cima</button>
             </div>
+            <div class="seg" style="margin-top:6px">
+              <button id="styleCel" class="seg-btn" onclick="chooseTokenStyle('cel')" title="Bonecos cel-shaded de frente, animados (8 quadros por atividade)">Cel frente</button>
+              <button id="styleCelTopo" class="seg-btn" onclick="chooseTokenStyle('celtopo')" title="Bonecos cel-shaded vistos de cima, animados">Cel de cima</button>
+            </div>
           </div>
 
           <div class="gallery-filter">
@@ -3492,7 +3496,10 @@ function t3dBlade({ y0 = 0, y1 = 1, w = 0.08, t = 0.02, color, tip = 0.15, glow 
 }
 
 /** Vira para fora as faces de uma peça convexa (normal apontando para longe do centro). */
+let T3D_PART_SEQ = 0;
 function t3dOrient(faces) {
+  const gid = ++T3D_PART_SEQ;
+  for (const f of faces) f.g = gid;
   let cx = 0, cy = 0, cz = 0, n = 0;
   for (const f of faces) for (const v of f.v) { cx += v[0]; cy += v[1]; cz += v[2]; n++; }
   cx /= n; cy /= n; cz /= n;
@@ -3529,7 +3536,7 @@ function t3dFind(node, name) {
  * elev (rad, inclinação da câmera), pose: { nome: [rx, ry, rz] }, offset: [x,y,z] do corpo }.
  */
 function t3dDraw(ctx2, model, opts) {
-  const { x, y, scale, yaw = 0, elev = 50 * T3D_DEG, pose = {}, rootOffset = [0, 0, 0], flags = [] } = opts;
+  const { x, y, scale, yaw = 0, elev = 50 * T3D_DEG, pose = {}, rootOffset = [0, 0, 0], flags = [], cel = false, flash = 0, ink = '#1a1410' } = opts;
   const anchors = {};
   const ce = Math.cos(elev), se = Math.sin(elev);
   const view = [0, se, ce];
@@ -3556,11 +3563,16 @@ function t3dDraw(ctx2, model, opts) {
       let depth = 0;
       const pts = w.map(q => { depth += q[1] * se + q[2] * ce; return [x + q[0] * scale, y + (-q[1] * ce + q[2] * se) * scale]; });
       const lam = Math.max(0, nx * T3D_LIGHT[0] + ny * T3D_LIGHT[1] + nz * T3D_LIGHT[2]);
-      polys.push({ pts, depth: depth / w.length, c: f.c, shade: f.glow ? 1.15 : 0.58 + 0.55 * lam, glow: f.glow });
+      const shade = f.glow ? 1.15 : cel ? (lam > 0.62 ? 1.06 : lam > 0.22 ? 0.86 : 0.64) : 0.58 + 0.55 * lam;
+      polys.push({ pts, depth: depth / w.length, c: f.c, shade, glow: f.glow, g: f.g || 0, detail: f.detail });
     }
     for (const c of node.children) walk(c, m);
   };
   walk(model.root, t3dMat(0, yaw, 0, 0, 0, 0));
+  if (cel) {
+    t3dDrawCel(ctx2, polys, scale, flash, ink);
+    return anchors;
+  }
   polys.sort((a, b) => a.depth - b.depth);
   ctx2.save();
   ctx2.lineJoin = 'round';
@@ -3591,6 +3603,52 @@ function t3dShade(hex, k) {
   v = `rgb(${ch((n >> 16) & 255)}, ${ch((n >> 8) & 255)}, ${ch(n & 255)})`;
   T3D_SHADE_CACHE.set(key, v);
   return v;
+}
+
+/**
+ * Cel-shading: tons chapados em 3 faixas e contorno de tinta por peça. As peças são desenhadas
+ * de trás para a frente; cada uma recebe o contorno escuro e depois o preenchimento, então o
+ * traço aparece na silhueta e onde uma peça passa na frente de outra.
+ */
+function t3dDrawCel(ctx2, polys, scale, flash, ink) {
+  const groups = new Map();
+  for (const p of polys) {
+    let g = groups.get(p.g);
+    if (!g) { g = { polys: [], depth: 0 }; groups.set(p.g, g); }
+    g.polys.push(p);
+    g.depth += p.depth;
+  }
+  const list = [...groups.values()].map(g => ({ ...g, depth: g.depth / g.polys.length }));
+  list.sort((a, b) => a.depth - b.depth);
+  const lw = Math.max(1.2, scale * 0.045);
+  ctx2.save();
+  ctx2.lineJoin = 'round';
+  ctx2.lineCap = 'round';
+  const path = (p) => { ctx2.beginPath(); p.pts.forEach((q, i) => (i ? ctx2.lineTo(q[0], q[1]) : ctx2.moveTo(q[0], q[1]))); ctx2.closePath(); };
+  for (const g of list) {
+    g.polys.sort((a, b) => a.depth - b.depth);
+    ctx2.strokeStyle = ink;
+    ctx2.lineWidth = lw;
+    for (const p of g.polys) { if (!p.glow && !p.detail) { path(p); ctx2.stroke(); } }
+    for (const p of g.polys) {
+      const col = t3dShadeFlash(p.c, p.shade, flash);
+      ctx2.fillStyle = col;
+      ctx2.strokeStyle = col;
+      ctx2.lineWidth = 0.8;
+      path(p);
+      ctx2.fill();
+      ctx2.stroke();
+    }
+  }
+  ctx2.restore();
+}
+
+/** Tom da faixa, misturado com branco no clarão de "atingido". */
+function t3dShadeFlash(hex, k, flash) {
+  if (!flash) return t3dShade(hex, k);
+  const n = parseInt((hex || '#888888').slice(1), 16);
+  const ch = (c) => Math.round(Math.min(255, c * k) * (1 - flash) + 255 * flash);
+  return `rgb(${ch((n >> 16) & 255)}, ${ch((n >> 8) & 255)}, ${ch(n & 255)})`;
 }
 
 /* ===== 00l-t3d-humanoid.js ===== */
@@ -3653,6 +3711,69 @@ const T3D_ITEMS = {
     parts.push(t3dBox({ w: 0.08, h: 0.06, d: 0.06, color: '#5c3b22' }));
     return parts;
   },
+  scroll: () => [
+    t3dPrism({ n: 6, y0: -0.2, y1: 0.2, r0: 0.03, r1: 0.03, color: '#7c4a1e' }).map(f => ({ ...f, v: f.v.map(v => [v[1], v[0] + 0.17, v[2]]) })),
+    t3dPrism({ n: 6, y0: -0.2, y1: 0.2, r0: 0.03, r1: 0.03, color: '#7c4a1e' }).map(f => ({ ...f, v: f.v.map(v => [v[1], v[0] - 0.17, v[2]]) })),
+    t3dBox({ w: 0.36, h: 0.32, d: 0.012, color: '#f3e2b8' }),
+    t3dBox({ y: 0.04, z: 0.008, w: 0.22, h: 0.02, d: 0.006, color: '#7f1d1d' }),
+    t3dBox({ y: -0.03, z: 0.008, w: 0.18, h: 0.02, d: 0.006, color: '#7f1d1d' })
+  ],
+  shield: (c) => [
+    t3dAxisZ(t3dPrism({ n: 10, y0: -0.02, y1: 0.03, r0: 0.25, r1: 0.25, color: c.shieldColor || '#8b5a2b' })),
+    t3dAxisZ(t3dPrism({ n: 8, y0: 0.03, y1: 0.07, r0: 0.07, r1: 0.04, color: c.shieldBoss || '#9ca3af' })),
+    ...(c.shieldMark ? [t3dBox({ z: 0.035, w: 0.06, h: 0.3, d: 0.01, color: c.shieldMark }), t3dBox({ z: 0.035, w: 0.3, h: 0.06, d: 0.01, color: c.shieldMark })] : [])
+  ],
+  kite: (c) => [
+    t3dBox({ y: 0.02, w: 0.4, h: 0.44, d: 0.04, color: c.shieldColor || '#1d4ed8', taper: 1.15 }),
+    t3dBox({ y: -0.26, w: 0.24, h: 0.12, d: 0.04, color: c.shieldColor || '#1d4ed8', taper: 2.3 }),
+    ...(c.shieldMark ? [t3dBox({ y: 0.04, z: 0.025, w: 0.05, h: 0.3, d: 0.01, color: c.shieldMark }), t3dBox({ y: 0.08, z: 0.025, w: 0.22, h: 0.05, d: 0.01, color: c.shieldMark })] : [])
+  ],
+  axe: (c) => [
+    t3dPrism({ n: 5, y0: -0.14, y1: 0.62, r0: 0.026, r1: 0.024, color: c.grip || '#6b4423' }),
+    t3dBox({ x: 0.09, y: 0.55, w: 0.18, h: 0.22, d: 0.03, color: c.blade || '#cbd5e1', taper: 1.4 })
+  ],
+  greataxe: (c) => [
+    t3dPrism({ n: 5, y0: -0.3, y1: 0.85, r0: 0.03, r1: 0.028, color: c.grip || '#6b4423' }),
+    t3dBox({ x: 0.13, y: 0.74, w: 0.26, h: 0.32, d: 0.035, color: c.blade || '#cbd5e1', taper: 1.5 }),
+    t3dBox({ x: -0.11, y: 0.74, w: 0.2, h: 0.26, d: 0.035, color: c.blade || '#cbd5e1', taper: 1.5 })
+  ],
+  spear: (c) => [
+    t3dPrism({ n: 5, y0: -0.7, y1: 1.0, r0: 0.024, r1: 0.022, color: c.grip || '#7c5a32' }),
+    t3dBlade({ y0: 0.98, y1: 1.26, w: 0.09, t: 0.02, color: c.blade || '#d1d5db', tip: 0.14 })
+  ],
+  crossbow: (c) => [
+    t3dBox({ y: 0.12, w: 0.06, h: 0.5, d: 0.07, color: c.wood || '#7c4a1e' }),
+    t3dBox({ y: 0.34, z: 0.02, w: 0.5, h: 0.04, d: 0.04, color: '#4b5563' }),
+    t3dBox({ y: 0.25, z: 0.02, w: 0.48, h: 0.008, d: 0.008, color: '#e5e7eb' })
+  ],
+  pistol: () => [
+    t3dBox({ y: -0.04, w: 0.05, h: 0.13, d: 0.06, color: '#5b3a1e' }),
+    t3dBox({ y: 0.1, z: 0.0, w: 0.045, h: 0.22, d: 0.045, color: '#4b5563' })
+  ],
+  lute: (c) => [
+    t3dAxisZ(t3dPrism({ n: 8, y0: -0.04, y1: 0.04, r0: 0.17, r1: 0.17, sx: 1, sz: 1.3, color: c.wood || '#b0713a' })),
+    t3dBox({ y: 0.32, w: 0.05, h: 0.36, d: 0.03, color: '#5b3a1e' }),
+    t3dAxisZ(t3dPrism({ n: 6, y0: 0.04, y1: 0.05, r0: 0.05, r1: 0.05, color: '#1f2937' }))
+  ],
+  wand: (c) => [
+    t3dPrism({ n: 5, y0: -0.05, y1: 0.32, r0: 0.018, r1: 0.012, color: c.wood || '#5b3a1e' }),
+    t3dPrism({ n: 5, y0: 0.32, y1: 0.38, r0: 0.03, r1: 0, color: c.glowColor || '#a5f3fc' }).map(f => ({ ...f, glow: true }))
+  ],
+  sickle: (c) => [
+    t3dPrism({ n: 5, y0: -0.1, y1: 0.25, r0: 0.022, r1: 0.022, color: '#6b4423' }),
+    t3dBox({ x: 0.06, y: 0.3, w: 0.16, h: 0.035, d: 0.02, color: '#d1d5db' }),
+    t3dBox({ x: 0.15, y: 0.24, w: 0.04, h: 0.12, d: 0.02, color: '#d1d5db' })
+  ],
+  orb: (c) => [
+    t3dPrism({ n: 6, y0: 0.0, y1: 0.16, r0: 0.07, r1: 0.07, color: c.glowColor || '#a78bfa' }).map(f => ({ ...f, glow: true }))
+  ],
+  club: (c) => [
+    t3dPrism({ n: 6, y0: -0.12, y1: 0.55, r0: 0.03, r1: 0.07, color: c.grip || '#e7e5e4', jag: 0.2 })
+  ],
+  torch: () => [
+    t3dPrism({ n: 5, y0: -0.12, y1: 0.3, r0: 0.025, r1: 0.03, color: '#6b4423' }),
+    t3dPrism({ n: 5, y0: 0.3, y1: 0.48, r0: 0.06, r1: 0, color: '#f97316', jag: 0.3 }).map(f => ({ ...f, glow: true }))
+  ],
   flask: () => [
     t3dPrism({ n: 6, y0: -0.06, y1: 0.06, r0: 0.06, r1: 0.06, color: '#dc2626' }),
     t3dPrism({ n: 6, y0: 0.06, y1: 0.14, r0: 0.025, r1: 0.025, color: '#e5e7eb' }),
@@ -3663,6 +3784,11 @@ const T3D_ITEMS = {
     t3dPrism({ n: 5, y0: 0, y1: 0.22, r0: 0.06, r1: 0, color: '#fde047', twist: 0.5 }).map(f => ({ ...f, glow: true }))
   ]
 };
+
+/** Gira uma peça feita ao longo de y para ficar ao longo de z (discos de frente: escudo, alaúde). */
+function t3dAxisZ(faces) {
+  return faces.map(f => ({ ...f, v: f.v.map(v => [v[0], -v[2], v[1]]) }));
+}
 
 /** Peças de item e nós filhos (o arco é feito de nós inclinados). */
 function t3dItemNode(name, kind, cfg, pos, rot, when = null) {
@@ -3728,9 +3854,9 @@ function t3dHumanoid(cfg) {
   head.push(t3dPrism({ n: 6, y0: 0.05 + hr * 2.1, y1: 0.05 + hr * 2.45, r0: hr * 0.95, r1: hr * 0.5, sz: 0.95, twist: Math.PI / 6, color: C.hairStyle === 'bald' || !C.hair ? C.skin : C.hair }));
   const eyeY = 0.05 + hr * 1.25;
   if (!C.faceShadow) {
-    head.push(t3dBox({ x: 0.055 * hs, y: eyeY, z: hr * 0.86, w: 0.035, h: 0.022, d: 0.02, color: '#111827' }));
-    head.push(t3dBox({ x: -0.055 * hs, y: eyeY, z: hr * 0.86, w: 0.035, h: 0.022, d: 0.02, color: '#111827' }));
-    head.push(t3dBox({ y: eyeY + 0.04, z: hr * 0.84, w: 0.15 * hs, h: 0.018, d: 0.02, color: C.brow || C.hair || '#3f2a17' }));
+    head.push(t3dBox({ x: 0.055 * hs, y: eyeY, z: hr * 0.86, w: 0.03, h: 0.026, d: 0.02, color: '#111827' }).map(f => ({ ...f, detail: true })));
+    head.push(t3dBox({ x: -0.055 * hs, y: eyeY, z: hr * 0.86, w: 0.03, h: 0.026, d: 0.02, color: '#111827' }).map(f => ({ ...f, detail: true })));
+    head.push(t3dBox({ y: eyeY + 0.045, z: hr * 0.84, w: 0.15 * hs, h: 0.014, d: 0.02, color: C.brow || C.hair || '#3f2a17' }).map(f => ({ ...f, detail: true })));
   }
   if (C.ears === 'elf') {
     for (const s of [1, -1]) head.push(t3dPrism({ n: 4, y0: 0, y1: 0.16, r0: 0.03, r1: 0, cx: s * hr * 0.95, color: C.skin, off: [s * 0.1, -0.03] }).map(f => ({ ...f, v: f.v.map(v => [v[0], v[1] + eyeY - 0.02, v[2]]) })));
@@ -3759,10 +3885,55 @@ function t3dHumanoid(cfg) {
     // abertura do rosto
     head.push(t3dBox({ y: eyeY - 0.01, z: hr * 1.02, w: hr * 1.2, h: hr * 1.3, d: 0.03, color: C.faceShadow ? '#1f1a17' : C.skin }));
     if (!C.faceShadow) {
-      head.push(t3dBox({ x: 0.05 * hs, y: eyeY, z: hr * 1.05, w: 0.035, h: 0.022, d: 0.02, color: C.eyes || '#111827' }));
-      head.push(t3dBox({ x: -0.05 * hs, y: eyeY, z: hr * 1.05, w: 0.035, h: 0.022, d: 0.02, color: C.eyes || '#111827' }));
+      head.push(t3dBox({ x: 0.05 * hs, y: eyeY, z: hr * 1.05, w: 0.03, h: 0.026, d: 0.02, color: C.eyes || '#111827' }).map(f => ({ ...f, detail: true })));
+      head.push(t3dBox({ x: -0.05 * hs, y: eyeY, z: hr * 1.05, w: 0.03, h: 0.026, d: 0.02, color: C.eyes || '#111827' }).map(f => ({ ...f, detail: true })));
     }
   }
+
+  const top = 0.05 + hr * 2.45;
+  const hc = C.helmColor || '#9ca3af';
+  if (C.skull) {
+    head.push(t3dBox({ x: 0.055 * hs, y: eyeY, z: hr * 0.84, w: 0.06, h: 0.055, d: 0.03, color: '#111827' }).map(f => ({ ...f, detail: true })));
+    head.push(t3dBox({ x: -0.055 * hs, y: eyeY, z: hr * 0.84, w: 0.06, h: 0.055, d: 0.03, color: '#111827' }).map(f => ({ ...f, detail: true })));
+    head.push(t3dBox({ y: eyeY - 0.09, z: hr * 0.84, w: hr * 1.0, h: 0.025, d: 0.03, color: '#57534e' }).map(f => ({ ...f, detail: true })));
+  }
+  if (C.eyeGlow) {
+    for (const s of [1, -1]) head.push(t3dBox({ x: s * 0.055 * hs, y: eyeY, z: hr * 0.9, w: 0.035, h: 0.022, d: 0.02, color: C.eyeGlow }).map(f => ({ ...f, glow: true, detail: true })));
+  }
+  if (C.ears === 'goblin') {
+    for (const s of [1, -1]) head.push(t3dPrism({ n: 4, y0: 0, y1: 0.26, r0: 0.05, r1: 0, cx: s * hr * 0.9, color: C.skin, off: [s * 0.24, 0.02] }).map(f => ({ ...f, v: f.v.map(v => [v[0], v[1] * 0.5 + eyeY, v[2]]) })));
+  }
+  if (C.ears === 'fox' || C.ears === 'wolf') {
+    for (const s of [1, -1]) head.push(t3dPrism({ n: 4, y0: top - 0.03, y1: top + 0.14, r0: 0.05, r1: 0, cx: s * hr * 0.6, color: C.earColor || C.hair || C.skin, off: [s * 0.02, 0] }));
+  }
+  if (C.mask) head.push(t3dBox({ y: eyeY - 0.07, z: hr * 0.66, w: hr * 1.75, h: hr * 0.75, d: hr * 0.6, color: C.mask }));
+  if (C.beak) {
+    head.push(t3dPrism({ n: 4, y0: 0, y1: 0.2, r0: 0.06, r1: 0, color: C.beak, twist: Math.PI / 4 }).map(f => ({ ...f, v: f.v.map(v => [v[0], eyeY - 0.05 + v[2] - v[1] * 0.25, hr * 0.85 + v[1]]) })));
+  }
+  if (C.helm === 'knight' || C.helm === 'horned' || C.helm === 'kabuto' || C.helm === 'cap' || C.helm === 'closed') {
+    head.push(t3dPrism({ n: 8, y0: eyeY + 0.04, y1: top + 0.03, r0: hr * 1.06, r1: hr * 0.6, sz: 0.98, color: hc }));
+    if (C.helm !== 'cap') head.push(t3dPrism({ n: 8, y0: eyeY - 0.1, y1: eyeY + 0.05, r0: hr * 1.1, r1: hr * 1.08, cz: -hr * 0.12, sz: 0.85, color: hc }).filter((f, i) => i < 3 || i > 5 || i >= 8));
+    if (C.helm === 'closed') head.push(t3dBox({ y: eyeY - 0.03, z: hr * 0.85, w: hr * 1.6, h: hr * 0.9, d: 0.06, color: hc }), t3dBox({ y: eyeY + 0.01, z: hr * 0.9, w: hr * 1.3, h: 0.02, d: 0.02, color: '#111827' }).map(f => ({ ...f, detail: true })));
+    if (C.helm === 'knight' || C.helm === 'closed') head.push(t3dBox({ y: eyeY - 0.02, z: hr * 0.98, w: 0.025, h: 0.12, d: 0.02, color: hc }));
+    if (C.crest) head.push(t3dBox({ y: top + 0.08, z: -0.02, w: 0.03, h: 0.12, d: hr * 1.6, color: C.crest, taper: 0.6 }));
+    if (C.helm === 'horned') for (const s of [1, -1]) head.push(t3dPrism({ n: 5, y0: top - 0.08, y1: top + 0.2, r0: 0.04, r1: 0, cx: s * hr * 0.9, off: [s * 0.12, 0], color: C.hornColor || '#e7e5e4' }));
+    if (C.helm === 'kabuto') {
+      head.push(t3dPrism({ n: 8, y0: eyeY - 0.1, y1: eyeY + 0.02, r0: hr * 1.6, r1: hr * 1.15, cz: -hr * 0.2, color: hc, bottom: false }));
+      head.push(t3dBox({ y: top + 0.08, z: hr * 0.7, w: hr * 1.4, h: 0.12, d: 0.02, color: C.crest || '#d4a017', taper: 1.6 }));
+    }
+  }
+  if (C.helm === 'kasa') head.push(t3dPrism({ n: 10, y0: top - 0.06, y1: top + 0.16, r0: hr * 2.5, r1: 0, color: hc }));
+  if (C.helm === 'cowboy' || C.helm === 'feather') {
+    head.push(t3dPrism({ n: 10, y0: top - 0.04, y1: top - 0.01, r0: hr * 1.9, r1: hr * 1.85, color: hc }));
+    head.push(t3dPrism({ n: 8, y0: top - 0.02, y1: top + 0.12, r0: hr * 1.0, r1: hr * 0.8, color: hc }));
+    if (C.hatBand) head.push(t3dPrism({ n: 8, y0: top - 0.01, y1: top + 0.03, r0: hr * 1.02, r1: hr * 1.0, color: C.hatBand }));
+    if (C.helm === 'feather') head.push(t3dBlade({ y0: 0, y1: 0.36, w: 0.07, t: 0.01, color: C.feather || '#f5f5f4', tip: 0.1 }).map(f => ({ ...f, v: f.v.map(v => [v[0] + hr * 0.7 + v[1] * 0.2, top + 0.02 + v[1] * 0.6, -v[1] * 0.7]) })));
+  }
+  if (C.helm === 'band' || C.helm === 'goggles') {
+    head.push(t3dPrism({ n: 8, y0: eyeY + 0.06, y1: eyeY + 0.11, r0: hr * 1.0, r1: hr * 1.0, sz: 0.97, color: C.helmColor || '#b91c1c' }));
+    if (C.helm === 'goggles') for (const s of [1, -1]) head.push(t3dAxisZ(t3dPrism({ n: 6, y0: 0, y1: 0.05, r0: 0.045, r1: 0.045, cx: s * 0.06, color: '#7dd3fc' })).map(f => ({ ...f, v: f.v.map(v => [v[0], v[1] + eyeY + 0.12, v[2] + hr * 0.82]) })));
+  }
+  if (C.helm === 'crown') head.push(t3dPrism({ n: 8, y0: top - 0.05, y1: top + 0.06, r0: hr * 0.95, r1: hr * 0.98, jag: 0.15, color: C.helmColor || '#d4a017' }));
 
   // ----- tronco
   const torsoParts = [
@@ -3799,13 +3970,22 @@ function t3dHumanoid(cfg) {
   if (C.buckle) hipParts.push(t3dBox({ y: 0.075, z: 0.19, w: 0.08, h: 0.07, d: 0.02, color: C.buckle }));
   if (C.sash) hipParts.push(t3dBox({ x: 0.06, y: -0.15, z: 0.19, w: 0.07, h: 0.32, d: 0.02, color: C.sash }));
   if (C.bag) hipParts.push(t3dBox({ x: -0.24, y: -0.05, z: 0.04, w: 0.08, h: 0.17, d: 0.2, color: C.bag }));
+  const hipKids = [];
+  if (C.tail) {
+    const tc = C.tail;
+    hipKids.push(t3dNode('tail', [0, 0.0, -0.18], [
+      t3dPrism({ n: 6, y0: 0, y1: tc.len || 0.55, r0: tc.r || 0.08, r1: tc.tipR ?? 0.12, color: tc.color }),
+      ...(tc.tip ? [t3dPrism({ n: 6, y0: (tc.len || 0.55), y1: (tc.len || 0.55) + 0.18, r0: tc.tipR ?? 0.12, r1: 0, color: tc.tip })] : [])
+    ], [], [-2.2, 0, 0]));
+  }
   if (C.books) hipParts.push(t3dBox({ x: 0.2, y: -0.04, z: 0.12, w: 0.1, h: 0.14, d: 0.12, color: C.books }));
 
   const root = t3dNode('root', [0, 0, 0], [], [
     t3dNode('hips', [0, 0.86, 0], hipParts, [
-      leg('L'), leg('R'),
+      leg('L'), leg('R'), ...hipKids,
       t3dNode('torso', [0, 0.06, 0], torsoParts, [
         t3dNode('head', [0, 0.6, 0], head),
+        t3dItemNode('scrollT', 'scroll', C, [0, 0.42, 0.34], [-0.5, 0, 0], 'scroll'),
         arm('L'), arm('R'),
         ...backKids
       ])
@@ -3816,7 +3996,10 @@ function t3dHumanoid(cfg) {
 
 /* ---------- poses ---------- */
 
-const T3D_ANIMS = ['idle', 'walk', 'attack', 'cast', 'item'];
+const T3D_ANIMS = ['idle', 'walk', 'attack', 'cast', 'item', 'scroll', 'hit'];
+
+/** Duração do ciclo de cada animação (s): os 8 quadros dividem esse tempo. */
+const T3D_CYCLE = { idle: 2.86, walk: 0.838, attack: 1.1, cast: 1.4, item: 1.4, scroll: 1.4, hit: 0.8 };
 const t3dSmooth = (k) => k * k * (3 - 2 * k);
 const t3dSeg = (k, a, b) => Math.max(0, Math.min(1, (k - a) / (b - a)));
 
@@ -3825,6 +4008,7 @@ const t3dSeg = (k, a, b) => Math.max(0, Math.min(1, (k - a) / (b - a)));
  * Devolve { pose, rootOffset, flags }.
  */
 function t3dPose(anim, t, style) {
+  if (style === 'bite') return t3dQuadPose(anim, t);
   const P = {};
   const flags = [];
   let ro = [0, 0, 0];
@@ -3879,6 +4063,16 @@ function t3dPose(anim, t, style) {
       P.armR = [-0.5 - 1.1 * stab, 0, -0.15];
       P.foreR = [-1.0 * (1 - stab), 0, 0];
       ro = [0, 0, 0.1 * stab];
+    } else if (style === 'shoot') {
+      // pistola/besta: aponta, recua no disparo, abaixa
+      const aim = t3dSmooth(t3dSeg(k, 0.05, 0.3)) * (1 - t3dSmooth(t3dSeg(k, 0.75, 1)));
+      const kick = t3dSmooth(t3dSeg(k, 0.42, 0.47)) * (1 - t3dSmooth(t3dSeg(k, 0.47, 0.65)));
+      P.armR = [-1.5 * aim - 0.35 * kick, 0, -0.1];
+      P.foreR = [-0.1 * aim, 0, 0];
+      P.armL = [-1.2 * aim, 0, 0.45 * aim];
+      P.foreL = [-0.5 * aim, 0, 0];
+      P.torso = [-0.08 * kick, -0.15 * aim, 0];
+      ro = [0, 0, -0.04 * kick];
     } else {
       // espada/katana/cajado: ergue e desce
       const up = t3dSmooth(t3dSeg(k, 0.0, 0.38));
@@ -3918,6 +4112,36 @@ function t3dPose(anim, t, style) {
     P.head = [-0.35 * tilt, 0, 0];
     P.torso = [-0.08 * tilt, 0, 0];
     flags.push('item');
+  }
+  if (anim === 'scroll') {
+    // abre o pergaminho na frente do peito, lê, e ele brilha e se desfaz
+    const T = 1.4, k = (t % T) / T;
+    const open = t3dSmooth(t3dSeg(k, 0, 0.2));
+    const burn = t3dSmooth(t3dSeg(k, 0.7, 0.9));
+    P.armL = [-1.05 * open + 0.6 * burn, 0, 0.22 + 0.3 * burn];
+    P.armR = [-1.05 * open + 0.6 * burn, 0, -0.22 - 0.3 * burn];
+    P.foreL = [-0.75 * open, 0, 0];
+    P.foreR = [-0.75 * open, 0, 0];
+    P.head = [0.22 * open * (1 - burn) - 0.15 * burn, 0, 0];
+    P.torso = [0.05 * open - 0.1 * burn, 0, 0];
+    if (k < 0.82) flags.push('scroll');
+    if (k > 0.55 && k < 0.95) flags.push('scrollGlow');
+  }
+
+  if (anim === 'hit') {
+    // golpe chega no começo: tranco para trás, cabeça e braços jogados, recupera
+    const T = 0.8, k = (t % T) / T;
+    const jolt = t3dSmooth(t3dSeg(k, 0, 0.12)) * (1 - t3dSmooth(t3dSeg(k, 0.3, 1)));
+    P.torso = [-0.45 * jolt, 0.15 * jolt, 0];
+    P.head = [-0.4 * jolt, -0.2 * jolt, 0];
+    P.armL = [0.5 * jolt, 0, 0.1 + 0.7 * jolt];
+    P.armR = [0.5 * jolt, 0, -0.1 - 0.7 * jolt];
+    P.foreL = [-0.6 * jolt, 0, 0];
+    P.foreR = [-0.6 * jolt, 0, 0];
+    P.legL = [-0.25 * jolt, 0, 0];
+    P.shinL = [0.3 * jolt, 0, 0];
+    ro = [0, -0.04 * jolt, -0.18 * jolt];
+    if (k < 0.18) flags.push('hitFlash');
   }
   return { pose: P, rootOffset: ro, flags };
 }
@@ -4013,6 +4237,322 @@ function t3dThumbnail(key) {
   return T3D_THUMB_CACHE[key];
 }
 
+/* ===== 00n-t3d-quadruped.js ===== */
+/* ============================================================================
+   1n. TOKENS 3D — quadrúpede (lobos)
+   Corpo, cabeça com mandíbula, 4 patas de dois segmentos e cauda. Poses: parado,
+   andar, morder (ataque), uivar (no lugar de magia), ser atingido. Poção e
+   pergaminho não se aplicam (fica parado).
+   ============================================================================ */
+
+/**
+ * cfg: { name, fur, belly, muzzle, eyes, eyeGlow, scar, armor, armorTrim, mane, glow (espectral) }
+ */
+function t3dQuadruped(cfg) {
+  const C = cfg;
+  const fur = C.fur || '#6b7280';
+  const glowy = (faces) => (C.glow ? faces.flat().map(f => ({ ...f, glow: true })) : faces);
+
+  const leg = (name, x, z) => t3dNode(name, [x, -0.04, z], glowy([
+    t3dPrism({ n: 6, y0: -0.32, y1: 0.04, r0: 0.06, r1: 0.085, color: fur })
+  ]), [
+    t3dNode(name.replace('leg', 'shin'), [0, -0.3, 0], glowy([
+      t3dPrism({ n: 6, y0: -0.27, y1: 0.02, r0: 0.045, r1: 0.06, color: fur }),
+      t3dBox({ y: -0.27, z: 0.04, w: 0.1, h: 0.05, d: 0.14, color: C.paws || fur })
+    ]))
+  ]);
+
+  const headParts = [
+    t3dPrism({ n: 6, y0: -0.12, y1: 0.14, r0: 0.14, r1: 0.13, sx: 1.05, twist: Math.PI / 6, color: fur }),
+    // focinho (ao longo de z)
+    t3dAxisZ(t3dPrism({ n: 6, y0: 0.08, y1: 0.36, r0: 0.09, r1: 0.055, sz: 0.8, cz: 0.02, color: C.muzzle || fur })),
+    t3dBox({ y: 0.02, z: 0.37, w: 0.06, h: 0.05, d: 0.04, color: '#111827' }).map(f => ({ ...f, detail: true })),
+    ...[1, -1].map(s => t3dPrism({ n: 4, y0: 0.1, y1: 0.3, r0: 0.055, r1: 0, cx: s * 0.08, cz: -0.02, off: [s * 0.02, -0.02], color: fur })),
+    ...[1, -1].map(s => t3dBox({ x: s * 0.07, y: 0.06, z: 0.12, w: 0.04, h: 0.025, d: 0.02, color: C.eyeGlow || C.eyes || '#facc15' }).map(f => ({ ...f, detail: true, glow: !!C.eyeGlow })))
+  ];
+  if (C.scar) headParts.push(t3dBox({ x: 0.04, y: 0.08, z: 0.135, w: 0.02, h: 0.14, d: 0.01, color: C.scar }).map(f => ({ ...f, detail: true })));
+  if (C.armor) headParts.push(t3dPrism({ n: 6, y0: 0.06, y1: 0.16, r0: 0.15, r1: 0.12, color: C.armor }));
+
+  const bodyParts = [
+    t3dAxisZ(t3dPrism({ n: 7, y0: -0.48, y1: 0.42, r0: 0.17, r1: 0.21, sx: 0.85, sz: 1.05, twist: Math.PI / 7, color: fur })),
+    t3dBox({ y: -0.13, z: -0.02, w: 0.2, h: 0.08, d: 0.6, color: C.belly || fur })
+  ];
+  if (C.mane) bodyParts.push(t3dAxisZ(t3dPrism({ n: 7, y0: 0.18, y1: 0.48, r0: 0.25, r1: 0.18, sx: 0.95, sz: 1.1, jag: 0.15, color: C.mane })));
+  if (C.armor) {
+    bodyParts.push(t3dBox({ y: 0.17, z: 0.05, w: 0.3, h: 0.08, d: 0.55, color: C.armor }));
+    if (C.armorTrim) bodyParts.push(t3dBox({ y: 0.22, z: 0.05, w: 0.06, h: 0.04, d: 0.5, color: C.armorTrim }));
+  }
+
+  const root = t3dNode('root', [0, 0, 0], [], [
+    t3dNode('body', [0, 0.62, 0], glowy(bodyParts), [
+      t3dNode('head', [0, 0.16, 0.5], glowy(headParts), [
+        t3dNode('jaw', [0, -0.06, 0.12], glowy([t3dBox({ y: -0.03, z: 0.13, w: 0.11, h: 0.04, d: 0.24, color: C.muzzle || fur, taper: 0.8 })]))
+      ]),
+      leg('legFL', 0.12, 0.33), leg('legFR', -0.12, 0.33), leg('legBL', 0.12, -0.36), leg('legBR', -0.12, -0.36),
+      t3dNode('tail', [0, 0.08, -0.5], glowy([t3dPrism({ n: 6, y0: 0, y1: 0.48, r0: 0.07, r1: 0.025, color: C.tail || fur, jag: 0.1 })]), [], [-2.3, 0, 0])
+    ])
+  ]);
+  const hand = (n) => t3dFind(root, n);
+  hand('head').anchor = true;
+  return { root, style: 'bite', name: C.name, kind: 'quad' };
+}
+
+/** Poses do quadrúpede. 'cast' vira uivo; 'item' e 'scroll' ficam parados. */
+function t3dQuadPose(anim, t) {
+  const P = {};
+  const flags = [];
+  let ro = [0, 0, 0];
+  const br = Math.sin(t * 2.2);
+  P.body = [br * 0.015, 0, 0];
+  P.head = [0.05 + br * 0.03, Math.sin(t * 0.8) * 0.15, 0];
+  P.tail = [0, Math.sin(t * 3) * 0.35, 0];
+
+  if (anim === 'walk') {
+    const ph = t * 7.5, s = Math.sin(ph);
+    P.legFL = [s * 0.55, 0, 0]; P.legBR = [s * 0.55, 0, 0];
+    P.legFR = [-s * 0.55, 0, 0]; P.legBL = [-s * 0.55, 0, 0];
+    P.shinFL = [Math.max(0, Math.cos(ph)) * 0.7, 0, 0]; P.shinBR = [-Math.max(0, Math.cos(ph)) * 0.6, 0, 0];
+    P.shinFR = [Math.max(0, -Math.cos(ph)) * 0.7, 0, 0]; P.shinBL = [-Math.max(0, -Math.cos(ph)) * 0.6, 0, 0];
+    P.head = [0.12 + Math.cos(ph * 2) * 0.05, 0, 0];
+    P.tail = [0.3, Math.sin(ph) * 0.3, 0];
+    ro = [0, Math.abs(Math.cos(ph)) * 0.04, 0];
+  }
+  if (anim === 'attack') {
+    // agacha, salta para a frente e morde
+    const T = 1.1, k = (t % T) / T;
+    const crouch = t3dSmooth(t3dSeg(k, 0, 0.3)) * (1 - t3dSmooth(t3dSeg(k, 0.3, 0.42)));
+    const lunge = t3dSmooth(t3dSeg(k, 0.32, 0.45)) * (1 - t3dSmooth(t3dSeg(k, 0.6, 0.95)));
+    const bite = t3dSmooth(t3dSeg(k, 0.4, 0.46)) * (1 - t3dSmooth(t3dSeg(k, 0.46, 0.52)));
+    P.body = [0.15 * crouch - 0.12 * lunge, 0, 0];
+    P.head = [0.25 * crouch - 0.2 * lunge, 0, 0];
+    P.jaw = [0.7 * (lunge - bite * 0.9), 0, 0];
+    P.legFL = [-0.6 * lunge, 0, 0]; P.legFR = [-0.6 * lunge, 0, 0];
+    P.legBL = [0.5 * lunge - 0.3 * crouch, 0, 0]; P.legBR = [0.5 * lunge - 0.3 * crouch, 0, 0];
+    P.shinBL = [-0.5 * crouch, 0, 0]; P.shinBR = [-0.5 * crouch, 0, 0];
+    P.tail = [0.6 * lunge, 0, 0];
+    ro = [0, -0.1 * crouch + 0.12 * lunge, 0.32 * lunge];
+  }
+  if (anim === 'cast') {
+    // uivo: senta nas patas de trás e ergue a cabeça
+    const T = 1.4, k = (t % T) / T;
+    const up = t3dSmooth(t3dSeg(k, 0, 0.3)) * (1 - t3dSmooth(t3dSeg(k, 0.85, 1)));
+    P.body = [-0.45 * up, 0, 0];
+    P.head = [-0.9 * up, 0, 0];
+    P.jaw = [0.55 * up, 0, 0];
+    P.legBL = [0.9 * up, 0, 0]; P.legBR = [0.9 * up, 0, 0];
+    P.shinBL = [-1.2 * up, 0, 0]; P.shinBR = [-1.2 * up, 0, 0];
+    P.legFL = [0.45 * up, 0, 0]; P.legFR = [0.45 * up, 0, 0];
+    P.tail = [0.5 * up, 0, 0];
+    ro = [0, -0.12 * up, 0];
+    flags.push('cast');
+  }
+  if (anim === 'hit') {
+    const T = 0.8, k = (t % T) / T;
+    const jolt = t3dSmooth(t3dSeg(k, 0, 0.12)) * (1 - t3dSmooth(t3dSeg(k, 0.3, 1)));
+    P.body = [-0.2 * jolt, 0.2 * jolt, 0.1 * jolt];
+    P.head = [-0.35 * jolt, -0.3 * jolt, 0];
+    P.jaw = [0.3 * jolt, 0, 0];
+    P.tail = [-0.4 * jolt, 0, 0];
+    ro = [0, 0, -0.2 * jolt];
+    if (k < 0.18) flags.push('hitFlash');
+  }
+  return { pose: P, rootOffset: ro, flags };
+}
+
+/* ===== 00o-cel-characters.js ===== */
+/* ============================================================================
+   1o. CEL-SHADED — um boneco para cada token do projeto
+   app_* = os 22 personagens do app; pt_* = figuras pintadas dos heróis (ct_/cr_);
+   pv_* = figuras pintadas dos vilões (vt_/vr_); t3_* = os bonecos 3D. Os pares de
+   uma mesma figura (vista de cima / retrato) usam o mesmo boneco.
+   ============================================================================ */
+
+const CEL_SKIN = { light: '#f2c29b', tan: '#d9a07a', dark: '#a86f4c', goblin: '#84cc16', orc: '#65a30d' };
+const CEL_GOBLIN = { skin: CEL_SKIN.goblin, ears: 'goblin', headScale: 1.45, brow: '#3f6212' };
+
+const CEL_CHARS = {
+  /* ------------------------------- do app ------------------------------- */
+  app_guerreiro: { name: 'Guerreiro', attack: 'sword', skin: CEL_SKIN.light, hair: '#5b3a1e', hairStyle: 'short', helm: 'knight', helmColor: '#aeb6bf', crest: '#dc2626',
+    top: '#7b8794', armor: '#c0c7cf', vest: '#64748b', cape: '#b91c1c', pants: '#4b5563', boots: '#3f2a1e', belt: '#5b3a1e', buckle: '#d4a017', gloves: '#6b7280',
+    right: { kind: 'sword' }, left: { kind: 'shield', rot: [0, 0, 0] }, shieldColor: '#1d4ed8', shieldBoss: '#d4a017' },
+  app_paladino: { name: 'Paladino', attack: 'sword', skin: CEL_SKIN.light, hair: '#7c4a1e', hairStyle: 'short', top: '#d1d5db', armor: '#e5e7eb', vest: '#2563eb',
+    robe: '#f8fafc', robeLen: 0.45, robe2: '#2563eb', cape: '#f8fafc', pants: '#9ca3af', boots: '#6b7280', belt: '#d4a017', gloves: '#9ca3af',
+    right: { kind: 'spear', rot: [0, 0, 0] }, left: { kind: 'kite', rot: [0, 0, 0] }, shieldColor: '#1d4ed8', shieldMark: '#facc15' },
+  app_barbaro: { name: 'Bárbaro', attack: 'sword', skin: CEL_SKIN.tan, hair: '#1f1611', hairStyle: 'long', beard: 'long', helm: 'horned', helmColor: '#9ca3af',
+    top: CEL_SKIN.tan, vest: '#7c4a1e', straps: '#5b3a1e', pants: '#5b3a1e', boots: '#3f2a1e', bracers: '#6b4423', belt: '#3f2a1e', buckle: '#9ca3af',
+    right: { kind: 'greataxe' } },
+  app_clerigo: { name: 'Clérigo', attack: 'staff', skin: CEL_SKIN.light, hair: '#f5d77a', hairStyle: 'long', top: '#f8f1dc', sleeve: 'wide', scarf: '#d4a017',
+    robe: '#f8f1dc', robeLen: 0.8, robe2: '#d4a017', belt: '#8b5a2b', cross: '#d4a017', boots: '#8b5a2b', gloves: CEL_SKIN.light,
+    right: { kind: 'staff', rot: [0, 0, 0] }, staffTop: 'star', wood: '#8b5a2b' },
+  app_bardo: { name: 'Bardo', attack: 'sword', skin: CEL_SKIN.light, hair: '#f5d77a', hairStyle: 'long', helm: 'feather', helmColor: '#8b5a2b', feather: '#f5f5f4',
+    top: '#86c06c', vest: '#5b8a3c', pants: '#5b3a1e', boots: '#5b3a1e', belt: '#3f2a1e', buckle: '#d4a017',
+    right: { kind: 'sword' }, blade: '#e5e7eb', left: { kind: 'lute', rot: [0.4, 0, 0.6] }, wood: '#b0713a' },
+  app_feiticeiro: { name: 'Feiticeiro', attack: 'fist', skin: CEL_SKIN.light, hair: '#5b3a1e', hairStyle: 'short', hat: 'wizard', hatColor: '#2563eb', hatBand: '#d4a017',
+    top: '#1e3a8a', sleeve: 'wide', robe: '#1e3a8a', robeLen: 0.78, robe2: '#facc15', belt: '#d4a017', boots: '#1f2937', gloves: CEL_SKIN.light,
+    flameHand: 'always', right: { kind: 'orb', rot: [0, 0, 0] }, glowColor: '#22d3ee' },
+  app_mago: { name: 'Mago', attack: 'fist', skin: CEL_SKIN.light, hair: '#60a5fa', hairStyle: 'long', beard: 'long', beardColor: '#60a5fa', hat: 'wizard', hatColor: '#1e40af', hatBand: '#d4a017',
+    top: '#1e40af', sleeve: 'wide', robe: '#1e40af', robeLen: 0.8, robe2: '#3b82f6', belt: '#d4a017', boots: '#1f2937', gloves: CEL_SKIN.light,
+    right: { kind: 'orb', rot: [0, 0, 0] }, glowColor: '#bae6fd' },
+  app_ranger: { name: 'Patrulheiro', attack: 'bow', skin: CEL_SKIN.light, hair: '#e7e5e4', hairStyle: 'short', ears: 'elf', eyes: '#16a34a', hat: 'hood', hatColor: '#f1f5f9',
+    top: '#5b8a3c', vest: '#3f6212', cape: '#e7e5e4', pants: '#5b3a1e', boots: '#5b3a1e', belt: '#3f2a1e', gloves: '#5b3a1e',
+    quiver: '#7c4a1e', left: { kind: 'bow', rot: [0, 0, Math.PI / 2], pos: [0, -0.06, 0.02] }, wood: '#b0713a' },
+  app_rogue: { name: 'Ladino', attack: 'dagger', skin: CEL_SKIN.light, hat: 'hood', hatColor: '#374151', mask: '#1f2937', eyes: '#22d3ee',
+    top: '#374151', vest: '#4b5563', straps: '#1f2937', pants: '#1f2937', boots: '#111827', belt: '#3f2a1e', gloves: '#1f2937',
+    right: { kind: 'dagger' }, left: { kind: 'dagger' } },
+  app_goblin: { name: 'Goblin', attack: 'sword', ...CEL_GOBLIN, helm: 'cap', helmColor: '#7c4a1e',
+    top: '#7c4a1e', vest: '#5b3a1e', pants: '#5b3a1e', boots: '#3f2a1e', belt: '#3f2a1e', right: { kind: 'sword' }, blade: '#9ca3af' },
+  app_lobo: { kind: 'quad', name: 'Lobo Atroz', fur: '#8b929c', belly: '#e5e7eb', muzzle: '#d1d5db', scar: '#dc2626', eyes: '#facc15' },
+  app_bandido: { name: 'Bandido', attack: 'sword', skin: CEL_SKIN.tan, hat: 'hood', hatColor: '#7f1d1d', mask: '#dc2626',
+    top: '#5b3a1e', vest: '#3f2a1e', pants: '#3f2a1e', boots: '#1f1611', belt: '#1f1611', buckle: '#9ca3af', right: { kind: 'sword' } },
+  app_druida: { name: 'Druida', attack: 'staff', skin: CEL_SKIN.light, hair: '#a16207', hairStyle: 'short', ears: 'elf', hat: 'hood', hatColor: '#3f6212',
+    top: '#4d7c0f', sleeve: 'wide', robe: '#3f6212', robeLen: 0.75, robe2: '#65a30d', robeJag: 0.14, belt: '#7c4a1e', boots: '#5b3a1e', gloves: CEL_SKIN.light,
+    right: { kind: 'staff', rot: [0, 0, 0] }, wood: '#7c4a1e' },
+  app_monge: { name: 'Monge', attack: 'fist', skin: CEL_SKIN.light, hairStyle: 'bald', helm: 'band', helmColor: '#dc2626', brow: '#3f2a1e',
+    top: '#fb923c', sleeve: 'wide', pants: '#fb923c', boots: '#7c4a1e', wraps: '#f8fafc', belt: '#f8fafc', gloves: '#fde68a' },
+  app_alquimista: { name: 'Alquimista', attack: 'dagger', skin: CEL_SKIN.light, hair: '#7c4a1e', hairStyle: 'short', helm: 'goggles', helmColor: '#7c4a1e',
+    top: '#f5f5f4', vest: '#7c4a1e', robe: '#7c4a1e', robeLen: 0.6, robe2: '#a16207', belt: '#3f2a1e', bag: '#5b3a1e', boots: '#3f2a1e', gloves: '#5b3a1e',
+    right: { kind: 'orb', rot: [0, 0, 0] }, glowColor: '#84cc16' },
+  app_bruxa: { name: 'Bruxa', attack: 'staff', skin: CEL_SKIN.light, hair: '#1f1611', hairStyle: 'long', hat: 'wizard', hatColor: '#6d28d9', hatBand: '#d4a017',
+    top: '#4c1d95', sleeve: 'wide', robe: '#4c1d95', robeLen: 0.8, robe2: '#7c3aed', belt: '#d4a017', boots: '#1f1611', gloves: CEL_SKIN.light,
+    right: { kind: 'staff', rot: [0, 0, 0] }, wood: '#5b3a1e' },
+  app_espadachim: { name: 'Espadachim', attack: 'sword', skin: CEL_SKIN.light, hair: '#5b3a1e', hairStyle: 'long', beard: 'short', helm: 'feather', helmColor: '#1e3a8a', feather: '#f5f5f4', hatBand: '#d4a017',
+    top: '#1e3a8a', vest: '#dc2626', scarf: '#f5f5f4', pants: '#f5f5f4', boots: '#1f2937', belt: '#1f1611', buckle: '#d4a017', right: { kind: 'sword' } },
+  app_esqueleto: { name: 'Esqueleto', attack: 'sword', skin: '#e7e5e4', hairStyle: 'bald', skull: true, helm: 'cap', helmColor: '#78716c',
+    top: '#e7e5e4', vest: '#d6d3d1', pants: '#e7e5e4', boots: '#a8a29e', gloves: '#e7e5e4', belt: '#57534e',
+    right: { kind: 'sword' }, blade: '#a8a29e', left: { kind: 'shield', rot: [0, 0, 0] }, shieldColor: '#7c4a1e' },
+  app_orc: { name: 'Orc', attack: 'sword', skin: CEL_SKIN.orc, ears: 'goblin', hair: '#1f1611', hairStyle: 'short', brow: '#1a2e05',
+    top: '#5b3a1e', armor: '#78716c', vest: '#3f2a1e', pants: '#3f2a1e', boots: '#1f1611', belt: '#1f1611', buckle: '#a8a29e', right: { kind: 'greataxe' } },
+  app_cultista: { name: 'Cultista', attack: 'dagger', skin: '#e7e5e4', hat: 'hood', hatColor: '#7f1d1d', eyes: '#dc2626',
+    top: '#7f1d1d', sleeve: 'wide', robe: '#7f1d1d', robeLen: 0.82, robe2: '#450a0a', cross: '#d4a017', belt: '#450a0a', boots: '#1f1611', gloves: '#e7e5e4',
+    right: { kind: 'dagger' } },
+  app_zumbi: { name: 'Zumbi', attack: 'fist', skin: '#84a98c', hair: '#3f3f46', hairStyle: 'short', brow: '#14532d',
+    top: '#3b5b8a', pants: '#3f3f46', boots: '#3f3f46', gloves: '#84a98c', belt: '#1f1611' },
+  app_kobold: { name: 'Kobold', attack: 'dagger', skin: '#ea580c', ears: 'goblin', headScale: 1.4, brow: '#7c2d12',
+    top: '#7c4a1e', pants: '#5b3a1e', boots: '#7c2d12', gloves: '#ea580c', belt: '#3f2a1e', tail: { color: '#ea580c', len: 0.5, r: 0.07, tipR: 0.02 },
+    right: { kind: 'spear', rot: [0, 0, 0] }, left: { kind: 'shield', rot: [0, 0, 0] }, shieldColor: '#7c4a1e' },
+
+  /* ---------------------- figuras pintadas: heróis ---------------------- */
+  pt_arqueiro: { name: 'Arqueiro', attack: 'bow', skin: CEL_SKIN.light, hair: '#7c4a1e', hairStyle: 'long', ears: 'elf', scarf: '#3f6212', cape: '#3f6212',
+    top: '#5b3a1e', vest: '#6b4423', pants: '#3f2a1e', boots: '#3f2a1e', belt: '#3f2a1e', gloves: '#5b3a1e', bracers: '#6b4423',
+    quiver: '#7c4a1e', left: { kind: 'bow', rot: [0, 0, Math.PI / 2], pos: [0, -0.06, 0.02] }, wood: '#8b5a2b' },
+  pt_barbaro: { name: 'Bárbaro', attack: 'sword', skin: CEL_SKIN.tan, hair: '#1f1611', hairStyle: 'long', beard: 'short', scarf: '#e7e5e4', armor: '#d6d3d1',
+    top: '#6b4423', straps: '#3f2a1e', pants: '#3f2a1e', boots: '#1f1611', bracers: '#5b3a1e', belt: '#1f1611', buckle: '#a8a29e', right: { kind: 'axe' }, left: { kind: 'axe' } },
+  pt_bardo: { name: 'Bardo', attack: 'sword', skin: CEL_SKIN.light, hair: '#7c4a1e', hairStyle: 'short', scarf: '#7c3aed', cape: '#6d28d9',
+    top: '#6b4423', vest: '#4b5563', pants: '#3f2a1e', boots: '#3f2a1e', belt: '#3f2a1e', buckle: '#d4a017',
+    right: { kind: 'sword' }, left: { kind: 'lute', rot: [0.4, 0, 0.6] }, wood: '#b0713a' },
+  pt_bruxo: { name: 'Bruxo', attack: 'fist', skin: CEL_SKIN.light, hair: '#1f1611', hairStyle: 'long', scarf: '#166534',
+    top: '#14532d', sleeve: 'wide', robe: '#1f2937', robeLen: 0.72, robe2: '#166534', belt: '#3f2a1e', boots: '#1f1611', gloves: '#1f2937',
+    right: { kind: 'orb', rot: [0, 0, 0] }, glowColor: '#4ade80' },
+  pt_cavaleiro: { name: 'Cavaleiro', attack: 'sword', skin: CEL_SKIN.light, hair: '#f5d77a', hairStyle: 'long', armor: '#cbd5e1', top: '#9ca3af', vest: '#1e3a8a',
+    cape: '#1e3a8a', pants: '#9ca3af', boots: '#6b7280', belt: '#3f2a1e', buckle: '#d4a017', gloves: '#9ca3af', bracers: '#cbd5e1',
+    right: { kind: 'sword' }, left: { kind: 'kite', rot: [0, 0, 0] }, shieldColor: '#1e3a8a', shieldMark: '#e5e7eb' },
+  pt_cavaleiro_liberdade: { name: 'Cavaleiro da Liberdade', attack: 'sword', skin: CEL_SKIN.light, hair: '#3f2a1e', hairStyle: 'long', armor: '#9ca3af', top: '#6b7280',
+    vest: '#1e40af', cross: '#d4a017', cape: '#1e40af', pants: '#4b5563', boots: '#3f2a1e', belt: '#3f2a1e', gloves: '#6b7280', right: { kind: 'sword' } },
+  pt_clerigo: { name: 'Clérigo', attack: 'staff', skin: CEL_SKIN.light, hair: '#3f2a1e', hairStyle: 'short', beard: 'short', top: '#f8fafc', sleeve: 'wide', scarf: '#1e3a8a',
+    robe: '#f8fafc', robeLen: 0.8, robe2: '#1e3a8a', cross: '#d4a017', belt: '#1e3a8a', buckle: '#d4a017', boots: '#3f2a1e', gloves: CEL_SKIN.light,
+    right: { kind: 'staff', rot: [0, 0, 0] }, wood: '#7c4a1e' },
+  pt_druida: { name: 'Druida', attack: 'staff', skin: CEL_SKIN.light, hair: '#a16207', hairStyle: 'long', ears: 'elf', top: '#3f6212', sleeve: 'wide',
+    robe: '#4d7c0f', robeLen: 0.78, robe2: '#7c2d12', robeJag: 0.15, cape: '#14532d', belt: '#5b3a1e', boots: '#3f2a1e', gloves: CEL_SKIN.light,
+    right: { kind: 'staff', rot: [0, 0, 0] }, wood: '#7c4a1e' },
+  pt_explorador: { name: 'Explorador', attack: 'bow', skin: CEL_SKIN.tan, beard: 'short', beardColor: '#57534e', hat: 'hood', hatColor: '#3f6212', cape: '#365314',
+    top: '#4d7c0f', vest: '#5b3a1e', pants: '#3f2a1e', boots: '#3f2a1e', belt: '#3f2a1e', gloves: '#3f2a1e',
+    quiver: '#7c4a1e', left: { kind: 'bow', rot: [0, 0, Math.PI / 2], pos: [0, -0.06, 0.02] }, wood: '#8b5a2b' },
+  pt_feiticeiro: { name: 'Feiticeiro', attack: 'fist', skin: CEL_SKIN.light, hair: '#7c2d12', hairStyle: 'long', ears: 'elf', top: '#991b1b', sleeve: 'wide',
+    robe: '#7f1d1d', robeLen: 0.8, robe2: '#d4a017', scarf: '#d4a017', belt: '#d4a017', boots: '#450a0a', gloves: CEL_SKIN.light,
+    right: { kind: 'orb', rot: [0, 0, 0] }, glowColor: '#c084fc' },
+  pt_guerreiro: { name: 'Guerreiro', attack: 'sword', skin: CEL_SKIN.tan, hair: '#1f1611', hairStyle: 'long', beard: 'short', scarf: '#1e40af', armor: '#9ca3af',
+    top: '#6b7280', vest: '#4b5563', pants: '#3f3f46', boots: '#1f1611', belt: '#3f2a1e', buckle: '#a8a29e', gloves: '#4b5563', right: { kind: 'greatsword' } },
+  pt_invocador: { name: 'Invocador', attack: 'fist', skin: CEL_SKIN.light, hair: '#1f1611', hairStyle: 'long', top: '#5b21b6', sleeve: 'wide', scarf: '#7c3aed',
+    robe: '#4c1d95', robeLen: 0.8, robe2: '#7c3aed', belt: '#d4a017', boots: '#1f1611', gloves: CEL_SKIN.light, right: { kind: 'orb', rot: [0, 0, 0] }, glowColor: '#c084fc' },
+  pt_kappa: { name: 'Kappa', attack: 'sword', skin: '#4d7c0f', hairStyle: 'bald', helm: 'kasa', helmColor: '#a16207', brow: '#1a2e05', cape: '#3f6212',
+    top: '#155e75', vest: '#7c4a1e', pants: '#155e75', boots: '#3f2a1e', belt: '#3f2a1e', gloves: '#4d7c0f', right: { kind: 'sword' } },
+  pt_kitsune: { name: 'Kitsune', attack: 'sword', skin: CEL_SKIN.light, hair: '#c2410c', hairStyle: 'long', ears: 'fox', earColor: '#c2410c',
+    tail: { color: '#c2410c', tip: '#fafaf9', len: 0.55, r: 0.08, tipR: 0.15 }, top: '#fafaf9', sleeve: 'wide', robe: '#fafaf9', robeLen: 0.7, robe2: '#b91c1c',
+    sash: '#b91c1c', belt: '#b91c1c', boots: '#1f1611', gloves: CEL_SKIN.light, right: { kind: 'sword' } },
+  pt_ladino: { name: 'Ladino', attack: 'dagger', skin: CEL_SKIN.light, hat: 'hood', hatColor: '#1f1f1f', top: '#262626', vest: '#3f2a1e', straps: '#1f1611',
+    pants: '#1f1f1f', boots: '#1f1611', belt: '#3f2a1e', gloves: '#1f1611', right: { kind: 'dagger' }, left: { kind: 'dagger' } },
+  pt_mago: { name: 'Mago', attack: 'fist', skin: CEL_SKIN.light, hair: '#e5e7eb', hairStyle: 'long', ears: 'elf', top: '#1e3a8a', sleeve: 'wide', scarf: '#a16207',
+    robe: '#312e81', robeLen: 0.8, robe2: '#a16207', belt: '#a16207', boots: '#1f1611', gloves: CEL_SKIN.light, right: { kind: 'orb', rot: [0, 0, 0] }, glowColor: '#38bdf8' },
+  pt_monge: { name: 'Monge', attack: 'fist', skin: CEL_SKIN.tan, hair: '#1f1611', hairStyle: 'short', top: '#1f2937', sleeveColor: CEL_SKIN.tan,
+    pants: '#1f2937', boots: '#3f2a1e', belt: '#a16207', bracers: '#6b4423', gloves: '#3f2a1e' },
+  pt_ninja: { name: 'Ninja', attack: 'sword', skin: CEL_SKIN.light, hat: 'hood', hatColor: '#111827', mask: '#111827', top: '#111827', pants: '#111827',
+    boots: '#1f2937', wraps: '#374151', belt: '#374151', gloves: '#111827', right: { kind: 'katana' } },
+  pt_paladino: { name: 'Paladino', attack: 'sword', skin: CEL_SKIN.light, hair: '#e0b25c', hairStyle: 'long', armor: '#e5e7eb', top: '#cbd5e1', vest: '#f8fafc', cross: '#d4a017',
+    pants: '#cbd5e1', boots: '#9ca3af', belt: '#d4a017', gloves: '#cbd5e1', right: { kind: 'mace' }, grip: '#d4a017', left: { kind: 'kite', rot: [0, 0, 0] }, shieldColor: '#1e40af', shieldMark: '#facc15' },
+  pt_pistoleiro: { name: 'Pistoleiro', attack: 'shoot', skin: CEL_SKIN.tan, beard: 'short', beardColor: '#3f2a1e', hair: '#3f2a1e', hairStyle: 'short', helm: 'cowboy', helmColor: '#5b3a1e', hatBand: '#1f1611',
+    scarf: '#991b1b', top: '#7c2d12', robe: '#5b3a1e', robeLen: 0.7, robe2: '#3f2a1e', pants: '#3f2a1e', boots: '#1f1611', belt: '#1f1611', buckle: '#9ca3af', right: { kind: 'pistol' } },
+  pt_ranger_batalha: { name: 'Patrulheiro de Batalha', attack: 'sword', skin: CEL_SKIN.tan, hair: '#7c4a1e', hairStyle: 'long', beard: 'short', scarf: '#14532d', armor: '#78716c',
+    top: '#4d7c0f', vest: '#5b3a1e', pants: '#3f2a1e', boots: '#3f2a1e', belt: '#3f2a1e', quiver: '#7c4a1e', right: { kind: 'sword' }, left: { kind: 'dagger' } },
+  pt_ryu: { name: 'Ryu', attack: 'sword', skin: CEL_SKIN.tan, hair: '#111827', hairStyle: 'pony', beard: 'short', armor: '#991b1b', top: '#7f1d1d', vest: '#111827',
+    robe: '#7f1d1d', robeLen: 0.5, robe2: '#111827', pants: '#111827', boots: '#1f1611', belt: '#d4a017', right: { kind: 'katana' } },
+  pt_samurai: { name: 'Samurai', attack: 'sword', skin: CEL_SKIN.tan, beard: 'short', beardColor: '#111827', helm: 'kabuto', helmColor: '#7f1d1d', crest: '#d4a017',
+    armor: '#991b1b', top: '#7f1d1d', vest: '#450a0a', robe: '#7f1d1d', robeLen: 0.5, robe2: '#450a0a', pants: '#1f1611', boots: '#1f1611', belt: '#d4a017', right: { kind: 'katana' } },
+  pt_tengu: { name: 'Tengu', attack: 'sword', skin: '#dc2626', hair: '#b91c1c', hairStyle: 'long', beak: '#f59e0b', brow: '#450a0a', cape: '#b91c1c',
+    top: '#1e3a8a', vest: '#b45309', pants: '#1e3a8a', boots: '#1f1611', belt: '#b45309', gloves: '#dc2626', right: { kind: 'sword' } },
+
+  /* ---------------------- figuras pintadas: vilões ---------------------- */
+  pv_assassino: { name: 'Assassino', attack: 'dagger', skin: CEL_SKIN.tan, hat: 'hood', hatColor: '#1f2937', mask: '#111827', eyes: '#f59e0b',
+    top: '#1f2937', vest: '#262626', straps: '#111827', pants: '#1f2937', boots: '#111827', belt: '#262626', gloves: '#111827', right: { kind: 'dagger' }, left: { kind: 'dagger' } },
+  pv_goblin_arqueiro: { name: 'Goblin Arqueiro', attack: 'bow', ...CEL_GOBLIN, hat: 'hood', hatColor: '#3f3f46', top: '#5b3a1e', vest: '#3f2a1e', pants: '#3f2a1e', boots: '#1f1611',
+    belt: '#1f1611', quiver: '#7c4a1e', left: { kind: 'bow', rot: [0, 0, Math.PI / 2], pos: [0, -0.06, 0.02] }, wood: '#8b5a2b' },
+  pv_goblin_atirador: { name: 'Goblin Atirador', attack: 'shoot', ...CEL_GOBLIN, hat: 'hood', hatColor: '#3f3f46', helm: 'goggles', helmColor: '#1f2937',
+    top: '#3f3f46', vest: '#5b3a1e', pants: '#3f2a1e', boots: '#1f1611', belt: '#1f1611', right: { kind: 'crossbow' }, wood: '#7c4a1e' },
+  pv_goblin_chefe: { name: 'Goblin Chefe', attack: 'sword', ...CEL_GOBLIN, hair: '#dc2626', hairStyle: 'pony', helm: 'crown', helmColor: '#e7e5e4', armor: '#57534e',
+    top: '#3f2a1e', vest: '#5b3a1e', cross: '#e7e5e4', pants: '#3f2a1e', boots: '#1f1611', belt: '#1f1611', buckle: '#e7e5e4', right: { kind: 'greataxe' } },
+  pv_goblin_comum: { name: 'Goblin', attack: 'sword', ...CEL_GOBLIN, hair: '#1f1611', hairStyle: 'short', top: '#7c2d12', vest: '#5b3a1e', pants: '#3f2a1e', boots: '#1f1611',
+    belt: '#1f1611', right: { kind: 'sword' }, blade: '#9ca3af' },
+  pv_goblin_escudo: { name: 'Goblin de Escudo', attack: 'sword', ...CEL_GOBLIN, helm: 'knight', helmColor: '#78716c', armor: '#57534e', top: '#3f3f46', vest: '#5b3a1e',
+    pants: '#3f2a1e', boots: '#1f1611', belt: '#1f1611', right: { kind: 'sword' }, left: { kind: 'shield', rot: [0, 0, 0] }, shieldColor: '#7c4a1e', shieldBoss: '#a8a29e' },
+  pv_goblin_lancador: { name: 'Goblin Lanceiro', attack: 'dagger', ...CEL_GOBLIN, hair: '#111827', hairStyle: 'short', top: '#3f6212', vest: '#5b3a1e', pants: '#3f2a1e',
+    boots: '#1f1611', belt: '#1f1611', right: { kind: 'spear', rot: [0, 0, 0] } },
+  pv_goblin_xama: { name: 'Goblin Xamã', attack: 'staff', ...CEL_GOBLIN, helm: 'crown', helmColor: '#e7e5e4', top: '#57534e', sleeve: 'wide', scarf: '#e7e5e4',
+    robe: '#3f3f46', robeLen: 0.6, robe2: '#7f1d1d', belt: '#1f1611', boots: '#1f1611', right: { kind: 'staff', rot: [0, 0, 0] }, wood: '#5b3a1e' },
+  pv_ladra: { name: 'Ladra', attack: 'dagger', skin: CEL_SKIN.light, hair: '#1f1611', hairStyle: 'long', mask: '#1f2937', top: '#3f2a1e', vest: '#5b3a1e', straps: '#1f1611',
+    pants: '#262626', boots: '#1f1611', belt: '#1f1611', gloves: '#1f1611', right: { kind: 'dagger' }, left: { kind: 'dagger' } },
+  pv_ladra_sombria: { name: 'Ladra Sombria', attack: 'dagger', skin: CEL_SKIN.light, hat: 'hood', hatColor: '#4c1d95', mask: '#1f1f1f', top: '#2e1065', robe: '#3b0764',
+    robeLen: 0.6, robe2: '#1f1f1f', pants: '#1f1f1f', boots: '#111827', belt: '#1f1f1f', right: { kind: 'dagger' }, left: { kind: 'dagger' } },
+  pv_ladrao_adaga: { name: 'Ladrão da Adaga', attack: 'dagger', skin: CEL_SKIN.tan, hat: 'hood', hatColor: '#991b1b', mask: '#111827', top: '#3f2a1e', vest: '#7f1d1d',
+    pants: '#262626', boots: '#1f1611', belt: '#1f1611', right: { kind: 'dagger' }, left: { kind: 'dagger' } },
+  pv_ladrao_arco: { name: 'Ladrão Arqueiro', attack: 'bow', skin: CEL_SKIN.light, hat: 'hood', hatColor: '#14532d', cape: '#14532d', top: '#3f2a1e', vest: '#5b3a1e',
+    pants: '#262626', boots: '#1f1611', belt: '#1f1611', quiver: '#7c4a1e', left: { kind: 'bow', rot: [0, 0, Math.PI / 2], pos: [0, -0.06, 0.02] }, wood: '#8b5a2b' },
+  pv_ladrao_comum: { name: 'Ladrão', attack: 'dagger', skin: CEL_SKIN.tan, hat: 'hood', hatColor: '#262626', mask: '#3f3f46', top: '#262626', vest: '#3f2a1e',
+    pants: '#262626', boots: '#1f1611', belt: '#1f1611', right: { kind: 'dagger' } },
+  pv_lider_ladroes: { name: 'Líder dos Ladrões', attack: 'sword', skin: CEL_SKIN.tan, hair: '#1f1611', hairStyle: 'short', beard: 'short', scarf: '#991b1b', armor: '#e7e5e4',
+    top: '#1f1f1f', vest: '#262626', pants: '#1f1f1f', boots: '#111827', belt: '#3f2a1e', buckle: '#9ca3af', right: { kind: 'sword' } },
+  pv_lobo_alfa: { kind: 'quad', name: 'Lobo Alfa', fur: '#3f3f46', belly: '#a8a29e', muzzle: '#a8a29e', mane: '#27272a', eyes: '#facc15' },
+  pv_lobo_comum: { kind: 'quad', name: 'Lobo', fur: '#6b7280', belly: '#d6d3d1', muzzle: '#d6d3d1', eyes: '#f59e0b' },
+  pv_lobo_espectral: { kind: 'quad', name: 'Lobo Espectral', fur: '#7dd3fc', belly: '#e0f2fe', muzzle: '#bae6fd', glow: true, eyeGlow: '#f0f9ff' },
+  pv_lobo_feroz: { kind: 'quad', name: 'Lobo Feroz', fur: '#57534e', belly: '#a8a29e', muzzle: '#a8a29e', scar: '#dc2626', eyes: '#facc15' },
+  pv_lobo_guerra: { kind: 'quad', name: 'Lobo de Guerra', fur: '#3f3f46', belly: '#78716c', muzzle: '#78716c', armor: '#1f2937', armorTrim: '#b91c1c', eyes: '#ef4444' },
+  pv_lobo_matilha: { kind: 'quad', name: 'Lobo da Matilha', fur: '#78716c', belly: '#d6d3d1', muzzle: '#d6d3d1', armor: '#7c4a1e', eyes: '#f59e0b' },
+  pv_lobo_sombrio: { kind: 'quad', name: 'Lobo Sombrio', fur: '#1e1b2e', belly: '#3b2f4a', muzzle: '#3b2f4a', eyeGlow: '#c084fc' }
+};
+
+/** Boneco cel-shaded de um token (app, pintado em qualquer versão ou 3D); null se não houver. */
+function celCharKey(tokenKey) {
+  if (typeof tokenKey !== 'string') return null;
+  if (typeof T3D_TOKENS !== 'undefined' && T3D_TOKENS[tokenKey]) return tokenKey;
+  const m = tokenKey.match(/^(c|v)(t|r)_(.+)$/);
+  if (m) {
+    const k = `${m[1] === 'c' ? 'pt' : 'pv'}_${m[3]}`;
+    return CEL_CHARS[k] ? k : null;
+  }
+  return CEL_CHARS[`app_${tokenKey}`] ? `app_${tokenKey}` : null;
+}
+
+function celCharConfig(key) {
+  return CEL_CHARS[key] || (typeof T3D_TOKENS !== 'undefined' ? T3D_TOKENS[key] : null) || null;
+}
+
+const CEL_MODEL_CACHE = {};
+function celModel(key) {
+  if (!CEL_MODEL_CACHE[key]) {
+    const cfg = celCharConfig(key);
+    CEL_MODEL_CACHE[key] = cfg.kind === 'quad' ? t3dQuadruped(cfg) : t3dHumanoid(cfg);
+  }
+  return CEL_MODEL_CACHE[key];
+}
+
 /* ===== 00x-extra-tokens.js ===== */
 /* ============================================================================
    1f. TOKENS EXTRAS — imagens pintadas (vista de cima e retratos)
@@ -4054,7 +4594,7 @@ linkExtraTokenPairs();
 function effectiveTokenKey(key) {
   const t = isExtraToken(key) && EXTRA_TOKENS[key];
   if (!t || !t.pair) return key;
-  const want = typeof activeTokenStyle !== 'undefined' && activeTokenStyle === 'topo' ? 'topo' : 'retrato';
+  const want = typeof activeTokenStyle !== 'undefined' && (activeTokenStyle === 'topo' || activeTokenStyle === 'celtopo') ? 'topo' : 'retrato';
   return t.kind === want ? key : t.pair;
 }
 
@@ -4195,7 +4735,10 @@ function registerTokenGroup(group) {
    ============================================================================ */
 const TOKEN_STYLES = {
   chibi: { label: 'Chibi', svgs: CHIBI_SVGS },
-  topo: { label: 'Vista de cima', svgs: TOPDOWN_SVGS }
+  topo: { label: 'Vista de cima', svgs: TOPDOWN_SVGS },
+  // cel-shaded: os bonecos de 00o desenham a peça; os SVGs ficam só de reserva
+  cel: { label: 'Cel frente', svgs: CHIBI_SVGS },
+  celtopo: { label: 'Cel de cima', svgs: TOPDOWN_SVGS }
 };
 /** Estilos que deixaram de existir e o estilo que os substitui (preferências salvas). */
 const RETIRED_TOKEN_STYLES = { medalhao: 'topo' };
@@ -4277,6 +4820,16 @@ function getUnitTokenImage(unitOrSculpt, customDataUrl = null, options = {}) {
     return img;
   }
   const sculpt = effectiveTokenKey(typeof unitOrSculpt === 'string' ? unitOrSculpt : unitOrSculpt.sculpt);
+  const celKey = typeof celStyleActive === 'function' && celStyleActive() ? celCharKey(sculpt) : null;
+  if (celKey) {
+    const key = `${activeTokenStyle}:cel:${celKey}`;
+    if (SVG_IMAGE_CACHE[key]) return SVG_IMAGE_CACHE[key];
+    const img = new Image();
+    img.src = celThumbnail(celKey);
+    img.onload = () => requestRender();
+    SVG_IMAGE_CACHE[key] = img;
+    return img;
+  }
   if (is3DToken(sculpt)) {
     const key = `t3d:${sculpt}`;
     if (SVG_IMAGE_CACHE[key]) return SVG_IMAGE_CACHE[key];
@@ -4326,6 +4879,8 @@ function getTokenPreviewHTML(sculptKey, customDataUrl = null, options = {}) {
     return uniquifySvgIds(buildCustomTokenSVG(customDataUrl, { faction: 'hero', framed: true, ...options }));
   }
   sculptKey = effectiveTokenKey(sculptKey);
+  const celKey = typeof celStyleActive === 'function' && celStyleActive() ? celCharKey(sculptKey) : null;
+  if (celKey) return `<img class="t3d-thumb" src="${celThumbnail(celKey)}" alt="" draggable="false">`;
   if (is3DToken(sculptKey)) return `<img class="t3d-thumb" src="${t3dThumbnail(sculptKey)}" alt="" draggable="false">`;
   if (isExtraToken(sculptKey)) return uniquifySvgIds(extraTokenSVG(sculptKey, options.faction));
   const svgFn = SCULPT_SVGS[sculptKey] || SCULPT_SVGS.guerreiro;
@@ -7318,7 +7873,8 @@ function drawUnitToken(unit, isTargetable) {
   if (nudge) { center.x += nudge.x; center.y += nudge.y; }
   const walk = unitWalkOffset(unit);
   if (walk) { center.x += walk.x; center.y += walk.y; }
-  const is3D = unitIs3D(unit);
+  const cel = unitUsesCel(unit);
+  const is3D = !cel && unitIs3D(unit);
   const hp = displayHp(unit);
   const s = STATE.camera.basePx * STATE.camera.zoom;
   const tokenR = s * 0.46;
@@ -7362,8 +7918,10 @@ function drawUnitToken(unit, isTargetable) {
     ctx.setLineDash([]);
   }
 
-  const img = is3D ? null : getUnitTokenImage(unit.sculpt, unit.customTokenDataUrl, customTokenOptions(unit));
-  if (is3D) {
+  const img = is3D || cel ? null : getUnitTokenImage(unit.sculpt, unit.customTokenDataUrl, customTokenOptions(unit));
+  if (cel) {
+    drawUnitCel(unit, center, tokenR, isDead);
+  } else if (is3D) {
     drawUnit3D(unit, center, tokenR, isDead);
   } else if (img && img.complete) {
     if (isDead) ctx.filter = 'grayscale(100%) brightness(38%)';
@@ -7378,10 +7936,10 @@ function drawUnitToken(unit, isTargetable) {
     }
     ctx.filter = 'none';
   }
-  if (!isDead && !is3D && !tokenArtRotates(unit)) drawFacingMarker(unit, center, tokenR);
+  if (!isDead && !is3D && !(cel && activeTokenStyle === 'celtopo') && !tokenArtRotates(unit)) drawFacingMarker(unit, center, tokenR);
 
   if (isDead) {
-    if (!is3D) {
+    if (!is3D && !cel) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
       ctx.beginPath();
       ctx.arc(center.x, center.y, tokenR, 0, Math.PI * 2);
@@ -7472,7 +8030,7 @@ function tokenArtRotates(unit) {
   if (unit.customTokenDataUrl) return false;
   const key = effectiveTokenKey(unit.sculpt);
   if (isExtraToken(key)) return EXTRA_TOKENS[key].kind === 'topo';
-  return activeTokenStyle === 'topo';
+  return activeTokenStyle === 'topo' || activeTokenStyle === 'celtopo';
 }
 
 /** Vetor unitário de tela para onde a peça aponta (0° = sul). */
@@ -9170,7 +9728,7 @@ function t3dLive() {
 
 /** Caminhada visual da casa antiga até a atual (a regra já moveu a peça). */
 function startUnitWalk(unit, fromCol, fromRow) {
-  if (!unitIs3D(unit) || !t3dLive() || (fromCol === unit.col && fromRow === unit.row)) return;
+  if (!(unitIs3D(unit) || unitUsesCel(unit)) || !t3dLive() || (fromCol === unit.col && fromRow === unit.row)) return;
   const cells = cellDistanceMeters(fromCol, fromRow, unit.col, unit.row) / (STATE.grid.cellScale || 1.5);
   const duration = Math.max(320, Math.min(2200, cells * 300));
   T3D_RUNTIME.walks.set(unit.id, { fromCol, fromRow, start: performance.now(), duration });
@@ -9262,8 +9820,169 @@ function drawUnit3D(unit, center, tokenR, isDead) {
 /** Mantém o tabuleiro desenhando enquanto houver peça 3D viva (respiração, caminhada). */
 function scheduleT3DFrame() {
   if (T3D_RUNTIME.timer || !t3dLive()) return;
-  if (!STATE.units.some(unitIs3D)) return;
+  if (!STATE.units.some(u => unitIs3D(u) || unitUsesCel(u))) return;
   T3D_RUNTIME.timer = setTimeout(() => { T3D_RUNTIME.timer = 0; requestRender(); }, T3D_FRAME_MS);
+}
+
+/* ===== 07f-cel-render.js ===== */
+/* ============================================================================
+   11f. CEL-SHADED NO TABULEIRO — estilos "Cel frente" e "Cel de cima"
+   Cada token tem um boneco cel-shaded (00o). As atividades têm 8 quadros:
+   parado, andar, ataque, magia, poção, pergaminho, atingido (e caído). Os quadros
+   são desenhados uma vez e guardados; a frente espelha conforme o lado para onde
+   a peça olha, a vista de cima gira com a direção da peça.
+   ============================================================================ */
+
+const CEL_STYLES = ['cel', 'celtopo'];
+const CEL_FRAMES = 8;
+const CEL_SPRITES = new Map();
+const CEL_SPRITE_LIMIT = 900;
+const CEL_THUMBS = {};
+
+function celStyleActive() {
+  return CEL_STYLES.includes(activeTokenStyle);
+}
+
+/** Boneco cel da peça (null com imagem própria ou sem boneco). */
+function unitCelKey(unit) {
+  if (!unit || unit.customTokenDataUrl) return null;
+  return celCharKey(unit.sculpt);
+}
+
+function unitUsesCel(unit) {
+  return celStyleActive() && !!unitCelKey(unit);
+}
+
+/** Ângulo de câmera da vista frontal: humanoides em 3/4; quadrúpedes de lado. */
+function celFrontYaw(model) {
+  return model.kind === 'quad' ? -1.3 : -0.45;
+}
+
+/** Desenha um quadro num canvas próprio (cache). view: 'front' | 'top'. */
+function celSprite(key, view, anim, frame, px) {
+  const id = `${key}|${view}|${anim}|${frame}|${px}`;
+  let c = CEL_SPRITES.get(id);
+  if (c) return c;
+  if (CEL_SPRITES.size > CEL_SPRITE_LIMIT) CEL_SPRITES.clear();
+  const model = celModel(key);
+  const cfg = celCharConfig(key);
+  const top = view === 'top';
+  const w = Math.ceil(px * (top ? 1.9 : 1.7));
+  const h = Math.ceil(px * (top ? 1.9 : 2.1));
+  c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  const scale = px * (top ? 0.46 : 0.44);
+  const feet = { x: w / 2, y: top ? h / 2 : h - px * 0.3 };
+  let pose, rootOffset, flags;
+  if (anim === 'dead') {
+    ({ pose, rootOffset, flags } = t3dPose('idle', 0, model.style));
+    pose = { ...pose, [model.kind === 'quad' ? 'body' : 'root']: model.kind === 'quad' ? [0, 0, 1.4] : [-1.45, 0, 0] };
+    rootOffset = model.kind === 'quad' ? [0, -0.25, 0] : [0, 0.16, 0];
+    g.filter = 'grayscale(100%) brightness(60%)';
+  } else {
+    ({ pose, rootOffset, flags } = t3dPose(anim, (frame + 0.5) / CEL_FRAMES * T3D_CYCLE[anim], model.style));
+  }
+  const anchors = t3dDraw(g, model, {
+    x: feet.x, y: feet.y, scale, yaw: top ? Math.PI / 2 : celFrontYaw(model), elev: (top ? 90 : 16) * T3D_DEG,
+    pose, rootOffset, flags, cel: true, flash: flags.includes('hitFlash') ? 0.5 : 0
+  });
+  g.filter = 'none';
+  const glowAt = (p, r, color) => {
+    const gr = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+    gr.addColorStop(0, rgba(color, 0.9));
+    gr.addColorStop(1, rgba(color, 0));
+    g.fillStyle = gr;
+    g.beginPath(); g.arc(p.x, p.y, r, 0, Math.PI * 2); g.fill();
+  };
+  if (flags.includes('cast')) {
+    const col = cfg.flameHand ? '#ff9a3c' : (cfg.glowColor || '#c084fc');
+    for (const hnd of ['handL', 'handR', 'head']) if (anchors[hnd]) glowAt(anchors[hnd], scale * (hnd === 'head' ? 0.35 : 0.3), col);
+  }
+  if (flags.includes('scrollGlow') && anchors.handL && anchors.handR) {
+    glowAt({ x: (anchors.handL.x + anchors.handR.x) / 2, y: (anchors.handL.y + anchors.handR.y) / 2 }, scale * 0.5, '#fde68a');
+  }
+  CEL_SPRITES.set(id, c);
+  return c;
+}
+
+/** Miniatura (frente, parado) para galerias e seletores. */
+function celThumbnail(key) {
+  const id = `${activeTokenStyle}:${key}`;
+  if (CEL_THUMBS[id]) return CEL_THUMBS[id];
+  if (typeof document === 'undefined') return '';
+  CEL_THUMBS[id] = celCropToSquare(celSprite(key, activeTokenStyle === 'celtopo' ? 'top' : 'front', 'idle', 2, 96)).toDataURL('image/png');
+  return CEL_THUMBS[id];
+}
+
+/** Recorta o boneco (área não transparente) num quadrado com pouca margem. */
+function celCropToSquare(src) {
+  const g = src.getContext('2d');
+  const { data, width, height } = g.getImageData(0, 0, src.width, src.height);
+  let x0 = width, y0 = height, x1 = -1, y1 = -1;
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    if (data[(y * width + x) * 4 + 3] > 8) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  }
+  if (x1 < 0) return src;
+  const side = Math.max(x1 - x0, y1 - y0) + 8;
+  const out = document.createElement('canvas');
+  out.width = out.height = side;
+  out.getContext('2d').drawImage(src, x0, y0, x1 - x0 + 1, y1 - y0 + 1, (side - (x1 - x0)) / 2, (side - (y1 - y0)) / 2, x1 - x0 + 1, y1 - y0 + 1);
+  return out;
+}
+
+/** Qual atividade e qual dos 8 quadros a peça mostra agora. */
+function unitCelFrame(unit, now) {
+  const w = T3D_RUNTIME.walks.get(unit.id);
+  const cycleFrame = (anim, seconds) => Math.floor(((seconds % T3D_CYCLE[anim]) / T3D_CYCLE[anim]) * CEL_FRAMES) % CEL_FRAMES;
+  if (w) return { anim: 'walk', frame: cycleFrame('walk', (now - w.start) / 1000) };
+  const a = typeof ANIM !== 'undefined' ? ANIM.current : null;
+  if (a) {
+    const k = Math.max(0, Math.min(0.999, (now - a.start) / a.duration));
+    const f = Math.floor(k * CEL_FRAMES);
+    if (a.from && a.from.id === unit.id) {
+      if (a.family === 'weapon') return { anim: 'attack', frame: f };
+      if (a.family === 'spell') return { anim: a.scroll ? 'scroll' : 'cast', frame: f };
+      if (a.kind === 'heal' || a.kind === 'light') return { anim: 'item', frame: f };
+    }
+    const tg = a.targets.find(t => t.id === unit.id);
+    if (tg && tg.hit && a.impacted && (!a.from || a.from.id !== unit.id)) {
+      const since = (now - a.impactTime) / 1000;
+      if (since < T3D_CYCLE.hit) return { anim: 'hit', frame: Math.floor(since / T3D_CYCLE.hit * CEL_FRAMES) };
+    }
+  }
+  const live = typeof t3dLive === 'function' ? t3dLive() : true;
+  const phase = (parseInt(hashString(unit.id), 36) % 1000) / 160;
+  return { anim: 'idle', frame: live ? cycleFrame('idle', now / 1000 + phase) : 2 };
+}
+
+/** Desenha a peça no estilo cel: disco da facção e o quadro da atividade atual. */
+function drawUnitCel(unit, center, tokenR, isDead) {
+  const key = unitCelKey(unit);
+  const top = activeTokenStyle === 'celtopo';
+  const px = Math.max(16, Math.round(tokenR * 2 / 6) * 6);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, tokenR * 0.9, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(12, 10, 8, 0.28)';
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = isDead ? 'rgba(120, 120, 120, 0.7)' : (T3D_FACTION_RING[unit.faction] || T3D_FACTION_RING.hero);
+  ctx.stroke();
+  const { anim, frame } = isDead ? { anim: 'dead', frame: 0 } : unitCelFrame(unit, performance.now());
+  const img = celSprite(key, top ? 'top' : 'front', anim, frame, px);
+  if (top) {
+    const v = facingVector(unit.facing || 0);
+    ctx.translate(center.x, center.y);
+    ctx.rotate(Math.atan2(v.y, v.x));
+    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+  } else {
+    const feetY = center.y + tokenR * 0.62;
+    ctx.translate(center.x, feetY);
+    if (facingVector(unit.facing || 0).x < -0.2) ctx.scale(-1, 1);
+    ctx.drawImage(img, -img.width / 2, -(img.height - px * 0.3));
+  }
+  ctx.restore();
 }
 
 /* ===== 08-input.js ===== */
@@ -9688,9 +10407,9 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
 }
 
 /** Pede a animação da magia: linha vai até a última casa; explosão usa centro e raio da área. */
-function spellAnimSpec(caster, spell, cell, areaCells, targets, crit) {
+function spellAnimSpec(caster, spell, cell, areaCells, targets, crit, fromScroll = false) {
   const kind = spellAnimKind(spell);
-  const spec = { kind, family: 'spell', from: caster, targets, crit, color: damageAnimColor(spell.dmgType), areaCells };
+  const spec = { kind, family: 'spell', from: caster, targets, crit, color: damageAnimColor(spell.dmgType), areaCells, scroll: fromScroll };
   if (spell.areaType === 'line') {
     const far = areaCells.reduce((best, c) => (cellDistanceMeters(caster.col, caster.row, c.col, c.row) > cellDistanceMeters(caster.col, caster.row, best.col, best.row) ? c : best), cell);
     spec.endCell = { col: far.col, row: far.row };
@@ -9748,7 +10467,7 @@ function resolveSpellCast(caster, spell, cell, clickedUnit, isFromScroll) {
   if (!isArea) {
     const sight = visibilityBetween(caster, targetUnits[0], darkMap);
     if (!passFlatCheck(caster, targetUnits[0], sight, spell.name)) {
-      spellAnimSpec(caster, spell, cell, areaCells, [{ unit: targetUnits[0], hit: false }], false);
+      spellAnimSpec(caster, spell, cell, areaCells, [{ unit: targetUnits[0], hit: false }], false, isFromScroll);
       addSpellFlash(spell, areaCells);
       syncCombatUI();
       requestRender();
@@ -9799,7 +10518,7 @@ function resolveSpellCast(caster, spell, cell, clickedUnit, isFromScroll) {
     hitSummaries.push(`<strong>${t.name}</strong> [Acerto ${atkTotal} vs CA ${ac}${offGuard ? ' desprevenido' : ''}: ${statusLbl} → -${dealt} PV${defenseNote ? ` (${defenseNote})` : ''}${t.hp === 0 ? ' 💀MORTO' : ''}]`);
   }
 
-  spellAnimSpec(caster, spell, cell, areaCells, animTargets, anyCrit);
+  spellAnimSpec(caster, spell, cell, areaCells, animTargets, anyCrit, isFromScroll);
   addLog(`✨ <strong>${caster.name}</strong> lançou <strong>${spell.name}</strong> (${'◆'.repeat(cost)}) · dano base ${dmg.total} = ${formatDamageParts(dmg.parts)}: ${hitSummaries.join(' | ')}.`);
   if (spell.flash) {
     addSpellFlash(spell, areaCells);
@@ -12687,6 +13406,8 @@ function chooseTokenStyle(style) {
   setTokenStyle(style);
   document.getElementById('styleChibi').classList.toggle('active', activeTokenStyle === 'chibi');
   document.getElementById('styleTopo').classList.toggle('active', activeTokenStyle === 'topo');
+  document.getElementById('styleCel').classList.toggle('active', activeTokenStyle === 'cel');
+  document.getElementById('styleCelTopo').classList.toggle('active', activeTokenStyle === 'celtopo');
   savePrefs({ tokenStyle: activeTokenStyle });
   renderPieceGallery();
   syncInspectorUI();

@@ -210,9 +210,9 @@ function executeSpellCastOnCell(caster, spell, cell, clickedUnit, isFromScroll) 
 }
 
 /** Pede a animação da magia: linha vai até a última casa; explosão usa centro e raio da área. */
-function spellAnimSpec(caster, spell, cell, areaCells, targets, crit) {
+function spellAnimSpec(caster, spell, cell, areaCells, targets, crit, fromScroll = false) {
   const kind = spellAnimKind(spell);
-  const spec = { kind, family: 'spell', from: caster, targets, crit, color: damageAnimColor(spell.dmgType), areaCells };
+  const spec = { kind, family: 'spell', from: caster, targets, crit, color: damageAnimColor(spell.dmgType), areaCells, scroll: fromScroll };
   if (spell.areaType === 'line') {
     const far = areaCells.reduce((best, c) => (cellDistanceMeters(caster.col, caster.row, c.col, c.row) > cellDistanceMeters(caster.col, caster.row, best.col, best.row) ? c : best), cell);
     spec.endCell = { col: far.col, row: far.row };
@@ -270,7 +270,7 @@ function resolveSpellCast(caster, spell, cell, clickedUnit, isFromScroll) {
   if (!isArea) {
     const sight = visibilityBetween(caster, targetUnits[0], darkMap);
     if (!passFlatCheck(caster, targetUnits[0], sight, spell.name)) {
-      spellAnimSpec(caster, spell, cell, areaCells, [{ unit: targetUnits[0], hit: false }], false);
+      spellAnimSpec(caster, spell, cell, areaCells, [{ unit: targetUnits[0], hit: false }], false, isFromScroll);
       addSpellFlash(spell, areaCells);
       syncCombatUI();
       requestRender();
@@ -321,7 +321,7 @@ function resolveSpellCast(caster, spell, cell, clickedUnit, isFromScroll) {
     hitSummaries.push(`<strong>${t.name}</strong> [Acerto ${atkTotal} vs CA ${ac}${offGuard ? ' desprevenido' : ''}: ${statusLbl} → -${dealt} PV${defenseNote ? ` (${defenseNote})` : ''}${t.hp === 0 ? ' 💀MORTO' : ''}]`);
   }
 
-  spellAnimSpec(caster, spell, cell, areaCells, animTargets, anyCrit);
+  spellAnimSpec(caster, spell, cell, areaCells, animTargets, anyCrit, isFromScroll);
   addLog(`✨ <strong>${caster.name}</strong> lançou <strong>${spell.name}</strong> (${'◆'.repeat(cost)}) · dano base ${dmg.total} = ${formatDamageParts(dmg.parts)}: ${hitSummaries.join(' | ')}.`);
   if (spell.flash) {
     addSpellFlash(spell, areaCells);
