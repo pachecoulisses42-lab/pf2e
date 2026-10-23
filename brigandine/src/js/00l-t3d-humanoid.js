@@ -229,6 +229,7 @@ const t3dSeg = (k, a, b) => Math.max(0, Math.min(1, (k - a) / (b - a)));
  * Devolve { pose, rootOffset, flags }.
  */
 function t3dPose(anim, t, style) {
+  if (style === 'proto') return t3dProtoPose(anim, t);
   const P = {};
   const flags = [];
   let ro = [0, 0, 0];

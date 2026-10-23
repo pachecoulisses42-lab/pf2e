@@ -3,6 +3,8 @@
    Chaves t3_<nome>. Cada personagem é uma configuração do boneco base (00l).
    ============================================================================ */
 const T3D_TOKENS = {
+  // guerreiro do protótipo "Pathfinder 3D Heroes" (00n): modelo próprio, não usa o boneco base
+  t3_guerreiro_miniatura: { name: 'Guerreiro de Miniatura', attack: 'proto', build: () => t3dProtoFighter() },
   t3_elfo_chama: { name: 'Elfo da Chama', attack: 'sword',
     skin: '#e8b48a', hair: '#d9a441', hairStyle: 'long', ears: 'elf', brow: '#8a5a1e',
     top: '#2b3a5c', armor: '#8a8f98', vest: '#2b3a5c', straps: '#7c4a1e',
@@ -69,7 +71,8 @@ function is3DToken(key) {
 }
 
 function t3dModel(key) {
-  if (!T3D_MODEL_CACHE[key]) T3D_MODEL_CACHE[key] = t3dHumanoid(T3D_TOKENS[key]);
+  const cfg = T3D_TOKENS[key];
+  if (!T3D_MODEL_CACHE[key]) T3D_MODEL_CACHE[key] = cfg.build ? cfg.build() : t3dHumanoid(cfg);
   return T3D_MODEL_CACHE[key];
 }
 
@@ -82,8 +85,8 @@ function t3dThumbnail(key) {
   const g = c.getContext('2d');
   g.fillStyle = 'rgba(0, 0, 0, 0.22)';
   g.beginPath(); g.ellipse(80, 140, 44, 16, 0, 0, Math.PI * 2); g.fill();
-  const { pose, rootOffset, flags } = t3dPose('idle', 0.4, t3dModel(key).style);
-  t3dDraw(g, t3dModel(key), { x: 80, y: 140, scale: 58, yaw: -0.45, pose, rootOffset, flags });
+  const { pose, rootOffset, flags, offsets } = t3dPose('idle', 0.4, t3dModel(key).style);
+  t3dDraw(g, t3dModel(key), { x: 80, y: 140, scale: 58, yaw: -0.45, pose, rootOffset, flags, offsets });
   T3D_THUMB_CACHE[key] = c.toDataURL('image/png');
   return T3D_THUMB_CACHE[key];
 }

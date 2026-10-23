@@ -49,6 +49,11 @@ function unit3DMotion(unit, now) {
     if (a.family === 'spell') return { anim: 'cast', t: k * 1.4, color: a.color };
     if (a.kind === 'heal' || a.kind === 'light') return { anim: 'item', t: k * 1.4 };
   }
+  if (a && a.impacted && T3D_TOKENS[unit.sculpt] && T3D_TOKENS[unit.sculpt].attack === 'proto') {
+    const tg = a.targets.find(x => x.id === unit.id && x.hit);
+    const since = (now - a.impactTime) / 1000;
+    if (tg && since < 0.6) return { anim: 'hit', t: since };
+  }
   // fase própria por peça: não respiram todas juntas
   const phase = (parseInt(hashString(unit.id), 36) % 1000) / 160;
   return { anim: 'idle', t: t3dLive() ? now / 1000 + phase : phase };
@@ -89,15 +94,21 @@ function drawUnit3D(unit, center, tokenR, isDead) {
   const yaw = -normalizeFacing(unit.facing || 0) * Math.PI / 180;
   if (isDead) {
     ctx.filter = 'grayscale(100%) brightness(55%)';
-    const { pose } = t3dPose('idle', 0, model.style);
-    pose.root = [-1.45, 0, 0];
-    t3dDraw(ctx, model, { x: center.x, y: feetY, scale, yaw, pose, rootOffset: [0, 0.16, 0] });
+    if (model.style === 'proto') {
+      // o guerreiro do protótipo tem a própria animação de morte (tomba sobre a base)
+      const D = t3dPose('dead', 9, model.style);
+      t3dDraw(ctx, model, { x: center.x, y: feetY, scale, yaw, ...D });
+    } else {
+      const { pose } = t3dPose('idle', 0, model.style);
+      pose.root = [-1.45, 0, 0];
+      t3dDraw(ctx, model, { x: center.x, y: feetY, scale, yaw, pose, rootOffset: [0, 0.16, 0] });
+    }
     ctx.restore();
     return;
   }
   const m = unit3DMotion(unit, now);
-  const { pose, rootOffset, flags } = t3dPose(m.anim, m.t, model.style);
-  const anchors = t3dDraw(ctx, model, { x: center.x, y: feetY, scale, yaw, pose, rootOffset, flags });
+  const { pose, rootOffset, flags, offsets } = t3dPose(m.anim, m.t, model.style);
+  const anchors = t3dDraw(ctx, model, { x: center.x, y: feetY, scale, yaw, pose, rootOffset, flags, offsets });
   if (flags.includes('cast')) {
     const pulse = 0.5 + 0.5 * Math.sin(now / 90);
     for (const h of ['handL', 'handR']) if (anchors[h]) t3dGlow(anchors[h].x, anchors[h].y, scale * (0.18 + 0.08 * pulse), m.color || '#c084fc', 0.85);

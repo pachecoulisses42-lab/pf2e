@@ -113,7 +113,7 @@ function t3dFind(node, name) {
  * elev (rad, inclinação da câmera), pose: { nome: [rx, ry, rz] }, offset: [x,y,z] do corpo }.
  */
 function t3dDraw(ctx2, model, opts) {
-  const { x, y, scale, yaw = 0, elev = 50 * T3D_DEG, pose = {}, rootOffset = [0, 0, 0], flags = [] } = opts;
+  const { x, y, scale, yaw = 0, elev = 50 * T3D_DEG, pose = {}, rootOffset = [0, 0, 0], flags = [], offsets = {} } = opts;
   const anchors = {};
   const ce = Math.cos(elev), se = Math.sin(elev);
   const view = [0, se, ce];
@@ -121,7 +121,9 @@ function t3dDraw(ctx2, model, opts) {
   const walk = (node, parentM) => {
     if (node.when && !flags.includes(node.when)) return;
     const extra = pose[node.name] || [0, 0, 0];
-    const p = node.name === 'root' ? [node.pos[0] + rootOffset[0], node.pos[1] + rootOffset[1], node.pos[2] + rootOffset[2]] : node.pos;
+    const base = node.name === 'root' ? [node.pos[0] + rootOffset[0], node.pos[1] + rootOffset[1], node.pos[2] + rootOffset[2]] : node.pos;
+    const off = offsets[node.name];
+    const p = off ? [base[0] + off[0], base[1] + off[1], base[2] + off[2]] : base;
     const local = t3dMat(node.rot[0] + extra[0], node.rot[1] + extra[1], node.rot[2] + extra[2], p[0], p[1], p[2]);
     const m = t3dMul(parentM, local);
     if (node.anchor) { const q = t3dApply(m, [0, 0, 0]); anchors[node.name] = { x: x + q[0] * scale, y: y + (-q[1] * ce + q[2] * se) * scale }; }

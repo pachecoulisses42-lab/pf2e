@@ -226,7 +226,7 @@ test('tokens pintados em par (vista de cima ↔ retrato) acompanham o estilo dos
 
 test('tokens 3D: cada boneco tem peça equipada na categoria 3d, com ficha válida', () => {
   const t3 = templates.filter(t => t.category === '3d');
-  assert.equal(t3.length, 9);
+  assert.equal(t3.length, 10);
   assert.deepEqual(t3.map(t => t.sculpt).sort(), [...t3dKeys].sort());
   for (const t of t3) {
     assert.ok(t.maxHp > 10 && t.ac >= 14, `${t.id} PV/CA`);

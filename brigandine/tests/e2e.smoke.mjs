@@ -816,9 +816,9 @@ await check('tokens 3D: seção na gaveta, seletor, caminhada, gestos de ataque/
     const saved = captureBoard(STATE).units.filter(u => /^t3_/.test(u.sculpt)).length;
     return { cards, thumbs, picks, swapped, walking, attacking, casting, drinking, saved, added: STATE.units.length - before };
   });
-  assert.equal(r.cards, 9);
+  assert.equal(r.cards, 10);
   assert.ok(r.thumbs, 'miniaturas geradas');
-  assert.equal(r.picks, 9, 'aba Tokens 3D do seletor');
+  assert.equal(r.picks, 10, 'aba Tokens 3D do seletor');
   assert.equal(r.swapped, 't3_ladina');
   assert.equal(r.walking, 'walk');
   assert.equal(r.attacking, 'attack');

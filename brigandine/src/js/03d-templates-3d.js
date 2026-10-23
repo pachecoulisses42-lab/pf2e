@@ -1,6 +1,7 @@
 /* ============================================================================
    4d. PEÇAS DOS TOKENS 3D — os 9 personagens animados (categoria '3d')
    Fichas PF2e Remaster de nível 3 (o Aprendiz é nível 2). PV e CA saem da ficha.
+   O Guerreiro de Miniatura vem do protótipo "Pathfinder 3D Heroes" (00n).
    Ficam na seção "Tokens 3D" da gaveta Personagens.
    ============================================================================ */
 (() => {
@@ -22,6 +23,14 @@
   const I = (key, qty) => ({ ...ITEM_CATALOG[key], ...(qty ? { qty } : {}) });
 
   UNIT_TEMPLATES.push(
+    piece({
+      id: 't3d_guerreiro_miniatura', name: 'Guerreiro de Miniatura', sculpt: 't3_guerreiro_miniatura',
+      sheet: { ancestry: 'Humano', background: 'Soldado', className: 'Guerreiro (Fighter)', keyAttr: 'FOR',
+        ancestryHp: 8, classHp: 10, armorItemBonus: 5, dexCap: 1, shieldBonus: 2, attrs: attrs(4, 1, 2, 0, 1, 1), prof: prof(2, 4, 0, 4, 4, 2, 2),
+        skills: ['Atletismo (E)', 'Intimidação (T)', 'Sociedade (T)'], feats: ['Ataque Reativo', 'Bloqueio com Escudo', 'Golpe Rápido'] },
+      weapons: [{ name: 'Espada Longa', dmgDie: '1d8', reach: 1.5, dmgType: 'cortante' }],
+      items: [I('pocao_menor', 2)]
+    }),
     piece({
       id: 't3d_elfo_chama', name: 'Elfo da Chama', sculpt: 't3_elfo_chama',
       sheet: { ancestry: 'Elfo', background: 'Acadêmico', className: 'Magus (Lâmina Flamejante)', keyAttr: 'FOR',
