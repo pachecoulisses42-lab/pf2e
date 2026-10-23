@@ -1,0 +1,85 @@
+{
+ "note": "Pixel Tokens v2 (protótipo enviado pelo usuário): folhas 8x5 de 128 px (parado, andar, ataque, atingido, morte), limpas de fragmentos de outras figuras. Só os 4 personagens que vieram inteiros. O build embute as imagens (PIXEL_TOKEN_SHEETS).",
+ "items": [
+  {
+   "key": "px_aventureiro",
+   "name": "Aventureiro",
+   "file": "px_aventureiro.webp",
+   "frame": 128,
+   "cols": 8,
+   "rows": [
+    "idle",
+    "walk",
+    "attack",
+    "hit",
+    "death"
+   ],
+   "box": [
+    32,
+    12,
+    96,
+    110
+   ]
+  },
+  {
+   "key": "px_cavaleiro_negro",
+   "name": "Cavaleiro Negro",
+   "file": "px_cavaleiro_negro.webp",
+   "frame": 128,
+   "cols": 8,
+   "rows": [
+    "idle",
+    "walk",
+    "attack",
+    "hit",
+    "death"
+   ],
+   "box": [
+    44,
+    12,
+    92,
+    110
+   ]
+  },
+  {
+   "key": "px_guardiao_dourado",
+   "name": "Guardião Dourado",
+   "file": "px_guardiao_dourado.webp",
+   "frame": 128,
+   "cols": 8,
+   "rows": [
+    "idle",
+    "walk",
+    "attack",
+    "hit",
+    "death"
+   ],
+   "box": [
+    39,
+    40,
+    92,
+    110
+   ]
+  },
+  {
+   "key": "px_guardiao_verde",
+   "name": "Guardião Verde",
+   "file": "px_guardiao_verde.webp",
+   "frame": 128,
+   "cols": 8,
+   "rows": [
+    "idle",
+    "walk",
+    "attack",
+    "hit",
+    "death"
+   ],
+   "box": [
+    42,
+    34,
+    86,
+    110
+   ]
+  }
+ ]
+}

@@ -12,12 +12,13 @@ const templates = plain(T.UNIT_TEMPLATES);
 const chibiKeys = Object.keys(T.CHIBI_SVGS);
 const extraKeys = Object.keys(T.EXTRA_TOKENS);
 const t3dKeys = Object.keys(T.T3D_TOKENS);
+const pixelKeys = Object.keys(T.PIXEL_TOKENS);
 const tokenFaction = (k) => (T.EXTRA_TOKENS[k] ? T.EXTRA_TOKENS[k].faction : (T.VILLAIN_SCULPTS.has(k) ? 'villain' : 'hero'));
 
 test('todo token chibi tem uma peça (modelo) e toda peça aponta para um token existente', () => {
   const sculptsWithTemplate = new Set(templates.map(t => t.sculpt));
   for (const key of chibiKeys) assert.ok(sculptsWithTemplate.has(key), `token "${key}" está sem peça`);
-  for (const t of templates) assert.ok(chibiKeys.includes(t.sculpt) || extraKeys.includes(t.sculpt) || t3dKeys.includes(t.sculpt), `modelo ${t.id} usa token inexistente "${t.sculpt}"`);
+  for (const t of templates) assert.ok(chibiKeys.includes(t.sculpt) || extraKeys.includes(t.sculpt) || t3dKeys.includes(t.sculpt) || pixelKeys.includes(t.sculpt), `modelo ${t.id} usa token inexistente "${t.sculpt}"`);
 });
 
 test('toda classe nova e todo vilão novo dos tokens pintados tem peça equipada', () => {
@@ -234,4 +235,18 @@ test('tokens 3D: cada boneco tem peça equipada na categoria 3d, com ficha váli
     assert.ok(T.isKnownTokenKey(t.sculpt), `${t.id} token conhecido`);
     for (const w of t.weapons) assert.ok(T.isValidDice(w.dmgDie), `${t.id} ${w.name}`);
   }
+});
+
+test('pixel art: as 4 figuras inteiras do protótipo têm peça equipada (categoria pixel) e folha 8×5', () => {
+  assert.deepEqual(pixelKeys.sort(), ['px_aventureiro', 'px_cavaleiro_negro', 'px_guardiao_dourado', 'px_guardiao_verde']);
+  const px = templates.filter(t => t.category === 'pixel');
+  assert.deepEqual(px.map(t => t.sculpt).sort(), [...pixelKeys].sort());
+  for (const k of pixelKeys) {
+    const t = T.PIXEL_TOKENS[k];
+    assert.equal(t.frame, 128);
+    assert.deepEqual(t.rows, ['idle', 'walk', 'attack', 'hit', 'death']);
+    assert.ok(t.box[3] > t.box[1] && t.box[2] > t.box[0], `${k} caixa da figura`);
+    assert.ok(T.isKnownTokenKey(k));
+  }
+  for (const t of px) assert.ok(t.maxHp > 10 && t.ac >= 15 && t.weapons.length >= 1, t.id);
 });

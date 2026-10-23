@@ -19,7 +19,7 @@ function t3dLive() {
 
 /** Caminhada visual da casa antiga até a atual (a regra já moveu a peça). */
 function startUnitWalk(unit, fromCol, fromRow) {
-  if (!unitIs3D(unit) || !t3dLive() || (fromCol === unit.col && fromRow === unit.row)) return;
+  if (!(unitIs3D(unit) || unitIsPixel(unit)) || !t3dLive() || (fromCol === unit.col && fromRow === unit.row)) return;
   const cells = cellDistanceMeters(fromCol, fromRow, unit.col, unit.row) / (STATE.grid.cellScale || 1.5);
   const duration = Math.max(320, Math.min(2200, cells * 300));
   T3D_RUNTIME.walks.set(unit.id, { fromCol, fromRow, start: performance.now(), duration });
@@ -122,6 +122,6 @@ function drawUnit3D(unit, center, tokenR, isDead) {
 /** Mantém o tabuleiro desenhando enquanto houver peça 3D viva (respiração, caminhada). */
 function scheduleT3DFrame() {
   if (T3D_RUNTIME.timer || !t3dLive()) return;
-  if (!STATE.units.some(unitIs3D)) return;
+  if (!STATE.units.some(u => unitIs3D(u) || unitIsPixel(u))) return;
   T3D_RUNTIME.timer = setTimeout(() => { T3D_RUNTIME.timer = 0; requestRender(); }, T3D_FRAME_MS);
 }
