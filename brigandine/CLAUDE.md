@@ -33,10 +33,6 @@ Armas no ritmo normal, magias/efeitos mágicos no cinema; clique pula; tremida e
 Tokens 3D (`00k`–`00m`, `07e`, `03d`): bonecos low-poly com chave `t3_*`; personagem novo = configuração em
 `T3D_TOKENS` + peça em `03d`. A peça 3D faz o gesto da ação via `ANIM.current` (07d) e anda via `startUnitWalk`.
 
-Cel-shaded (`00n`, `00o`, `07f`): estilos `cel` e `celtopo`. Todo token precisa de boneco em `CEL_CHARS` (há teste);
-token novo = configuração do boneco + entrada no mapa `celCharKey`. Atividades: idle, walk, attack, cast, item,
-scroll, hit (8 quadros, `T3D_CYCLE`).
-
 Cenas de combate: ver `docs/ARQUITETURA-CENAS.md`. Tudo que entra no tabuleiro precisa estar em
 `captureBoard` (12d) e em `applyLoadedPayload` (12) para ser salvo e reaberto nas cenas.
 

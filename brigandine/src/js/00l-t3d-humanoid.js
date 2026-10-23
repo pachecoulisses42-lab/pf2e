@@ -57,69 +57,6 @@ const T3D_ITEMS = {
     parts.push(t3dBox({ w: 0.08, h: 0.06, d: 0.06, color: '#5c3b22' }));
     return parts;
   },
-  scroll: () => [
-    t3dPrism({ n: 6, y0: -0.2, y1: 0.2, r0: 0.03, r1: 0.03, color: '#7c4a1e' }).map(f => ({ ...f, v: f.v.map(v => [v[1], v[0] + 0.17, v[2]]) })),
-    t3dPrism({ n: 6, y0: -0.2, y1: 0.2, r0: 0.03, r1: 0.03, color: '#7c4a1e' }).map(f => ({ ...f, v: f.v.map(v => [v[1], v[0] - 0.17, v[2]]) })),
-    t3dBox({ w: 0.36, h: 0.32, d: 0.012, color: '#f3e2b8' }),
-    t3dBox({ y: 0.04, z: 0.008, w: 0.22, h: 0.02, d: 0.006, color: '#7f1d1d' }),
-    t3dBox({ y: -0.03, z: 0.008, w: 0.18, h: 0.02, d: 0.006, color: '#7f1d1d' })
-  ],
-  shield: (c) => [
-    t3dAxisZ(t3dPrism({ n: 10, y0: -0.02, y1: 0.03, r0: 0.25, r1: 0.25, color: c.shieldColor || '#8b5a2b' })),
-    t3dAxisZ(t3dPrism({ n: 8, y0: 0.03, y1: 0.07, r0: 0.07, r1: 0.04, color: c.shieldBoss || '#9ca3af' })),
-    ...(c.shieldMark ? [t3dBox({ z: 0.035, w: 0.06, h: 0.3, d: 0.01, color: c.shieldMark }), t3dBox({ z: 0.035, w: 0.3, h: 0.06, d: 0.01, color: c.shieldMark })] : [])
-  ],
-  kite: (c) => [
-    t3dBox({ y: 0.02, w: 0.4, h: 0.44, d: 0.04, color: c.shieldColor || '#1d4ed8', taper: 1.15 }),
-    t3dBox({ y: -0.26, w: 0.24, h: 0.12, d: 0.04, color: c.shieldColor || '#1d4ed8', taper: 2.3 }),
-    ...(c.shieldMark ? [t3dBox({ y: 0.04, z: 0.025, w: 0.05, h: 0.3, d: 0.01, color: c.shieldMark }), t3dBox({ y: 0.08, z: 0.025, w: 0.22, h: 0.05, d: 0.01, color: c.shieldMark })] : [])
-  ],
-  axe: (c) => [
-    t3dPrism({ n: 5, y0: -0.14, y1: 0.62, r0: 0.026, r1: 0.024, color: c.grip || '#6b4423' }),
-    t3dBox({ x: 0.09, y: 0.55, w: 0.18, h: 0.22, d: 0.03, color: c.blade || '#cbd5e1', taper: 1.4 })
-  ],
-  greataxe: (c) => [
-    t3dPrism({ n: 5, y0: -0.3, y1: 0.85, r0: 0.03, r1: 0.028, color: c.grip || '#6b4423' }),
-    t3dBox({ x: 0.13, y: 0.74, w: 0.26, h: 0.32, d: 0.035, color: c.blade || '#cbd5e1', taper: 1.5 }),
-    t3dBox({ x: -0.11, y: 0.74, w: 0.2, h: 0.26, d: 0.035, color: c.blade || '#cbd5e1', taper: 1.5 })
-  ],
-  spear: (c) => [
-    t3dPrism({ n: 5, y0: -0.7, y1: 1.0, r0: 0.024, r1: 0.022, color: c.grip || '#7c5a32' }),
-    t3dBlade({ y0: 0.98, y1: 1.26, w: 0.09, t: 0.02, color: c.blade || '#d1d5db', tip: 0.14 })
-  ],
-  crossbow: (c) => [
-    t3dBox({ y: 0.12, w: 0.06, h: 0.5, d: 0.07, color: c.wood || '#7c4a1e' }),
-    t3dBox({ y: 0.34, z: 0.02, w: 0.5, h: 0.04, d: 0.04, color: '#4b5563' }),
-    t3dBox({ y: 0.25, z: 0.02, w: 0.48, h: 0.008, d: 0.008, color: '#e5e7eb' })
-  ],
-  pistol: () => [
-    t3dBox({ y: -0.04, w: 0.05, h: 0.13, d: 0.06, color: '#5b3a1e' }),
-    t3dBox({ y: 0.1, z: 0.0, w: 0.045, h: 0.22, d: 0.045, color: '#4b5563' })
-  ],
-  lute: (c) => [
-    t3dAxisZ(t3dPrism({ n: 8, y0: -0.04, y1: 0.04, r0: 0.17, r1: 0.17, sx: 1, sz: 1.3, color: c.wood || '#b0713a' })),
-    t3dBox({ y: 0.32, w: 0.05, h: 0.36, d: 0.03, color: '#5b3a1e' }),
-    t3dAxisZ(t3dPrism({ n: 6, y0: 0.04, y1: 0.05, r0: 0.05, r1: 0.05, color: '#1f2937' }))
-  ],
-  wand: (c) => [
-    t3dPrism({ n: 5, y0: -0.05, y1: 0.32, r0: 0.018, r1: 0.012, color: c.wood || '#5b3a1e' }),
-    t3dPrism({ n: 5, y0: 0.32, y1: 0.38, r0: 0.03, r1: 0, color: c.glowColor || '#a5f3fc' }).map(f => ({ ...f, glow: true }))
-  ],
-  sickle: (c) => [
-    t3dPrism({ n: 5, y0: -0.1, y1: 0.25, r0: 0.022, r1: 0.022, color: '#6b4423' }),
-    t3dBox({ x: 0.06, y: 0.3, w: 0.16, h: 0.035, d: 0.02, color: '#d1d5db' }),
-    t3dBox({ x: 0.15, y: 0.24, w: 0.04, h: 0.12, d: 0.02, color: '#d1d5db' })
-  ],
-  orb: (c) => [
-    t3dPrism({ n: 6, y0: 0.0, y1: 0.16, r0: 0.07, r1: 0.07, color: c.glowColor || '#a78bfa' }).map(f => ({ ...f, glow: true }))
-  ],
-  club: (c) => [
-    t3dPrism({ n: 6, y0: -0.12, y1: 0.55, r0: 0.03, r1: 0.07, color: c.grip || '#e7e5e4', jag: 0.2 })
-  ],
-  torch: () => [
-    t3dPrism({ n: 5, y0: -0.12, y1: 0.3, r0: 0.025, r1: 0.03, color: '#6b4423' }),
-    t3dPrism({ n: 5, y0: 0.3, y1: 0.48, r0: 0.06, r1: 0, color: '#f97316', jag: 0.3 }).map(f => ({ ...f, glow: true }))
-  ],
   flask: () => [
     t3dPrism({ n: 6, y0: -0.06, y1: 0.06, r0: 0.06, r1: 0.06, color: '#dc2626' }),
     t3dPrism({ n: 6, y0: 0.06, y1: 0.14, r0: 0.025, r1: 0.025, color: '#e5e7eb' }),
@@ -130,11 +67,6 @@ const T3D_ITEMS = {
     t3dPrism({ n: 5, y0: 0, y1: 0.22, r0: 0.06, r1: 0, color: '#fde047', twist: 0.5 }).map(f => ({ ...f, glow: true }))
   ]
 };
-
-/** Gira uma peça feita ao longo de y para ficar ao longo de z (discos de frente: escudo, alaúde). */
-function t3dAxisZ(faces) {
-  return faces.map(f => ({ ...f, v: f.v.map(v => [v[0], -v[2], v[1]]) }));
-}
 
 /** Peças de item e nós filhos (o arco é feito de nós inclinados). */
 function t3dItemNode(name, kind, cfg, pos, rot, when = null) {
@@ -200,9 +132,9 @@ function t3dHumanoid(cfg) {
   head.push(t3dPrism({ n: 6, y0: 0.05 + hr * 2.1, y1: 0.05 + hr * 2.45, r0: hr * 0.95, r1: hr * 0.5, sz: 0.95, twist: Math.PI / 6, color: C.hairStyle === 'bald' || !C.hair ? C.skin : C.hair }));
   const eyeY = 0.05 + hr * 1.25;
   if (!C.faceShadow) {
-    head.push(t3dBox({ x: 0.055 * hs, y: eyeY, z: hr * 0.86, w: 0.03, h: 0.026, d: 0.02, color: '#111827' }).map(f => ({ ...f, detail: true })));
-    head.push(t3dBox({ x: -0.055 * hs, y: eyeY, z: hr * 0.86, w: 0.03, h: 0.026, d: 0.02, color: '#111827' }).map(f => ({ ...f, detail: true })));
-    head.push(t3dBox({ y: eyeY + 0.045, z: hr * 0.84, w: 0.15 * hs, h: 0.014, d: 0.02, color: C.brow || C.hair || '#3f2a17' }).map(f => ({ ...f, detail: true })));
+    head.push(t3dBox({ x: 0.055 * hs, y: eyeY, z: hr * 0.86, w: 0.035, h: 0.022, d: 0.02, color: '#111827' }));
+    head.push(t3dBox({ x: -0.055 * hs, y: eyeY, z: hr * 0.86, w: 0.035, h: 0.022, d: 0.02, color: '#111827' }));
+    head.push(t3dBox({ y: eyeY + 0.04, z: hr * 0.84, w: 0.15 * hs, h: 0.018, d: 0.02, color: C.brow || C.hair || '#3f2a17' }));
   }
   if (C.ears === 'elf') {
     for (const s of [1, -1]) head.push(t3dPrism({ n: 4, y0: 0, y1: 0.16, r0: 0.03, r1: 0, cx: s * hr * 0.95, color: C.skin, off: [s * 0.1, -0.03] }).map(f => ({ ...f, v: f.v.map(v => [v[0], v[1] + eyeY - 0.02, v[2]]) })));
@@ -231,55 +163,10 @@ function t3dHumanoid(cfg) {
     // abertura do rosto
     head.push(t3dBox({ y: eyeY - 0.01, z: hr * 1.02, w: hr * 1.2, h: hr * 1.3, d: 0.03, color: C.faceShadow ? '#1f1a17' : C.skin }));
     if (!C.faceShadow) {
-      head.push(t3dBox({ x: 0.05 * hs, y: eyeY, z: hr * 1.05, w: 0.03, h: 0.026, d: 0.02, color: C.eyes || '#111827' }).map(f => ({ ...f, detail: true })));
-      head.push(t3dBox({ x: -0.05 * hs, y: eyeY, z: hr * 1.05, w: 0.03, h: 0.026, d: 0.02, color: C.eyes || '#111827' }).map(f => ({ ...f, detail: true })));
+      head.push(t3dBox({ x: 0.05 * hs, y: eyeY, z: hr * 1.05, w: 0.035, h: 0.022, d: 0.02, color: C.eyes || '#111827' }));
+      head.push(t3dBox({ x: -0.05 * hs, y: eyeY, z: hr * 1.05, w: 0.035, h: 0.022, d: 0.02, color: C.eyes || '#111827' }));
     }
   }
-
-  const top = 0.05 + hr * 2.45;
-  const hc = C.helmColor || '#9ca3af';
-  if (C.skull) {
-    head.push(t3dBox({ x: 0.055 * hs, y: eyeY, z: hr * 0.84, w: 0.06, h: 0.055, d: 0.03, color: '#111827' }).map(f => ({ ...f, detail: true })));
-    head.push(t3dBox({ x: -0.055 * hs, y: eyeY, z: hr * 0.84, w: 0.06, h: 0.055, d: 0.03, color: '#111827' }).map(f => ({ ...f, detail: true })));
-    head.push(t3dBox({ y: eyeY - 0.09, z: hr * 0.84, w: hr * 1.0, h: 0.025, d: 0.03, color: '#57534e' }).map(f => ({ ...f, detail: true })));
-  }
-  if (C.eyeGlow) {
-    for (const s of [1, -1]) head.push(t3dBox({ x: s * 0.055 * hs, y: eyeY, z: hr * 0.9, w: 0.035, h: 0.022, d: 0.02, color: C.eyeGlow }).map(f => ({ ...f, glow: true, detail: true })));
-  }
-  if (C.ears === 'goblin') {
-    for (const s of [1, -1]) head.push(t3dPrism({ n: 4, y0: 0, y1: 0.26, r0: 0.05, r1: 0, cx: s * hr * 0.9, color: C.skin, off: [s * 0.24, 0.02] }).map(f => ({ ...f, v: f.v.map(v => [v[0], v[1] * 0.5 + eyeY, v[2]]) })));
-  }
-  if (C.ears === 'fox' || C.ears === 'wolf') {
-    for (const s of [1, -1]) head.push(t3dPrism({ n: 4, y0: top - 0.03, y1: top + 0.14, r0: 0.05, r1: 0, cx: s * hr * 0.6, color: C.earColor || C.hair || C.skin, off: [s * 0.02, 0] }));
-  }
-  if (C.mask) head.push(t3dBox({ y: eyeY - 0.07, z: hr * 0.66, w: hr * 1.75, h: hr * 0.75, d: hr * 0.6, color: C.mask }));
-  if (C.beak) {
-    head.push(t3dPrism({ n: 4, y0: 0, y1: 0.2, r0: 0.06, r1: 0, color: C.beak, twist: Math.PI / 4 }).map(f => ({ ...f, v: f.v.map(v => [v[0], eyeY - 0.05 + v[2] - v[1] * 0.25, hr * 0.85 + v[1]]) })));
-  }
-  if (C.helm === 'knight' || C.helm === 'horned' || C.helm === 'kabuto' || C.helm === 'cap' || C.helm === 'closed') {
-    head.push(t3dPrism({ n: 8, y0: eyeY + 0.04, y1: top + 0.03, r0: hr * 1.06, r1: hr * 0.6, sz: 0.98, color: hc }));
-    if (C.helm !== 'cap') head.push(t3dPrism({ n: 8, y0: eyeY - 0.1, y1: eyeY + 0.05, r0: hr * 1.1, r1: hr * 1.08, cz: -hr * 0.12, sz: 0.85, color: hc }).filter((f, i) => i < 3 || i > 5 || i >= 8));
-    if (C.helm === 'closed') head.push(t3dBox({ y: eyeY - 0.03, z: hr * 0.85, w: hr * 1.6, h: hr * 0.9, d: 0.06, color: hc }), t3dBox({ y: eyeY + 0.01, z: hr * 0.9, w: hr * 1.3, h: 0.02, d: 0.02, color: '#111827' }).map(f => ({ ...f, detail: true })));
-    if (C.helm === 'knight' || C.helm === 'closed') head.push(t3dBox({ y: eyeY - 0.02, z: hr * 0.98, w: 0.025, h: 0.12, d: 0.02, color: hc }));
-    if (C.crest) head.push(t3dBox({ y: top + 0.08, z: -0.02, w: 0.03, h: 0.12, d: hr * 1.6, color: C.crest, taper: 0.6 }));
-    if (C.helm === 'horned') for (const s of [1, -1]) head.push(t3dPrism({ n: 5, y0: top - 0.08, y1: top + 0.2, r0: 0.04, r1: 0, cx: s * hr * 0.9, off: [s * 0.12, 0], color: C.hornColor || '#e7e5e4' }));
-    if (C.helm === 'kabuto') {
-      head.push(t3dPrism({ n: 8, y0: eyeY - 0.1, y1: eyeY + 0.02, r0: hr * 1.6, r1: hr * 1.15, cz: -hr * 0.2, color: hc, bottom: false }));
-      head.push(t3dBox({ y: top + 0.08, z: hr * 0.7, w: hr * 1.4, h: 0.12, d: 0.02, color: C.crest || '#d4a017', taper: 1.6 }));
-    }
-  }
-  if (C.helm === 'kasa') head.push(t3dPrism({ n: 10, y0: top - 0.06, y1: top + 0.16, r0: hr * 2.5, r1: 0, color: hc }));
-  if (C.helm === 'cowboy' || C.helm === 'feather') {
-    head.push(t3dPrism({ n: 10, y0: top - 0.04, y1: top - 0.01, r0: hr * 1.9, r1: hr * 1.85, color: hc }));
-    head.push(t3dPrism({ n: 8, y0: top - 0.02, y1: top + 0.12, r0: hr * 1.0, r1: hr * 0.8, color: hc }));
-    if (C.hatBand) head.push(t3dPrism({ n: 8, y0: top - 0.01, y1: top + 0.03, r0: hr * 1.02, r1: hr * 1.0, color: C.hatBand }));
-    if (C.helm === 'feather') head.push(t3dBlade({ y0: 0, y1: 0.36, w: 0.07, t: 0.01, color: C.feather || '#f5f5f4', tip: 0.1 }).map(f => ({ ...f, v: f.v.map(v => [v[0] + hr * 0.7 + v[1] * 0.2, top + 0.02 + v[1] * 0.6, -v[1] * 0.7]) })));
-  }
-  if (C.helm === 'band' || C.helm === 'goggles') {
-    head.push(t3dPrism({ n: 8, y0: eyeY + 0.06, y1: eyeY + 0.11, r0: hr * 1.0, r1: hr * 1.0, sz: 0.97, color: C.helmColor || '#b91c1c' }));
-    if (C.helm === 'goggles') for (const s of [1, -1]) head.push(t3dAxisZ(t3dPrism({ n: 6, y0: 0, y1: 0.05, r0: 0.045, r1: 0.045, cx: s * 0.06, color: '#7dd3fc' })).map(f => ({ ...f, v: f.v.map(v => [v[0], v[1] + eyeY + 0.12, v[2] + hr * 0.82]) })));
-  }
-  if (C.helm === 'crown') head.push(t3dPrism({ n: 8, y0: top - 0.05, y1: top + 0.06, r0: hr * 0.95, r1: hr * 0.98, jag: 0.15, color: C.helmColor || '#d4a017' }));
 
   // ----- tronco
   const torsoParts = [
@@ -316,22 +203,13 @@ function t3dHumanoid(cfg) {
   if (C.buckle) hipParts.push(t3dBox({ y: 0.075, z: 0.19, w: 0.08, h: 0.07, d: 0.02, color: C.buckle }));
   if (C.sash) hipParts.push(t3dBox({ x: 0.06, y: -0.15, z: 0.19, w: 0.07, h: 0.32, d: 0.02, color: C.sash }));
   if (C.bag) hipParts.push(t3dBox({ x: -0.24, y: -0.05, z: 0.04, w: 0.08, h: 0.17, d: 0.2, color: C.bag }));
-  const hipKids = [];
-  if (C.tail) {
-    const tc = C.tail;
-    hipKids.push(t3dNode('tail', [0, 0.0, -0.18], [
-      t3dPrism({ n: 6, y0: 0, y1: tc.len || 0.55, r0: tc.r || 0.08, r1: tc.tipR ?? 0.12, color: tc.color }),
-      ...(tc.tip ? [t3dPrism({ n: 6, y0: (tc.len || 0.55), y1: (tc.len || 0.55) + 0.18, r0: tc.tipR ?? 0.12, r1: 0, color: tc.tip })] : [])
-    ], [], [-2.2, 0, 0]));
-  }
   if (C.books) hipParts.push(t3dBox({ x: 0.2, y: -0.04, z: 0.12, w: 0.1, h: 0.14, d: 0.12, color: C.books }));
 
   const root = t3dNode('root', [0, 0, 0], [], [
     t3dNode('hips', [0, 0.86, 0], hipParts, [
-      leg('L'), leg('R'), ...hipKids,
+      leg('L'), leg('R'),
       t3dNode('torso', [0, 0.06, 0], torsoParts, [
         t3dNode('head', [0, 0.6, 0], head),
-        t3dItemNode('scrollT', 'scroll', C, [0, 0.42, 0.34], [-0.5, 0, 0], 'scroll'),
         arm('L'), arm('R'),
         ...backKids
       ])
@@ -342,10 +220,7 @@ function t3dHumanoid(cfg) {
 
 /* ---------- poses ---------- */
 
-const T3D_ANIMS = ['idle', 'walk', 'attack', 'cast', 'item', 'scroll', 'hit'];
-
-/** Duração do ciclo de cada animação (s): os 8 quadros dividem esse tempo. */
-const T3D_CYCLE = { idle: 2.86, walk: 0.838, attack: 1.1, cast: 1.4, item: 1.4, scroll: 1.4, hit: 0.8 };
+const T3D_ANIMS = ['idle', 'walk', 'attack', 'cast', 'item'];
 const t3dSmooth = (k) => k * k * (3 - 2 * k);
 const t3dSeg = (k, a, b) => Math.max(0, Math.min(1, (k - a) / (b - a)));
 
@@ -354,7 +229,6 @@ const t3dSeg = (k, a, b) => Math.max(0, Math.min(1, (k - a) / (b - a)));
  * Devolve { pose, rootOffset, flags }.
  */
 function t3dPose(anim, t, style) {
-  if (style === 'bite') return t3dQuadPose(anim, t);
   const P = {};
   const flags = [];
   let ro = [0, 0, 0];
@@ -409,16 +283,6 @@ function t3dPose(anim, t, style) {
       P.armR = [-0.5 - 1.1 * stab, 0, -0.15];
       P.foreR = [-1.0 * (1 - stab), 0, 0];
       ro = [0, 0, 0.1 * stab];
-    } else if (style === 'shoot') {
-      // pistola/besta: aponta, recua no disparo, abaixa
-      const aim = t3dSmooth(t3dSeg(k, 0.05, 0.3)) * (1 - t3dSmooth(t3dSeg(k, 0.75, 1)));
-      const kick = t3dSmooth(t3dSeg(k, 0.42, 0.47)) * (1 - t3dSmooth(t3dSeg(k, 0.47, 0.65)));
-      P.armR = [-1.5 * aim - 0.35 * kick, 0, -0.1];
-      P.foreR = [-0.1 * aim, 0, 0];
-      P.armL = [-1.2 * aim, 0, 0.45 * aim];
-      P.foreL = [-0.5 * aim, 0, 0];
-      P.torso = [-0.08 * kick, -0.15 * aim, 0];
-      ro = [0, 0, -0.04 * kick];
     } else {
       // espada/katana/cajado: ergue e desce
       const up = t3dSmooth(t3dSeg(k, 0.0, 0.38));
@@ -458,36 +322,6 @@ function t3dPose(anim, t, style) {
     P.head = [-0.35 * tilt, 0, 0];
     P.torso = [-0.08 * tilt, 0, 0];
     flags.push('item');
-  }
-  if (anim === 'scroll') {
-    // abre o pergaminho na frente do peito, lê, e ele brilha e se desfaz
-    const T = 1.4, k = (t % T) / T;
-    const open = t3dSmooth(t3dSeg(k, 0, 0.2));
-    const burn = t3dSmooth(t3dSeg(k, 0.7, 0.9));
-    P.armL = [-1.05 * open + 0.6 * burn, 0, 0.22 + 0.3 * burn];
-    P.armR = [-1.05 * open + 0.6 * burn, 0, -0.22 - 0.3 * burn];
-    P.foreL = [-0.75 * open, 0, 0];
-    P.foreR = [-0.75 * open, 0, 0];
-    P.head = [0.22 * open * (1 - burn) - 0.15 * burn, 0, 0];
-    P.torso = [0.05 * open - 0.1 * burn, 0, 0];
-    if (k < 0.82) flags.push('scroll');
-    if (k > 0.55 && k < 0.95) flags.push('scrollGlow');
-  }
-
-  if (anim === 'hit') {
-    // golpe chega no começo: tranco para trás, cabeça e braços jogados, recupera
-    const T = 0.8, k = (t % T) / T;
-    const jolt = t3dSmooth(t3dSeg(k, 0, 0.12)) * (1 - t3dSmooth(t3dSeg(k, 0.3, 1)));
-    P.torso = [-0.45 * jolt, 0.15 * jolt, 0];
-    P.head = [-0.4 * jolt, -0.2 * jolt, 0];
-    P.armL = [0.5 * jolt, 0, 0.1 + 0.7 * jolt];
-    P.armR = [0.5 * jolt, 0, -0.1 - 0.7 * jolt];
-    P.foreL = [-0.6 * jolt, 0, 0];
-    P.foreR = [-0.6 * jolt, 0, 0];
-    P.legL = [-0.25 * jolt, 0, 0];
-    P.shinL = [0.3 * jolt, 0, 0];
-    ro = [0, -0.04 * jolt, -0.18 * jolt];
-    if (k < 0.18) flags.push('hitFlash');
   }
   return { pose: P, rootOffset: ro, flags };
 }

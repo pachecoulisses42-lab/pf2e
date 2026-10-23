@@ -76,10 +76,7 @@ function t3dBlade({ y0 = 0, y1 = 1, w = 0.08, t = 0.02, color, tip = 0.15, glow 
 }
 
 /** Vira para fora as faces de uma peça convexa (normal apontando para longe do centro). */
-let T3D_PART_SEQ = 0;
 function t3dOrient(faces) {
-  const gid = ++T3D_PART_SEQ;
-  for (const f of faces) f.g = gid;
   let cx = 0, cy = 0, cz = 0, n = 0;
   for (const f of faces) for (const v of f.v) { cx += v[0]; cy += v[1]; cz += v[2]; n++; }
   cx /= n; cy /= n; cz /= n;
@@ -116,7 +113,7 @@ function t3dFind(node, name) {
  * elev (rad, inclinação da câmera), pose: { nome: [rx, ry, rz] }, offset: [x,y,z] do corpo }.
  */
 function t3dDraw(ctx2, model, opts) {
-  const { x, y, scale, yaw = 0, elev = 50 * T3D_DEG, pose = {}, rootOffset = [0, 0, 0], flags = [], cel = false, flash = 0, ink = '#1a1410' } = opts;
+  const { x, y, scale, yaw = 0, elev = 50 * T3D_DEG, pose = {}, rootOffset = [0, 0, 0], flags = [] } = opts;
   const anchors = {};
   const ce = Math.cos(elev), se = Math.sin(elev);
   const view = [0, se, ce];
@@ -143,16 +140,11 @@ function t3dDraw(ctx2, model, opts) {
       let depth = 0;
       const pts = w.map(q => { depth += q[1] * se + q[2] * ce; return [x + q[0] * scale, y + (-q[1] * ce + q[2] * se) * scale]; });
       const lam = Math.max(0, nx * T3D_LIGHT[0] + ny * T3D_LIGHT[1] + nz * T3D_LIGHT[2]);
-      const shade = f.glow ? 1.15 : cel ? (lam > 0.62 ? 1.06 : lam > 0.22 ? 0.86 : 0.64) : 0.58 + 0.55 * lam;
-      polys.push({ pts, depth: depth / w.length, c: f.c, shade, glow: f.glow, g: f.g || 0, detail: f.detail });
+      polys.push({ pts, depth: depth / w.length, c: f.c, shade: f.glow ? 1.15 : 0.58 + 0.55 * lam, glow: f.glow });
     }
     for (const c of node.children) walk(c, m);
   };
   walk(model.root, t3dMat(0, yaw, 0, 0, 0, 0));
-  if (cel) {
-    t3dDrawCel(ctx2, polys, scale, flash, ink);
-    return anchors;
-  }
   polys.sort((a, b) => a.depth - b.depth);
   ctx2.save();
   ctx2.lineJoin = 'round';
@@ -183,50 +175,4 @@ function t3dShade(hex, k) {
   v = `rgb(${ch((n >> 16) & 255)}, ${ch((n >> 8) & 255)}, ${ch(n & 255)})`;
   T3D_SHADE_CACHE.set(key, v);
   return v;
-}
-
-/**
- * Cel-shading: tons chapados em 3 faixas e contorno de tinta por peça. As peças são desenhadas
- * de trás para a frente; cada uma recebe o contorno escuro e depois o preenchimento, então o
- * traço aparece na silhueta e onde uma peça passa na frente de outra.
- */
-function t3dDrawCel(ctx2, polys, scale, flash, ink) {
-  const groups = new Map();
-  for (const p of polys) {
-    let g = groups.get(p.g);
-    if (!g) { g = { polys: [], depth: 0 }; groups.set(p.g, g); }
-    g.polys.push(p);
-    g.depth += p.depth;
-  }
-  const list = [...groups.values()].map(g => ({ ...g, depth: g.depth / g.polys.length }));
-  list.sort((a, b) => a.depth - b.depth);
-  const lw = Math.max(1.2, scale * 0.045);
-  ctx2.save();
-  ctx2.lineJoin = 'round';
-  ctx2.lineCap = 'round';
-  const path = (p) => { ctx2.beginPath(); p.pts.forEach((q, i) => (i ? ctx2.lineTo(q[0], q[1]) : ctx2.moveTo(q[0], q[1]))); ctx2.closePath(); };
-  for (const g of list) {
-    g.polys.sort((a, b) => a.depth - b.depth);
-    ctx2.strokeStyle = ink;
-    ctx2.lineWidth = lw;
-    for (const p of g.polys) { if (!p.glow && !p.detail) { path(p); ctx2.stroke(); } }
-    for (const p of g.polys) {
-      const col = t3dShadeFlash(p.c, p.shade, flash);
-      ctx2.fillStyle = col;
-      ctx2.strokeStyle = col;
-      ctx2.lineWidth = 0.8;
-      path(p);
-      ctx2.fill();
-      ctx2.stroke();
-    }
-  }
-  ctx2.restore();
-}
-
-/** Tom da faixa, misturado com branco no clarão de "atingido". */
-function t3dShadeFlash(hex, k, flash) {
-  if (!flash) return t3dShade(hex, k);
-  const n = parseInt((hex || '#888888').slice(1), 16);
-  const ch = (c) => Math.round(Math.min(255, c * k) * (1 - flash) + 255 * flash);
-  return `rgb(${ch((n >> 16) & 255)}, ${ch((n >> 8) & 255)}, ${ch(n & 255)})`;
 }

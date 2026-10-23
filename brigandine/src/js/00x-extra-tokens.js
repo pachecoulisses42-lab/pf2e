@@ -38,7 +38,7 @@ linkExtraTokenPairs();
 function effectiveTokenKey(key) {
   const t = isExtraToken(key) && EXTRA_TOKENS[key];
   if (!t || !t.pair) return key;
-  const want = typeof activeTokenStyle !== 'undefined' && (activeTokenStyle === 'topo' || activeTokenStyle === 'celtopo') ? 'topo' : 'retrato';
+  const want = typeof activeTokenStyle !== 'undefined' && activeTokenStyle === 'topo' ? 'topo' : 'retrato';
   return t.kind === want ? key : t.pair;
 }
 

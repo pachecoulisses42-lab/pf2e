@@ -121,8 +121,6 @@ function chooseTokenStyle(style) {
   setTokenStyle(style);
   document.getElementById('styleChibi').classList.toggle('active', activeTokenStyle === 'chibi');
   document.getElementById('styleTopo').classList.toggle('active', activeTokenStyle === 'topo');
-  document.getElementById('styleCel').classList.toggle('active', activeTokenStyle === 'cel');
-  document.getElementById('styleCelTopo').classList.toggle('active', activeTokenStyle === 'celtopo');
   savePrefs({ tokenStyle: activeTokenStyle });
   renderPieceGallery();
   syncInspectorUI();

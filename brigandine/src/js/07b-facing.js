@@ -16,7 +16,7 @@ function tokenArtRotates(unit) {
   if (unit.customTokenDataUrl) return false;
   const key = effectiveTokenKey(unit.sculpt);
   if (isExtraToken(key)) return EXTRA_TOKENS[key].kind === 'topo';
-  return activeTokenStyle === 'topo' || activeTokenStyle === 'celtopo';
+  return activeTokenStyle === 'topo';
 }
 
 /** Vetor unitário de tela para onde a peça aponta (0° = sul). */

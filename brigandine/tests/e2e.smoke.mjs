@@ -827,58 +827,6 @@ await check('tokens 3D: seção na gaveta, seletor, caminhada, gestos de ataque/
   assert.equal(r.saved, 3);
 });
 
-await check('cel-shaded: estilos frente/cima, quadros da atividade (andar, ataque, atingido, magia, pergaminho, poção) e preferência salva', async () => {
-  const r = await page.evaluate(() => {
-    setAppMode('setup');
-    setAnimationsEnabled(true);
-    chooseTokenStyle('cel');
-    populateDemoBattle();
-    renderBoard();
-    const allCel = STATE.units.every(u => unitUsesCel(u));
-    const thumb = document.querySelector('#pieceGalleryContainer img.t3d-thumb') !== null;
-    setAppMode('combat');
-    const hero = STATE.units.find(u => u.sculpt === 'guerreiro');
-    const foe = STATE.units.find(u => u.faction === 'villain' && u.hp > 0);
-    const mage = STATE.units.find(u => u.sculpt === 'mago');
-    hero.col = 5; hero.row = 4; foe.col = 6; foe.row = 4; foe.ac = -50; foe.hp = foe.maxHp; hero.actions = 3; hero.strikesMade = 0;
-    executeWeaponAttackAndDamage(hero, foe, hero.weapons[0]);
-    const atk = unitCelFrame(hero, performance.now()).anim;
-    ANIM.current.impacted = true; ANIM.current.impactTime = performance.now();
-    const hit = unitCelFrame(foe, performance.now()).anim;
-    finishAnimation();
-    mage.actions = 3; mage.col = 3; mage.row = 4;
-    executeSpellCastOnCell(mage, mage.spells[0], { col: foe.col, row: foe.row }, foe, false);
-    const cast = unitCelFrame(mage, performance.now()).anim;
-    finishAnimation();
-    mage.actions = 3;
-    mage.items.push({ ...ITEM_CATALOG.perg_relampago, qty: 1 });
-    executeItemUseOnCell(mage, mage.items[mage.items.length - 1], { col: foe.col, row: foe.row }, foe);
-    const scroll = unitCelFrame(mage, performance.now()).anim;
-    finishAnimation();
-    mage.actions = 3; mage.hp = 3;
-    const potion = mage.items.find(i => i.kind === 'potion');
-    if (potion) executeItemUseOnCell(mage, potion, { col: mage.col, row: mage.row }, mage);
-    const drink = potion ? unitCelFrame(mage, performance.now()).anim : 'item';
-    finishAnimation();
-    startUnitWalk(hero, hero.col - 2, hero.row);
-    const walk = unitCelFrame(hero, performance.now()).anim;
-    T3D_RUNTIME.walks.clear();
-    renderBoard();
-    const sprites = CEL_SPRITES.size;
-    chooseTokenStyle('celtopo');
-    renderBoard();
-    const pref = readPrefs().tokenStyle;
-    chooseTokenStyle('chibi');
-    setAppMode('setup');
-    return { allCel, thumb, atk, hit, cast, scroll, drink, walk, sprites, pref };
-  });
-  assert.ok(r.allCel, 'todas as peças da batalha de exemplo têm boneco cel');
-  assert.ok(r.thumb, 'galeria mostra miniatura cel');
-  assert.deepEqual([r.atk, r.hit, r.cast, r.scroll, r.drink, r.walk], ['attack', 'hit', 'cast', 'scroll', 'item', 'walk']);
-  assert.ok(r.sprites > 10, 'quadros guardados em cache');
-  assert.equal(r.pref, 'celtopo');
-});
-
 await check('sem erros de JavaScript durante o fluxo', async () => {
   assert.deepEqual(errors, []);
 });

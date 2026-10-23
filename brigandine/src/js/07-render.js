@@ -356,8 +356,7 @@ function drawUnitToken(unit, isTargetable) {
   if (nudge) { center.x += nudge.x; center.y += nudge.y; }
   const walk = unitWalkOffset(unit);
   if (walk) { center.x += walk.x; center.y += walk.y; }
-  const cel = unitUsesCel(unit);
-  const is3D = !cel && unitIs3D(unit);
+  const is3D = unitIs3D(unit);
   const hp = displayHp(unit);
   const s = STATE.camera.basePx * STATE.camera.zoom;
   const tokenR = s * 0.46;
@@ -401,10 +400,8 @@ function drawUnitToken(unit, isTargetable) {
     ctx.setLineDash([]);
   }
 
-  const img = is3D || cel ? null : getUnitTokenImage(unit.sculpt, unit.customTokenDataUrl, customTokenOptions(unit));
-  if (cel) {
-    drawUnitCel(unit, center, tokenR, isDead);
-  } else if (is3D) {
+  const img = is3D ? null : getUnitTokenImage(unit.sculpt, unit.customTokenDataUrl, customTokenOptions(unit));
+  if (is3D) {
     drawUnit3D(unit, center, tokenR, isDead);
   } else if (img && img.complete) {
     if (isDead) ctx.filter = 'grayscale(100%) brightness(38%)';
@@ -419,10 +416,10 @@ function drawUnitToken(unit, isTargetable) {
     }
     ctx.filter = 'none';
   }
-  if (!isDead && !is3D && !(cel && activeTokenStyle === 'celtopo') && !tokenArtRotates(unit)) drawFacingMarker(unit, center, tokenR);
+  if (!isDead && !is3D && !tokenArtRotates(unit)) drawFacingMarker(unit, center, tokenR);
 
   if (isDead) {
-    if (!is3D && !cel) {
+    if (!is3D) {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
       ctx.beginPath();
       ctx.arc(center.x, center.y, tokenR, 0, Math.PI * 2);

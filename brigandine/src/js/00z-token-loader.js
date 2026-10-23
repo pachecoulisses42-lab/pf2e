@@ -57,16 +57,6 @@ function getUnitTokenImage(unitOrSculpt, customDataUrl = null, options = {}) {
     return img;
   }
   const sculpt = effectiveTokenKey(typeof unitOrSculpt === 'string' ? unitOrSculpt : unitOrSculpt.sculpt);
-  const celKey = typeof celStyleActive === 'function' && celStyleActive() ? celCharKey(sculpt) : null;
-  if (celKey) {
-    const key = `${activeTokenStyle}:cel:${celKey}`;
-    if (SVG_IMAGE_CACHE[key]) return SVG_IMAGE_CACHE[key];
-    const img = new Image();
-    img.src = celThumbnail(celKey);
-    img.onload = () => requestRender();
-    SVG_IMAGE_CACHE[key] = img;
-    return img;
-  }
   if (is3DToken(sculpt)) {
     const key = `t3d:${sculpt}`;
     if (SVG_IMAGE_CACHE[key]) return SVG_IMAGE_CACHE[key];
@@ -116,8 +106,6 @@ function getTokenPreviewHTML(sculptKey, customDataUrl = null, options = {}) {
     return uniquifySvgIds(buildCustomTokenSVG(customDataUrl, { faction: 'hero', framed: true, ...options }));
   }
   sculptKey = effectiveTokenKey(sculptKey);
-  const celKey = typeof celStyleActive === 'function' && celStyleActive() ? celCharKey(sculptKey) : null;
-  if (celKey) return `<img class="t3d-thumb" src="${celThumbnail(celKey)}" alt="" draggable="false">`;
   if (is3DToken(sculptKey)) return `<img class="t3d-thumb" src="${t3dThumbnail(sculptKey)}" alt="" draggable="false">`;
   if (isExtraToken(sculptKey)) return uniquifySvgIds(extraTokenSVG(sculptKey, options.faction));
   const svgFn = SCULPT_SVGS[sculptKey] || SCULPT_SVGS.guerreiro;
