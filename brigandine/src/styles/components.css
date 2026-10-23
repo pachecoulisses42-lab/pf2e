@@ -378,3 +378,12 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .scene-camp { display: inline-flex; align-items: center; gap: 4px; }
 .scene-camp select { font-size: var(--text-2xs); padding: 1px 24px 1px 6px; height: auto; max-width: 190px; background-position: right 4px center; }
 .scene-camp .icon { width: 14px; height: 14px; }
+
+/* Gaveta Personagens: seção dos tokens 3D e rótulo das peças */
+.gallery-section { margin: var(--s-2) 0; border-radius: var(--r-md); background: var(--ink-850); }
+.gallery-section > summary { display: flex; align-items: center; gap: var(--s-2); padding: var(--s-2) var(--s-3); font-size: var(--text-sm); font-weight: 700; cursor: pointer; list-style: none; }
+.gallery-section > summary::-webkit-details-marker { display: none; }
+.gallery-section[open] > summary .chev { transform: rotate(180deg); }
+.gallery-section > .piece-gallery { padding: 0 var(--s-2) var(--s-2); }
+.gallery-section-label { margin: var(--s-2) 0 var(--s-1); font-size: var(--text-xs); font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; }
+.piece-card img.t3d-thumb { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35)); }

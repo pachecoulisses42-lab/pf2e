@@ -223,6 +223,11 @@
             <input id="galleryFilterText" type="text" placeholder="Filtrar peças (nome ou classe)" aria-label="Filtrar peças" oninput="renderPieceGallery()">
             <select id="galleryFilterFaction" aria-label="Facção" onchange="renderPieceGallery()"><option value="">Todas</option><option value="hero">Heróis</option><option value="villain">Vilões</option></select>
           </div>
+          <details id="gallery3dSection" class="gallery-section" open>
+            <summary><svg class="icon"><use href="#i-sparkles"/></svg>Tokens 3D (animados)<svg class="icon chev" style="margin-left:auto"><use href="#i-chevron"/></svg></summary>
+            <div id="piece3dGalleryContainer" class="piece-gallery"></div>
+          </details>
+          <div class="gallery-section-label">Peças</div>
           <div id="pieceGalleryContainer" class="piece-gallery"></div>
 
           <details id="newPieceDetails" class="more" ontoggle="if (this.open) syncNewPieceForm()">

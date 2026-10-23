@@ -63,8 +63,10 @@ function handleCombatBoardClick(cell, clickedUnit) {
     }
 
     faceTowardCell(activeUnit, cell.col, cell.row);
+    const from = { col: activeUnit.col, row: activeUnit.row };
     activeUnit.col = cell.col;
     activeUnit.row = cell.row;
+    startUnitWalk(activeUnit, from.col, from.row);
     activeUnit.actions = Math.max(0, activeUnit.actions - destInfo.actionsNeeded);
     spawnFloatingText(cell.col, cell.row, `🥾 -${destInfo.actionsNeeded}◆ (${destInfo.meters}m)`, '#86efac');
     addLog(`🥾 <strong>${activeUnit.name}</strong> moveu ${destInfo.meters}m para (${cell.col + 1}, ${cell.row + 1}) gastando <strong>${'◆'.repeat(destInfo.actionsNeeded)} (${destInfo.actionsNeeded} ação/ões)</strong>.`);

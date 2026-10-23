@@ -56,6 +56,7 @@ function extraTokenSVG(key, faction) {
 /** Nome de qualquer token (do app ou extra) para listas e dicas. */
 function tokenDisplayName(key) {
   if (isExtraToken(key)) return EXTRA_TOKENS[key].name;
+  if (is3DToken(key)) return T3D_TOKENS[key].name;
   return (TOKEN_ALIASES[key] || [key])[0];
 }
 
@@ -78,6 +79,15 @@ function appendExtraTokenOptions(select) {
     }
     select.appendChild(og);
   }
+  const og3 = document.createElement('optgroup');
+  og3.label = 'Tokens 3D (animados)';
+  for (const [key, t] of Object.entries(T3D_TOKENS)) {
+    const o = document.createElement('option');
+    o.value = key;
+    o.textContent = t.name;
+    og3.appendChild(o);
+  }
+  select.appendChild(og3);
 }
 
 /* ---------------- Galeria visual de tokens ----------------
@@ -98,7 +108,7 @@ const TOKEN_PICKERS = {
 };
 
 function tokenPickerTabs() {
-  return [{ id: 'app', label: 'Do app' }, { id: 'topo', label: 'Vista de cima' }, { id: 'retrato', label: 'Retratos' }];
+  return [{ id: 'app', label: 'Do app' }, { id: '3d', label: 'Tokens 3D' }, { id: 'topo', label: 'Vista de cima' }, { id: 'retrato', label: 'Retratos' }];
 }
 
 /** Lista [key, nome] dos tokens do app (os que seguem o estilo ativo). */
@@ -119,12 +129,14 @@ function renderTokenPicker(id = 'insp') {
   let body = '';
   if (cfg.tab === 'app') {
     body = `<div class="token-pick-grid">${appTokenList().map(([k, name]) => cell(k, name, getTokenPreviewHTML(k))).join('')}</div>`;
+  } else if (cfg.tab === '3d') {
+    body = `<div class="token-pick-grid">${Object.entries(T3D_TOKENS).map(([k, t]) => cell(k, t.name, getTokenPreviewHTML(k))).join('')}</div>`;
   } else {
     body = EXTRA_TOKEN_GROUP_LIST.filter(g => g.kind === cfg.tab).map(g =>
       `<div class="token-pick-label">${escapeHtml(g.label)}</div><div class="token-pick-grid">${g.items.map(it =>
         cell(it.key, it.name, `<img src="${it.src}" alt="" loading="lazy" draggable="false">`)).join('')}</div>`).join('');
   }
-  const note = cfg.tab === 'app' ? '' : '<p class="hint">Cada figura tem vista de cima e retrato: a peça mostra a versão que combina com o Estilo dos tokens.</p>';
+  const note = cfg.tab === 'app' ? '' : cfg.tab === '3d' ? '<p class="hint">Bonecos 3D animados: respiram parados, andam ao mover e fazem o gesto de ataque, magia e item. Giram com a direção da peça.</p>' : '<p class="hint">Cada figura tem vista de cima e retrato: a peça mostra a versão que combina com o Estilo dos tokens.</p>';
   box.innerHTML = `<div class="seg seg-sm">${tabs}</div>${note}${body}`;
 }
 
@@ -135,7 +147,7 @@ function setTokenPickerTab(tab, id = 'insp') {
 
 /** Abre a galeria na aba do token atual. */
 function syncTokenPickerTab(key, id = 'insp') {
-  TOKEN_PICKERS[id].tab = isExtraToken(key) ? EXTRA_TOKENS[key].kind : 'app';
+  TOKEN_PICKERS[id].tab = isExtraToken(key) ? EXTRA_TOKENS[key].kind : is3DToken(key) ? '3d' : 'app';
 }
 
 /**

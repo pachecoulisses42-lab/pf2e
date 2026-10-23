@@ -57,6 +57,15 @@ function getUnitTokenImage(unitOrSculpt, customDataUrl = null, options = {}) {
     return img;
   }
   const sculpt = effectiveTokenKey(typeof unitOrSculpt === 'string' ? unitOrSculpt : unitOrSculpt.sculpt);
+  if (is3DToken(sculpt)) {
+    const key = `t3d:${sculpt}`;
+    if (SVG_IMAGE_CACHE[key]) return SVG_IMAGE_CACHE[key];
+    const img = new Image();
+    img.src = t3dThumbnail(sculpt);
+    img.onload = () => requestRender();
+    SVG_IMAGE_CACHE[key] = img;
+    return img;
+  }
   if (isExtraToken(sculpt)) {
     // extras não dependem do estilo; o retrato usa o aro da facção da peça
     const faction = options.faction || EXTRA_TOKENS[sculpt].faction;
@@ -97,6 +106,7 @@ function getTokenPreviewHTML(sculptKey, customDataUrl = null, options = {}) {
     return uniquifySvgIds(buildCustomTokenSVG(customDataUrl, { faction: 'hero', framed: true, ...options }));
   }
   sculptKey = effectiveTokenKey(sculptKey);
+  if (is3DToken(sculptKey)) return `<img class="t3d-thumb" src="${t3dThumbnail(sculptKey)}" alt="" draggable="false">`;
   if (isExtraToken(sculptKey)) return uniquifySvgIds(extraTokenSVG(sculptKey, options.faction));
   const svgFn = SCULPT_SVGS[sculptKey] || SCULPT_SVGS.guerreiro;
   return uniquifySvgIds(svgFn());

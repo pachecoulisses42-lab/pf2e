@@ -81,7 +81,8 @@ function extraTokenMap() {
 
 /** O token existe (do app ou extra)? */
 function isKnownTokenKey(key) {
-  return typeof key === 'string' && (appTokenKeys().includes(key) || Object.prototype.hasOwnProperty.call(extraTokenMap(), key));
+  return typeof key === 'string' && (appTokenKeys().includes(key) || Object.prototype.hasOwnProperty.call(extraTokenMap(), key) ||
+    (typeof T3D_TOKENS !== 'undefined' && Object.prototype.hasOwnProperty.call(T3D_TOKENS, key)));
 }
 
 /** Facção natural do token (para desempate da sugestão). */
@@ -232,6 +233,7 @@ function normalizePieceTemplate(raw = {}, usedIds = new Set()) {
   const tpl = {
     id, name, faction,
     ...(normalizeSearchText(raw.category) === 'animal' ? { category: 'animal' } : {}),
+    ...(normalizeSearchText(raw.category) === '3d' ? { category: '3d' } : {}),
     sculpt: token.sculpt,
     customTokenDataUrl: token.customTokenDataUrl,
     customTokenFrame: token.customTokenFrame,

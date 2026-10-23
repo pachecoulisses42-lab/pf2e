@@ -289,6 +289,7 @@ function renderBoard() {
     ctx.restore();
   }
   ctx.restore();
+  scheduleT3DFrame();
 }
 
 function spawnFloatingText(col, row, text, color = '#fca5a5') {
@@ -353,6 +354,9 @@ function drawUnitToken(unit, isTargetable) {
   const center = getCellPixelCenter(unit.col, unit.row);
   const nudge = animUnitOffset(unit);
   if (nudge) { center.x += nudge.x; center.y += nudge.y; }
+  const walk = unitWalkOffset(unit);
+  if (walk) { center.x += walk.x; center.y += walk.y; }
+  const is3D = unitIs3D(unit);
   const hp = displayHp(unit);
   const s = STATE.camera.basePx * STATE.camera.zoom;
   const tokenR = s * 0.46;
@@ -396,8 +400,10 @@ function drawUnitToken(unit, isTargetable) {
     ctx.setLineDash([]);
   }
 
-  const img = getUnitTokenImage(unit.sculpt, unit.customTokenDataUrl, customTokenOptions(unit));
-  if (img && img.complete) {
+  const img = is3D ? null : getUnitTokenImage(unit.sculpt, unit.customTokenDataUrl, customTokenOptions(unit));
+  if (is3D) {
+    drawUnit3D(unit, center, tokenR, isDead);
+  } else if (img && img.complete) {
     if (isDead) ctx.filter = 'grayscale(100%) brightness(38%)';
     if (tokenArtRotates(unit)) {
       ctx.save();
@@ -410,13 +416,15 @@ function drawUnitToken(unit, isTargetable) {
     }
     ctx.filter = 'none';
   }
-  if (!isDead && !tokenArtRotates(unit)) drawFacingMarker(unit, center, tokenR);
+  if (!isDead && !is3D && !tokenArtRotates(unit)) drawFacingMarker(unit, center, tokenR);
 
   if (isDead) {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, tokenR, 0, Math.PI * 2);
-    ctx.fill();
+    if (!is3D) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, tokenR, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     ctx.fillStyle = 'rgba(185, 28, 28, 0.96)';
     ctx.strokeStyle = '#fca5a5';

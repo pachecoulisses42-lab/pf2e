@@ -93,6 +93,7 @@ function setProceduralMap(theme) {
 
 /** Animais ficam na aba própria da caixa de ferramentas; o resto em Personagens. */
 const isAnimalTemplate = (t) => t.category === 'animal';
+const is3DTemplate = (t) => t.category === '3d';
 
 function renderPieceGallery() {
   const container = document.getElementById('pieceGalleryContainer');
@@ -102,9 +103,16 @@ function renderPieceGallery() {
   container.innerHTML = '';
   const q = normalizeSearchText(document.getElementById('galleryFilterText')?.value);
   const fac = document.getElementById('galleryFilterFaction')?.value || '';
-  const shown = UNIT_TEMPLATES.filter(t => !isAnimalTemplate(t) && (!fac || t.faction === fac) &&
-    (!q || normalizeSearchText(`${t.name} ${t.sheet?.className || ''} ${t.sheet?.ancestry || ''}`).includes(q)));
-  if (shown.length === 0) container.innerHTML = '<p class="hint" style="grid-column:1/-1">Nenhuma peça com esse filtro.</p>';
+  const matches = (t) => (!fac || t.faction === fac) &&
+    (!q || normalizeSearchText(`${t.name} ${t.sheet?.className || ''} ${t.sheet?.ancestry || ''}`).includes(q));
+  const shown = UNIT_TEMPLATES.filter(t => !isAnimalTemplate(t) && !is3DTemplate(t) && matches(t));
+  const shown3d = UNIT_TEMPLATES.filter(t => is3DTemplate(t) && matches(t));
+  const box3d = document.getElementById('piece3dGalleryContainer');
+  if (box3d) {
+    box3d.innerHTML = '';
+    box3d.parentElement.classList.toggle('hidden', shown3d.length === 0);
+  }
+  if (shown.length === 0 && shown3d.length === 0) container.innerHTML = '<p class="hint" style="grid-column:1/-1">Nenhuma peça com esse filtro.</p>';
   const animalBox = document.getElementById('animalGalleryContainer');
   if (animalBox) animalBox.innerHTML = '';
   const render = (t, box, tab) => {
@@ -123,6 +131,7 @@ function renderPieceGallery() {
     box.appendChild(card);
   };
   for (const t of shown) render(t, container, 'piece');
+  if (box3d) for (const t of shown3d) render(t, box3d, 'piece');
   if (typeof scheduleLibrarySave === 'function') scheduleLibrarySave();
   if (animalBox) for (const t of UNIT_TEMPLATES.filter(isAnimalTemplate)) render(t, animalBox, 'animal');
 }

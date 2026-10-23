@@ -48,6 +48,9 @@ src/
     00e…00h-chibi-*.js    22 personagens chibi (heróis e vilões)
     00i-topdown-kit.js    Kit da vista de cima (corpo, cabeça, armas, grão, sombra)
     00j-topdown-tokens.js 22 personagens vistos de cima
+    00k-t3d-engine.js     Tokens 3D: motor low-poly (prismas facetados, esqueleto, desenho em canvas 2D)
+    00l-t3d-humanoid.js   Tokens 3D: boneco base configurável, itens e poses (parado, andar, atacar, magia, item)
+    00m-t3d-tokens.js     Tokens 3D: os 9 personagens (t3_*) e miniaturas
     00x-extra-tokens.js   Tokens extras pintados (registro, listas e galeria visual)
     00y-token-styles.js   Estilos de token (chibi, vista de cima) e seleção do ativo
     00z-token-loader.js   Cache de imagens, token com imagem do usuário, pré-visualização (ids de SVG únicos)
@@ -59,6 +62,7 @@ src/
     03-templates.js       22 modelos de peça
     03b-templates-extras.js 34 peças dos tokens pintados (classes novas e vilões)
     03c-piece-import.js   Token de peças novas/importadas (sugestão pelo nome) e normalização de peças de fora
+    03d-templates-3d.js   Peças equipadas dos 9 tokens 3D (categoria '3d')
     04-state.js           Estado global
     05-app-mode.js        Inicialização e modos Montagem/Combate
     06-grid-and-ranges.js Geometria hex/quadrada, movimento, alcance, áreas
@@ -67,6 +71,7 @@ src/
     07b-facing.js         Direção das peças: alça de giro, seta na borda, virar para o alvo
     07c-environment-render.js Texturas de terreno e clima, objetos, perigos, escuridão
     07d-animations.js     Motor e desenhos das animações (golpes, projéteis, magias, itens)
+    07e-token3d-render.js Peças 3D no tabuleiro: disco da facção, direção, caminhada e gestos
     08-input.js           Ponteiro, arrasto, pintura de terreno
     09-combat-and-turns.js Ações, ataques, magias, itens, Erguer Escudo, turnos
     10-sheet-ui.js        Ficha em abas (Atributos, Testes, Combate, Build)
@@ -99,6 +104,7 @@ dist/                     Saída versionada: app, CSS do design system, document
 - **Tooltip do alvo** (novo): ao passar o cursor sobre uma peça aparecem PV, CA e as defesas dela. No combate, com Ação ou Magias aberto, mostra também a prévia da arma/magia selecionada contra aquele alvo: chance de acerto e de crítico (já com MAP), dano médio depois das defesas, dano no crítico e o que mudou (`cortante: resistência −3 · fogo: fraqueza +5`).
 - **Imagem própria como token** (novo): aba Base → *Importar imagem* (PNG, JPG, WebP, GIF ou SVG, até 10 MB), ou arraste a imagem sobre a peça no tabuleiro. Imagens raster são reduzidas para 384 px. Por padrão a imagem é recortada em círculo com a moldura (ouro para heróis, ferro para vilões); desmarque a moldura para usar PNG transparente. *Usar padrão* volta à ilustração. A imagem vai junto no salvamento, na exportação JSON e no modelo salvo na galeria.
 - **Cenas de combate** (novo): botão **Cenas** no topo. **Campanhas** funcionam como pastas: barra com *Todas*, cada campanha (com contagem) e *Sem campanha*; criar, renomear, anotar, reordenar, exportar e excluir campanha (as cenas vão para *Sem campanha* ou são excluídas junto); cada cena escolhe sua campanha no cartão; dentro da pasta, lista única com busca e ordem própria. Monte vários encontros com antecedência e abra cada um na hora: *Nova a partir do tabuleiro*, *Nova em branco*, nome, anotações do mestre, miniatura, busca, ordem (↑↓), duplicar, excluir, exportar uma ou todas (arquivo de campanha) e importar. **Abrir** leva à montagem; **Iniciar combate** usa uma cópia (a cena preparada não muda) e rola iniciativa; *Salvar* durante o combate guarda o progresso para **Continuar** depois; ao encerrar o combate dá para voltar à cena preparada. O topo mostra a cena aberta e um ponto quando há alterações não salvas (Ctrl/⌘+S salva); trocar de cena pergunta antes. Fica guardado no navegador (IndexedDB; reserva em localStorage), junto com os modelos criados na galeria. O mapa de fundo agora volta ao carregar.
+- **Tokens 3D** (novo): 9 personagens em bonecos low-poly animados (Elfo da Chama, Ladina Encapuzada, Monge do Manto Laranja, Sacerdote, Mago Branco, Monge Espadachim, Monge Aprendiz, Arqueira Élfica, Mago Cinzento), na seção **Tokens 3D** da gaveta Personagens, com ficha PF2e de nível 3. No tabuleiro ficam em pé sobre um disco da facção e giram com a direção da peça; respiram parados, andam até a casa nova ao mover no combate e fazem o gesto de ataque (espada, punhal, soco, cajado, arco), magia (mãos brilhando na cor da magia) e item (bebem a poção). Caído e cinza quando morre. Qualquer peça pode usar um token 3D pela aba **Tokens 3D** do seletor de token. Só visual; o botão ✨ desliga o movimento.
 - **Animações** (novo): golpes de espada, estocadas, impactos, garras, flechas, virotes, arremessos, bombas, tiros e disparos de energia; uma animação para cada uma das 21 magias do catálogo (e genéricas para magias novas); poções, Erguer Escudo, acender luz e perigos. Armas no ritmo normal (0,9 s), magias e cura no cinema (1,4 s). O número de dano e a barra de PV aparecem no impacto; um clique no tabuleiro pula; a tela treme em críticos e explosões. Botão ✨ na barra do tabuleiro liga/desliga (fica salvo); respeita "reduzir movimento" do sistema. O editor de arma e de magia tem o campo **Animação** (Automática mostra qual será usada).
 - **Barra do tabuleiro** (novo): **mão** (arrastar para mover a visão; Espaço segurado faz o mesmo), **lixeira** (apaga peça, objeto, perigo ou terreno vindos da Caixa de ferramentas — clique apaga o de cima; arrastar limpa objetos e terreno sem apagar peças; Ctrl+Z desfaz) e **lápis** (clique numa peça abre o inspetor; em objeto, perigo ou terreno abre um editor para trocar o tipo, ajustar luz plena/penumbra de quem ilumina e o dano do perigo; arrastar move peça, objeto ou perigo). Com uma delas ligada, o clique é dela; escolher algo na Caixa de ferramentas desliga. No combate fica só a mão. No celular o zoom é na pinça, e a barra mostra mão, lixeira, lápis, régua e centralizar.
 - **Registro de dados e ações no combate** (novo): no painel esquerdo, abaixo de *Encerrar combate*, recolhível (a escolha é lembrada). Na montagem continua na gaveta inferior.

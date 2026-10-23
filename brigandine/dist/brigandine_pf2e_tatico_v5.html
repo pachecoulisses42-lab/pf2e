@@ -553,6 +553,15 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .scene-camp select { font-size: var(--text-2xs); padding: 1px 24px 1px 6px; height: auto; max-width: 190px; background-position: right 4px center; }
 .scene-camp .icon { width: 14px; height: 14px; }
 
+/* Gaveta Personagens: seção dos tokens 3D e rótulo das peças */
+.gallery-section { margin: var(--s-2) 0; border-radius: var(--r-md); background: var(--ink-850); }
+.gallery-section > summary { display: flex; align-items: center; gap: var(--s-2); padding: var(--s-2) var(--s-3); font-size: var(--text-sm); font-weight: 700; cursor: pointer; list-style: none; }
+.gallery-section > summary::-webkit-details-marker { display: none; }
+.gallery-section[open] > summary .chev { transform: rotate(180deg); }
+.gallery-section > .piece-gallery { padding: 0 var(--s-2) var(--s-2); }
+.gallery-section-label { margin: var(--s-2) 0 var(--s-1); font-size: var(--text-xs); font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; }
+.piece-card img.t3d-thumb { filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35)); }
+
 /* --- layout.css --- */
 /* ==========================================================================
    Brigandine DS — Layout do app (shell, painéis, HUD)
@@ -1345,6 +1354,11 @@ body.theme-parchment.mode-combat .badge-accent { background: #f0b4aa; color: #5a
             <input id="galleryFilterText" type="text" placeholder="Filtrar peças (nome ou classe)" aria-label="Filtrar peças" oninput="renderPieceGallery()">
             <select id="galleryFilterFaction" aria-label="Facção" onchange="renderPieceGallery()"><option value="">Todas</option><option value="hero">Heróis</option><option value="villain">Vilões</option></select>
           </div>
+          <details id="gallery3dSection" class="gallery-section" open>
+            <summary><svg class="icon"><use href="#i-sparkles"/></svg>Tokens 3D (animados)<svg class="icon chev" style="margin-left:auto"><use href="#i-chevron"/></svg></summary>
+            <div id="piece3dGalleryContainer" class="piece-gallery"></div>
+          </details>
+          <div class="gallery-section-label">Peças</div>
           <div id="pieceGalleryContainer" class="piece-gallery"></div>
 
           <details id="newPieceDetails" class="more" ontoggle="if (this.open) syncNewPieceForm()">
@@ -3399,6 +3413,606 @@ const TOPDOWN_SVGS = {};
   });
 })();
 
+/* ===== 00k-t3d-engine.js ===== */
+/* ============================================================================
+   1k. TOKENS 3D — motor low-poly sem dependências
+   Bonecos montados com prismas facetados, esqueleto simples e poses por animação
+   (parado, andar, atacar, magia, item). Desenha em canvas 2D com sombreamento por face.
+   ============================================================================ */
+
+const T3D_DEG = Math.PI / 180;
+const T3D_LIGHT = (() => { const v = [-0.45, 0.8, 0.55]; const l = Math.hypot(...v); return v.map(x => x / l); })();
+
+/* ---------- matrizes 3x4 (rotação + translação) ---------- */
+function t3dMat(rx = 0, ry = 0, rz = 0, tx = 0, ty = 0, tz = 0) {
+  const cx = Math.cos(rx), sx = Math.sin(rx), cy = Math.cos(ry), sy = Math.sin(ry), cz = Math.cos(rz), sz = Math.sin(rz);
+  // R = Ry * Rx * Rz
+  const m00 = cy * cz + sy * sx * sz, m01 = -cy * sz + sy * sx * cz, m02 = sy * cx;
+  const m10 = cx * sz, m11 = cx * cz, m12 = -sx;
+  const m20 = -sy * cz + cy * sx * sz, m21 = sy * sz + cy * sx * cz, m22 = cy * cx;
+  return [m00, m01, m02, tx, m10, m11, m12, ty, m20, m21, m22, tz];
+}
+function t3dMul(a, b) {
+  return [
+    a[0] * b[0] + a[1] * b[4] + a[2] * b[8], a[0] * b[1] + a[1] * b[5] + a[2] * b[9], a[0] * b[2] + a[1] * b[6] + a[2] * b[10], a[0] * b[3] + a[1] * b[7] + a[2] * b[11] + a[3],
+    a[4] * b[0] + a[5] * b[4] + a[6] * b[8], a[4] * b[1] + a[5] * b[5] + a[6] * b[9], a[4] * b[2] + a[5] * b[6] + a[6] * b[10], a[4] * b[3] + a[5] * b[7] + a[6] * b[11] + a[7],
+    a[8] * b[0] + a[9] * b[4] + a[10] * b[8], a[8] * b[1] + a[9] * b[5] + a[10] * b[9], a[8] * b[2] + a[9] * b[6] + a[10] * b[10], a[8] * b[3] + a[9] * b[7] + a[10] * b[11] + a[11]
+  ];
+}
+function t3dApply(m, p) {
+  return [m[0] * p[0] + m[1] * p[1] + m[2] * p[2] + m[3], m[4] * p[0] + m[5] * p[1] + m[6] * p[2] + m[7], m[8] * p[0] + m[9] * p[1] + m[10] * p[2] + m[11]];
+}
+
+/* ---------- primitivas (polígonos com cor) ---------- */
+
+/**
+ * Prisma/tronco de n lados ao longo de y, de y0 a y1. rx/rz: raios em x e z (base e topo).
+ * off: deslocamento do topo (chapéu torto, capuz). twist: gira o polígono (facetado).
+ */
+function t3dPrism({ n = 6, y0 = 0, y1 = 1, r0 = 0.2, r1 = 0.2, sx = 1, sz = 1, off = [0, 0], twist = 0, color, top = true, bottom = true, cx = 0, cz = 0, jag = 0 }) {
+  const ring = (y, r, ox, oz, k) => Array.from({ length: n }, (_, i) => {
+    const a = twist + (i / n) * Math.PI * 2;
+    const rr = r * (1 + (jag && k ? ((i % 2) ? jag : -jag) : 0));
+    return [cx + ox + Math.cos(a) * rr * sx, y, cz + oz + Math.sin(a) * rr * sz];
+  });
+  const A = ring(y0, r0, 0, 0, 1), B = ring(y1, r1, off[0], off[1], 0);
+  const faces = [];
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    if (r1 <= 0.0001) faces.push({ v: [A[i], B[i], A[j]], c: color });
+    else faces.push({ v: [A[i], B[i], B[j], A[j]], c: color });
+  }
+  if (bottom && r0 > 0.0001) faces.push({ v: [...A], c: color });
+  if (top && r1 > 0.0001) faces.push({ v: [...B], c: color });
+  return t3dOrient(faces);
+}
+
+/** Caixa centrada em (x,y,z) com tamanhos w,h,d. */
+function t3dBox({ x = 0, y = 0, z = 0, w = 0.2, h = 0.2, d = 0.2, color, taper = 1 }) {
+  const hw = w / 2, hh = h / 2, hd = d / 2, tw = hw * taper, td = hd * taper;
+  const p = [
+    [x - hw, y - hh, z - hd], [x + hw, y - hh, z - hd], [x + hw, y - hh, z + hd], [x - hw, y - hh, z + hd],
+    [x - tw, y + hh, z - td], [x + tw, y + hh, z - td], [x + tw, y + hh, z + td], [x - tw, y + hh, z + td]
+  ];
+  const f = (a, b, c, d) => ({ v: [p[a], p[b], p[c], p[d]], c: color });
+  return t3dOrient([f(0, 1, 2, 3), f(7, 6, 5, 4), f(3, 2, 6, 7), f(1, 0, 4, 5), f(2, 1, 5, 6), f(0, 3, 7, 4)]);
+}
+
+/** Lâmina/placa fina (losango alongado ao longo de y): espadas, adagas, penas. */
+function t3dBlade({ y0 = 0, y1 = 1, w = 0.08, t = 0.02, color, tip = 0.15, glow = false }) {
+  const ym = y1 - tip;
+  const p = [[0, y0, -t], [w / 2, y0, 0], [0, y0, t], [-w / 2, y0, 0], [0, ym, -t], [w / 2, ym, 0], [0, ym, t], [-w / 2, ym, 0], [0, y1, 0]];
+  const faces = [];
+  for (let i = 0; i < 4; i++) {
+    const j = (i + 1) % 4;
+    faces.push({ v: [p[i], p[j], p[j + 4], p[i + 4]], c: color, glow });
+    faces.push({ v: [p[i + 4], p[j + 4], p[8]], c: color, glow });
+  }
+  return t3dOrient(faces);
+}
+
+/** Vira para fora as faces de uma peça convexa (normal apontando para longe do centro). */
+function t3dOrient(faces) {
+  let cx = 0, cy = 0, cz = 0, n = 0;
+  for (const f of faces) for (const v of f.v) { cx += v[0]; cy += v[1]; cz += v[2]; n++; }
+  cx /= n; cy /= n; cz /= n;
+  for (const f of faces) {
+    let nx = 0, ny = 0, nz = 0, fx = 0, fy = 0, fz = 0;
+    for (let i = 0; i < f.v.length; i++) {
+      const a = f.v[i], b = f.v[(i + 1) % f.v.length];
+      nx += (a[1] - b[1]) * (a[2] + b[2]); ny += (a[2] - b[2]) * (a[0] + b[0]); nz += (a[0] - b[0]) * (a[1] + b[1]);
+      fx += a[0]; fy += a[1]; fz += a[2];
+    }
+    const k = f.v.length;
+    if (nx * (fx / k - cx) + ny * (fy / k - cy) + nz * (fz / k - cz) < 0) f.v.reverse();
+  }
+  return faces;
+}
+
+/* ---------- esqueleto ---------- */
+
+/** Nó do esqueleto: pos relativa ao pai, rot base, peças e filhos. */
+function t3dNode(name, pos, parts = [], children = [], rot = [0, 0, 0], when = null) {
+  return { name, pos, rot, parts: parts.flat(), children, when };
+}
+
+function t3dFind(node, name) {
+  if (node.name === name) return node;
+  for (const c of node.children) { const r = t3dFind(c, name); if (r) return r; }
+  return null;
+}
+
+/* ---------- desenho ---------- */
+
+/**
+ * Desenha o modelo num contexto 2D. opts: { x, y (pés na tela), scale (px por unidade), yaw (rad),
+ * elev (rad, inclinação da câmera), pose: { nome: [rx, ry, rz] }, offset: [x,y,z] do corpo }.
+ */
+function t3dDraw(ctx2, model, opts) {
+  const { x, y, scale, yaw = 0, elev = 50 * T3D_DEG, pose = {}, rootOffset = [0, 0, 0], flags = [] } = opts;
+  const anchors = {};
+  const ce = Math.cos(elev), se = Math.sin(elev);
+  const view = [0, se, ce];
+  const polys = [];
+  const walk = (node, parentM) => {
+    if (node.when && !flags.includes(node.when)) return;
+    const extra = pose[node.name] || [0, 0, 0];
+    const p = node.name === 'root' ? [node.pos[0] + rootOffset[0], node.pos[1] + rootOffset[1], node.pos[2] + rootOffset[2]] : node.pos;
+    const local = t3dMat(node.rot[0] + extra[0], node.rot[1] + extra[1], node.rot[2] + extra[2], p[0], p[1], p[2]);
+    const m = t3dMul(parentM, local);
+    if (node.anchor) { const q = t3dApply(m, [0, 0, 0]); anchors[node.name] = { x: x + q[0] * scale, y: y + (-q[1] * ce + q[2] * se) * scale }; }
+    for (const f of node.parts) {
+      const w = f.v.map(v => t3dApply(m, v));
+      // normal pela regra da mão direita (Newell)
+      let nx = 0, ny = 0, nz = 0;
+      for (let i = 0; i < w.length; i++) {
+        const a = w[i], b = w[(i + 1) % w.length];
+        nx += (a[1] - b[1]) * (a[2] + b[2]); ny += (a[2] - b[2]) * (a[0] + b[0]); nz += (a[0] - b[0]) * (a[1] + b[1]);
+      }
+      const nl = Math.hypot(nx, ny, nz) || 1;
+      nx /= nl; ny /= nl; nz /= nl;
+      const facing = nx * view[0] + ny * view[1] + nz * view[2];
+      if (facing <= 0 && !f.both) continue;
+      let depth = 0;
+      const pts = w.map(q => { depth += q[1] * se + q[2] * ce; return [x + q[0] * scale, y + (-q[1] * ce + q[2] * se) * scale]; });
+      const lam = Math.max(0, nx * T3D_LIGHT[0] + ny * T3D_LIGHT[1] + nz * T3D_LIGHT[2]);
+      polys.push({ pts, depth: depth / w.length, c: f.c, shade: f.glow ? 1.15 : 0.58 + 0.55 * lam, glow: f.glow });
+    }
+    for (const c of node.children) walk(c, m);
+  };
+  walk(model.root, t3dMat(0, yaw, 0, 0, 0, 0));
+  polys.sort((a, b) => a.depth - b.depth);
+  ctx2.save();
+  ctx2.lineJoin = 'round';
+  for (const p of polys) {
+    const col = t3dShade(p.c, p.shade);
+    ctx2.fillStyle = col;
+    ctx2.strokeStyle = col;
+    ctx2.lineWidth = 0.6;
+    ctx2.beginPath();
+    p.pts.forEach((q, i) => (i ? ctx2.lineTo(q[0], q[1]) : ctx2.moveTo(q[0], q[1])));
+    ctx2.closePath();
+    ctx2.fill();
+    ctx2.stroke();
+  }
+  ctx2.restore();
+  return anchors;
+}
+
+const T3D_SHADE_CACHE = new Map();
+function t3dShade(hex, k) {
+  if (!hex) hex = '#888888';
+  const key = hex + Math.round(k * 40);
+  let v = T3D_SHADE_CACHE.get(key);
+  if (v) return v;
+  const n = parseInt(hex.slice(1), 16);
+  const q = Math.round(k * 40) / 40;
+  const ch = (c) => Math.max(0, Math.min(255, Math.round(c * q)));
+  v = `rgb(${ch((n >> 16) & 255)}, ${ch((n >> 8) & 255)}, ${ch(n & 255)})`;
+  T3D_SHADE_CACHE.set(key, v);
+  return v;
+}
+
+/* ===== 00l-t3d-humanoid.js ===== */
+/* ============================================================================
+   1l. TOKENS 3D — boneco base, itens e poses
+   Um humanoide configurável (roupas, cabelo, chapéu/capuz, orelhas, armas) e as
+   poses de cada animação. Os personagens são só configurações deste boneco.
+   ============================================================================ */
+
+
+/* ---------- itens ---------- */
+const T3D_ITEMS = {
+  sword: (c) => [
+    t3dPrism({ n: 5, y0: -0.12, y1: 0.06, r0: 0.025, r1: 0.025, color: c.grip || '#5b3a1e' }),
+    t3dBox({ y: 0.08, w: 0.2, h: 0.035, d: 0.05, color: c.guard || '#9ca3af' }),
+    t3dBlade({ y0: 0.1, y1: 0.85, w: 0.09, t: 0.018, color: c.blade || '#d1d5db', tip: 0.14, glow: !!c.glowBlade })
+  ],
+  greatsword: (c) => [
+    t3dPrism({ n: 5, y0: -0.2, y1: 0.06, r0: 0.028, r1: 0.028, color: c.grip || '#5b3a1e' }),
+    t3dBox({ y: 0.08, w: 0.26, h: 0.04, d: 0.06, color: '#6b7280' }),
+    t3dBlade({ y0: 0.1, y1: 1.05, w: 0.12, t: 0.02, color: c.blade || '#9ca3af', tip: 0.16 })
+  ],
+  mace: (c) => [
+    t3dPrism({ n: 5, y0: -0.12, y1: 0.45, r0: 0.025, r1: 0.025, color: c.grip || '#4a2f1e' }),
+    t3dPrism({ n: 6, y0: 0.42, y1: 0.62, r0: 0.08, r1: 0.06, color: '#9ca3af', jag: 0.35 }),
+    t3dPrism({ n: 6, y0: 0.62, y1: 0.68, r0: 0.05, r1: 0, color: '#9ca3af' })
+  ],
+  dagger: (c) => [
+    t3dPrism({ n: 5, y0: -0.08, y1: 0.04, r0: 0.022, r1: 0.022, color: '#3f2a17' }),
+    t3dBox({ y: 0.05, w: 0.12, h: 0.025, d: 0.04, color: '#9ca3af' }),
+    t3dBlade({ y0: 0.06, y1: 0.38, w: 0.06, t: 0.012, color: '#e5e7eb', tip: 0.1 })
+  ],
+  katana: (c) => [
+    t3dPrism({ n: 5, y0: -0.18, y1: 0.04, r0: 0.022, r1: 0.022, color: '#1f2937' }),
+    t3dPrism({ n: 6, y0: 0.04, y1: 0.06, r0: 0.05, r1: 0.05, color: '#a16207' }),
+    t3dBlade({ y0: 0.06, y1: 0.9, w: 0.05, t: 0.012, color: '#e5e7eb', tip: 0.12 })
+  ],
+  staff: (c) => [
+    t3dPrism({ n: 5, y0: -0.75, y1: 1.0, r0: 0.028, r1: 0.024, color: c.wood || '#6b4423' }),
+    ...(c.staffTop === 'star' ? [t3dBox({ y: 1.12, w: 0.12, h: 0.12, d: 0.04, color: '#e5e7eb', taper: 0.2 }), t3dBox({ y: 1.08, w: 0.12, h: 0.1, d: 0.04, color: '#e5e7eb', taper: 1 })]
+      : [t3dPrism({ n: 5, y0: 1.0, y1: 1.12, r0: 0.03, r1: 0.06, off: [0.05, 0], color: c.wood || '#6b4423' })])
+  ],
+  // arco no plano x-y: comprimento em x, barriga para -y (o alvo, ao longo do braço), corda do lado do arqueiro
+  bow: (c) => {
+    const parts = [];
+    const segs = 6;
+    let prev = null;
+    for (let i = 0; i <= segs; i++) {
+      const k = i / segs - 0.5;
+      const pt = [k * 1.1, 0.16 - Math.cos(k * Math.PI) * 0.16, 0];
+      if (prev) {
+        const mid = [(pt[0] + prev[0]) / 2, (pt[1] + prev[1]) / 2, 0];
+        const len = Math.hypot(pt[0] - prev[0], pt[1] - prev[1]);
+        const ang = Math.atan2(pt[1] - prev[1], pt[0] - prev[0]);
+        parts.push({ node: t3dNode('bowseg', mid, [t3dBox({ w: 0.04, h: len * 1.08, d: 0.04, color: c.wood || '#b0713a' })], [], [0, 0, ang - Math.PI / 2]) });
+      }
+      prev = pt;
+    }
+    parts.push(t3dBox({ y: 0.16, w: 1.08, h: 0.012, d: 0.012, color: '#e5e7eb' }));
+    parts.push(t3dBox({ w: 0.08, h: 0.06, d: 0.06, color: '#5c3b22' }));
+    return parts;
+  },
+  flask: () => [
+    t3dPrism({ n: 6, y0: -0.06, y1: 0.06, r0: 0.06, r1: 0.06, color: '#dc2626' }),
+    t3dPrism({ n: 6, y0: 0.06, y1: 0.14, r0: 0.025, r1: 0.025, color: '#e5e7eb' }),
+    t3dPrism({ n: 6, y0: 0.14, y1: 0.17, r0: 0.03, r1: 0.03, color: '#7c4a1e' })
+  ],
+  flameFist: () => [
+    t3dPrism({ n: 5, y0: -0.05, y1: 0.35, r0: 0.11, r1: 0, off: [0.03, 0.02], color: '#f97316', jag: 0.3 }).map(f => ({ ...f, glow: true })),
+    t3dPrism({ n: 5, y0: 0, y1: 0.22, r0: 0.06, r1: 0, color: '#fde047', twist: 0.5 }).map(f => ({ ...f, glow: true }))
+  ]
+};
+
+/** Peças de item e nós filhos (o arco é feito de nós inclinados). */
+function t3dItemNode(name, kind, cfg, pos, rot, when = null) {
+  const raw = T3D_ITEMS[kind](cfg).flat();
+  const parts = raw.filter(p => !p.node);
+  const kids = raw.filter(p => p.node).map(p => p.node);
+  const n = t3dNode(name, pos, parts, kids, rot, when);
+  return n;
+}
+
+/* ---------- boneco ---------- */
+
+/**
+ * cfg: { skin, hair, hairStyle ('long'|'short'|'bald'|'pony'), beard ('long'|'short'|null), ears ('elf'|null),
+ *   hat ('wizard'|'hood'|null), hatColor, hatBand, top, sleeve ('wide'|'tight'), robe (cor da saia, null = calça),
+ *   robeLen, robe2 (frente/avental), pants, boots, belt, gloves, armor (cor das ombreiras), sash,
+ *   right/left ({ kind, rot }), back ([{ kind, ... }]), bag, books, headScale, faceShadow }
+ */
+function t3dHumanoid(cfg) {
+  const C = cfg;
+  const hs = C.headScale || 1.25;
+  const sleeveR = C.sleeve === 'wide' ? 0.12 : 0.075;
+
+  // ----- pernas
+  const leg = (side) => t3dNode(`leg${side}`, [side === 'L' ? 0.11 : -0.11, 0, 0], [
+    t3dPrism({ n: 6, y0: -0.43, y1: 0.02, r0: 0.075, r1: 0.09, color: C.pants || '#374151' })
+  ], [
+    t3dNode(`shin${side}`, [0, -0.42, 0], [
+      t3dPrism({ n: 6, y0: -0.38, y1: 0.02, r0: 0.07, r1: 0.08, color: C.boots || '#4b2e1a' }),
+      ...(C.wraps ? [t3dPrism({ n: 6, y0: -0.28, y1: -0.05, r0: 0.078, r1: 0.083, color: C.wraps })] : []),
+      t3dBox({ y: -0.36, z: 0.05, w: 0.13, h: 0.07, d: 0.24, color: C.boots || '#4b2e1a' })
+    ])
+  ]);
+
+  // ----- braços (mão com âncora para brilhos)
+  const arm = (side) => {
+    const sgn = side === 'L' ? 1 : -1;
+    const hold = side === 'L' ? C.left : C.right;
+    const handKids = [];
+    if (hold) handKids.push(t3dItemNode(`item${side}`, hold.kind, C, hold.pos || [0, -0.05, 0.02], hold.rot || [90 * T3D_DEG, 0, 0], hold.when || null));
+    if (side === 'R') handKids.push(t3dItemNode('flaskR', 'flask', C, [0, -0.08, 0.04], [0, 0, 0], 'item'));
+    if (C.flameHand && side === 'L') handKids.push(t3dItemNode('flameL', 'flameFist', C, [0, -0.1, 0.05], [180 * T3D_DEG, 0, 0], C.flameHand === 'always' ? null : 'cast'));
+    const hand = t3dNode(`hand${side}`, [0, -0.3, 0], [
+      t3dBox({ y: -0.04, w: 0.09, h: 0.11, d: 0.1, color: C.gloves || C.skin })
+    ], handKids);
+    hand.anchor = true;
+    return t3dNode(`arm${side}`, [sgn * 0.27, 0.52, 0], [
+      ...(C.armor ? [t3dPrism({ n: 6, y0: -0.12, y1: 0.08, r0: 0.12, r1: 0.06, color: C.armor, cx: sgn * 0.02 })] : []),
+      t3dPrism({ n: 6, y0: -0.34, y1: 0.03, r0: 0.07, r1: 0.08, color: C.top })
+    ], [
+      t3dNode(`fore${side}`, [0, -0.33, 0], [
+        t3dPrism({ n: 6, y0: -0.3, y1: 0.02, r0: sleeveR, r1: 0.075, color: C.sleeveColor || C.top }),
+        ...(C.bracers ? [t3dPrism({ n: 6, y0: -0.28, y1: -0.12, r0: 0.07, r1: 0.075, color: C.bracers })] : [])
+      ], [hand])
+    ]);
+  };
+
+  // ----- cabeça
+  const head = [];
+  const hr = 0.14 * hs;
+  head.push(t3dPrism({ n: 5, y0: -0.02, y1: 0.06, r0: 0.06, r1: 0.06, color: C.skin }));
+  head.push(t3dPrism({ n: 6, y0: 0.05, y1: 0.05 + hr * 2.1, r0: hr * 0.8, r1: hr * 0.95, sz: 0.95, twist: Math.PI / 6, color: C.skin }));
+  head.push(t3dPrism({ n: 6, y0: 0.05 + hr * 2.1, y1: 0.05 + hr * 2.45, r0: hr * 0.95, r1: hr * 0.5, sz: 0.95, twist: Math.PI / 6, color: C.hairStyle === 'bald' || !C.hair ? C.skin : C.hair }));
+  const eyeY = 0.05 + hr * 1.25;
+  if (!C.faceShadow) {
+    head.push(t3dBox({ x: 0.055 * hs, y: eyeY, z: hr * 0.86, w: 0.035, h: 0.022, d: 0.02, color: '#111827' }));
+    head.push(t3dBox({ x: -0.055 * hs, y: eyeY, z: hr * 0.86, w: 0.035, h: 0.022, d: 0.02, color: '#111827' }));
+    head.push(t3dBox({ y: eyeY + 0.04, z: hr * 0.84, w: 0.15 * hs, h: 0.018, d: 0.02, color: C.brow || C.hair || '#3f2a17' }));
+  }
+  if (C.ears === 'elf') {
+    for (const s of [1, -1]) head.push(t3dPrism({ n: 4, y0: 0, y1: 0.16, r0: 0.03, r1: 0, cx: s * hr * 0.95, color: C.skin, off: [s * 0.1, -0.03] }).map(f => ({ ...f, v: f.v.map(v => [v[0], v[1] + eyeY - 0.02, v[2]]) })));
+  }
+  if (C.hairStyle === 'long' || C.hairStyle === 'short' || C.hairStyle === 'pony') {
+    const len = C.hairStyle === 'long' ? 0.42 : 0.18;
+    // cabelo atrás e dos lados (o rosto fica livre)
+    head.push(t3dPrism({ n: 7, y0: 0.05 + hr * 2.3 - len, y1: 0.05 + hr * 2.45, r0: hr * 1.08, r1: hr * 1.0, cz: -hr * 0.32, sz: 0.78, color: C.hair, jag: 0.08 }));
+    // franja curta no alto da testa, puxada para um lado
+    head.push(t3dBox({ x: hr * 0.15, y: 0.05 + hr * 2.3, z: hr * 0.7, w: hr * 1.4, h: hr * 0.2, d: hr * 0.4, color: C.hair, taper: 0.8 }));
+  }
+  if (C.beard) {
+    const blen = C.beard === 'long' ? 0.42 : 0.16;
+    head.push(t3dPrism({ n: 6, y0: eyeY - 0.05, y1: eyeY - 0.05 - blen, r0: hr * 0.85, r1: 0.02, cz: hr * 0.35, sz: 0.7, color: C.beardColor || C.hair, off: [0, 0.06] }));
+    head.push(t3dBox({ y: eyeY - 0.04, z: hr * 0.9, w: hr * 1.3, h: 0.05, d: 0.04, color: C.beardColor || C.hair }));
+  }
+  if (C.hat === 'wizard') {
+    const base = 0.05 + hr * 2.3;
+    head.push(t3dPrism({ n: 10, y0: base + 0.02, y1: base + 0.05, r0: hr * 1.95, r1: hr * 1.85, color: C.hatColor }));
+    if (C.hatBand) head.push(t3dPrism({ n: 8, y0: base + 0.02, y1: base + 0.09, r0: hr * 1.08, r1: hr * 1.04, color: C.hatBand }));
+    head.push(t3dPrism({ n: 8, y0: base + 0.02, y1: base + 0.62, r0: hr * 1.05, r1: 0, off: [0, -0.22], color: C.hatColor }));
+  }
+  if (C.hat === 'hood') {
+    head.push(t3dPrism({ n: 7, y0: 0.0, y1: 0.05 + hr * 2.5, r0: hr * 1.42, r1: hr * 1.18, cz: -0.03, color: C.hatColor }));
+    head.push(t3dPrism({ n: 7, y0: 0.05 + hr * 2.5, y1: 0.05 + hr * 3.2, r0: hr * 1.18, r1: 0, off: [0, -0.1], cz: -0.03, color: C.hatColor }));
+    // abertura do rosto
+    head.push(t3dBox({ y: eyeY - 0.01, z: hr * 1.02, w: hr * 1.2, h: hr * 1.3, d: 0.03, color: C.faceShadow ? '#1f1a17' : C.skin }));
+    if (!C.faceShadow) {
+      head.push(t3dBox({ x: 0.05 * hs, y: eyeY, z: hr * 1.05, w: 0.035, h: 0.022, d: 0.02, color: C.eyes || '#111827' }));
+      head.push(t3dBox({ x: -0.05 * hs, y: eyeY, z: hr * 1.05, w: 0.035, h: 0.022, d: 0.02, color: C.eyes || '#111827' }));
+    }
+  }
+
+  // ----- tronco
+  const torsoParts = [
+    t3dPrism({ n: 6, y0: 0, y1: 0.62, r0: 0.19, r1: 0.25, sx: 1.15, sz: 0.75, twist: Math.PI / 6, color: C.top })
+  ];
+  if (C.vest) torsoParts.push(t3dPrism({ n: 6, y0: 0.05, y1: 0.5, r0: 0.205, r1: 0.255, sx: 1.12, sz: 0.76, twist: Math.PI / 6, color: C.vest }));
+  if (C.straps) {
+    torsoParts.push(t3dBox({ y: 0.32, z: 0.165, w: 0.06, h: 0.6, d: 0.03, color: C.straps }).map(f => ({ ...f, v: f.v.map(v => { const a = 0.6; return [v[0] * Math.cos(a) - (v[1] - 0.32) * Math.sin(a), (v[0]) * Math.sin(a) + (v[1] - 0.32) * Math.cos(a) + 0.32, v[2]]; }) })));
+  }
+  if (C.scarf) torsoParts.push(t3dPrism({ n: 7, y0: 0.5, y1: 0.68, r0: 0.25, r1: 0.16, sx: 1.1, sz: 0.85, color: C.scarf }));
+  if (C.cross) {
+    torsoParts.push(t3dBox({ y: 0.36, z: 0.17, w: 0.035, h: 0.18, d: 0.02, color: C.cross }));
+    torsoParts.push(t3dBox({ y: 0.4, z: 0.17, w: 0.12, h: 0.035, d: 0.02, color: C.cross }));
+  }
+  if (C.cape) torsoParts.push(t3dPrism({ n: 6, y0: -0.75, y1: 0.6, r0: 0.34, r1: 0.22, sz: 0.5, cz: -0.08, color: C.cape, jag: 0.06, bottom: false }).filter((f, i) => i < 2 || i === 5));
+  const backKids = (C.back || []).map((b, i) => t3dItemNode(`back${i}`, b.kind, C, b.pos, b.rot));
+  if (C.quiver) {
+    backKids.push(t3dNode('quiver', [0.08, 0.35, -0.2], [
+      t3dPrism({ n: 6, y0: -0.3, y1: 0.25, r0: 0.07, r1: 0.08, color: C.quiver }),
+      ...[-0.03, 0.02, 0.05].map((x, i) => t3dBox({ x, y: 0.32 + i * 0.02, z: (i - 1) * 0.02, w: 0.025, h: 0.12, d: 0.04, color: '#111827' }))
+    ], [], [0, 0, -0.35]));
+  }
+
+  // ----- quadril e saia
+  const hipParts = [
+    t3dBox({ y: 0, w: 0.36, h: 0.2, d: 0.24, color: C.robe || C.pants || '#374151' })
+  ];
+  if (C.robe) {
+    const len = C.robeLen || 0.78;
+    hipParts.push(t3dPrism({ n: 8, y0: -len, y1: 0.06, r0: C.robeFlare || 0.34, r1: 0.2, sz: 0.85, color: C.robe, jag: C.robeJag ?? 0.05 }));
+    if (C.robe2) hipParts.push(t3dPrism({ n: 4, y0: -len * 0.92, y1: 0.04, r0: 0.16, r1: 0.11, cz: 0.17, sz: 0.4, twist: Math.PI / 4, color: C.robe2 }));
+  }
+  if (C.belt) hipParts.push(t3dPrism({ n: 8, y0: 0.03, y1: 0.12, r0: 0.215, r1: 0.215, sx: 1.08, sz: 0.85, color: C.belt }));
+  if (C.buckle) hipParts.push(t3dBox({ y: 0.075, z: 0.19, w: 0.08, h: 0.07, d: 0.02, color: C.buckle }));
+  if (C.sash) hipParts.push(t3dBox({ x: 0.06, y: -0.15, z: 0.19, w: 0.07, h: 0.32, d: 0.02, color: C.sash }));
+  if (C.bag) hipParts.push(t3dBox({ x: -0.24, y: -0.05, z: 0.04, w: 0.08, h: 0.17, d: 0.2, color: C.bag }));
+  if (C.books) hipParts.push(t3dBox({ x: 0.2, y: -0.04, z: 0.12, w: 0.1, h: 0.14, d: 0.12, color: C.books }));
+
+  const root = t3dNode('root', [0, 0, 0], [], [
+    t3dNode('hips', [0, 0.86, 0], hipParts, [
+      leg('L'), leg('R'),
+      t3dNode('torso', [0, 0.06, 0], torsoParts, [
+        t3dNode('head', [0, 0.6, 0], head),
+        arm('L'), arm('R'),
+        ...backKids
+      ])
+    ])
+  ]);
+  return { root, style: C.attack || 'sword', name: C.name };
+}
+
+/* ---------- poses ---------- */
+
+const T3D_ANIMS = ['idle', 'walk', 'attack', 'cast', 'item'];
+const t3dSmooth = (k) => k * k * (3 - 2 * k);
+const t3dSeg = (k, a, b) => Math.max(0, Math.min(1, (k - a) / (b - a)));
+
+/**
+ * Pose de um boneco: anim, t (s desde o início), style (sword|bow|staff|fist|dagger|katana).
+ * Devolve { pose, rootOffset, flags }.
+ */
+function t3dPose(anim, t, style) {
+  const P = {};
+  const flags = [];
+  let ro = [0, 0, 0];
+  const br = Math.sin(t * 2.2);
+  // base parado
+  P.torso = [br * 0.02, 0, 0];
+  P.head = [0, Math.sin(t * 0.7) * 0.12, 0];
+  P.armL = [0.05, 0, 0.1 + br * 0.03];
+  P.armR = [0.05, 0, -0.1 - br * 0.03];
+  P.foreL = [-0.25, 0, 0];
+  P.foreR = [-0.25, 0, 0];
+  if (style === 'bow') P.armL = [-0.35, 0, 0.12];
+  if (style === 'staff') { P.armR = [-0.35, 0, -0.15]; P.foreR = [-0.6, 0, 0]; }
+  ro = [0, br * 0.008, 0];
+
+  if (anim === 'walk') {
+    const ph = t * 7.5;
+    const s = Math.sin(ph);
+    P.legL = [s * 0.55, 0, 0];
+    P.legR = [-s * 0.55, 0, 0];
+    P.shinL = [Math.max(0, -Math.cos(ph)) * 0.8, 0, 0];
+    P.shinR = [Math.max(0, Math.cos(ph)) * 0.8, 0, 0];
+    if (style !== 'bow') P.armL = [-s * 0.45, 0, 0.1];
+    if (style !== 'staff') P.armR = [s * 0.45, 0, -0.1];
+    P.torso = [0.1, s * 0.08, 0];
+    ro = [0, Math.abs(Math.cos(ph)) * 0.05, 0];
+  }
+
+  if (anim === 'attack') {
+    const T = 1.1, k = (t % T) / T;
+    if (style === 'bow') {
+      // de lado para o alvo: braço esquerdo esticado com o arco, mão direita puxa a corda até o queixo
+      const draw = t3dSmooth(t3dSeg(k, 0.08, 0.5)) * (1 - t3dSmooth(t3dSeg(k, 0.62, 0.7)));
+      const aim = t3dSmooth(t3dSeg(k, 0, 0.15)) * (1 - t3dSmooth(t3dSeg(k, 0.85, 1)));
+      P.torso = [0, -1.25 * aim, 0];
+      P.head = [0, 1.15 * aim, 0];
+      P.armL = [0, 0, 0.1 + 1.45 * aim];
+      P.foreL = [0, 0, 0];
+      P.itemL = [0, 0, -Math.PI / 2 * aim];
+      P.armR = [-0.15 * aim, 0, (1.5 - 0.95 * draw) * aim];
+      P.foreR = [-2.1 * draw * aim, 0, 0];
+    } else if (style === 'fist') {
+      const punch = t3dSmooth(t3dSeg(k, 0.25, 0.4)) * (1 - t3dSmooth(t3dSeg(k, 0.55, 0.85)));
+      P.torso = [0.1, -0.5 * punch + 0.2 * (1 - punch), 0];
+      P.armR = [-1.55 * punch - 0.6 * (1 - punch), 0, -0.1];
+      P.foreR = [-1.4 * (1 - punch), 0, 0];
+      P.armL = [-0.8, 0, 0.2]; P.foreL = [-1.5, 0, 0];
+      ro = [0, 0, 0.12 * punch];
+    } else if (style === 'dagger') {
+      const stab = t3dSmooth(t3dSeg(k, 0.3, 0.42)) * (1 - t3dSmooth(t3dSeg(k, 0.55, 0.85)));
+      P.torso = [0.15 * stab, -0.4 * stab, 0];
+      P.armR = [-0.5 - 1.1 * stab, 0, -0.15];
+      P.foreR = [-1.0 * (1 - stab), 0, 0];
+      ro = [0, 0, 0.1 * stab];
+    } else {
+      // espada/katana/cajado: ergue e desce
+      const up = t3dSmooth(t3dSeg(k, 0.0, 0.38));
+      const down = t3dSmooth(t3dSeg(k, 0.4, 0.55));
+      const back = t3dSmooth(t3dSeg(k, 0.7, 1));
+      const raise = (-2.7 * up + 2.0 * down) * (1 - back);
+      P.armR = [raise + (style === 'staff' ? -0.35 : 0) * back, 0, -0.15];
+      P.foreR = [-0.4 * up * (1 - down), 0, 0];
+      P.torso = [0.25 * down * (1 - back), (0.35 * up - 0.7 * down) * (1 - back), 0];
+      P.armL = [-0.4 * down * (1 - back), 0, 0.3];
+      ro = [0, 0, 0.12 * down * (1 - back)];
+      if (style === 'staff') { P.armL = [-0.3, 0, 0.2]; }
+    }
+  }
+
+  if (anim === 'cast') {
+    const T = 1.4, k = (t % T) / T;
+    const up = t3dSmooth(t3dSeg(k, 0, 0.35));
+    const push = t3dSmooth(t3dSeg(k, 0.45, 0.6)) * (1 - t3dSmooth(t3dSeg(k, 0.8, 1)));
+    P.armL = [-1.2 * up - 0.5 * push, 0, 0.35 - 0.25 * push];
+    P.armR = [-1.2 * up - 0.5 * push, 0, -0.35 + 0.25 * push];
+    if (style === 'staff') { P.armR = [-2.4 * up, 0, -0.1]; P.foreR = [-0.2, 0, 0]; }
+    P.foreL = [-0.6 * (1 - push), 0, 0];
+    if (style !== 'staff') P.foreR = [-0.6 * (1 - push), 0, 0];
+    P.torso = [-0.12 * up + 0.15 * push, 0, 0];
+    P.head = [-0.15 * up, 0, 0];
+    ro = [0, 0.06 * up * (1 - push), 0];
+    flags.push('cast');
+  }
+
+  if (anim === 'item') {
+    const T = 1.4, k = (t % T) / T;
+    const lift = t3dSmooth(t3dSeg(k, 0.05, 0.35)) * (1 - t3dSmooth(t3dSeg(k, 0.8, 1)));
+    const tilt = t3dSmooth(t3dSeg(k, 0.35, 0.5)) * (1 - t3dSmooth(t3dSeg(k, 0.7, 0.85)));
+    P.armR = [-1.0 * lift, 0, 0.35 * lift - 0.1];
+    P.foreR = [-1.9 * lift, 0, 0];
+    P.head = [-0.35 * tilt, 0, 0];
+    P.torso = [-0.08 * tilt, 0, 0];
+    flags.push('item');
+  }
+  return { pose: P, rootOffset: ro, flags };
+}
+
+/* ===== 00m-t3d-tokens.js ===== */
+/* ============================================================================
+   1m. TOKENS 3D — os 9 personagens e utilidades (miniatura, modelo em cache)
+   Chaves t3_<nome>. Cada personagem é uma configuração do boneco base (00l).
+   ============================================================================ */
+const T3D_TOKENS = {
+  t3_elfo_chama: { name: 'Elfo da Chama', attack: 'sword',
+    skin: '#e8b48a', hair: '#d9a441', hairStyle: 'long', ears: 'elf', brow: '#8a5a1e',
+    top: '#2b3a5c', armor: '#8a8f98', vest: '#2b3a5c', straps: '#7c4a1e',
+    robe: '#c2410c', robeLen: 0.6, robe2: '#2b3a5c', robeJag: 0.12, pants: '#1f2937', boots: '#2d2d33', wraps: '#7c4a1e',
+    belt: '#7c4a1e', buckle: '#9ca3af', gloves: '#3b3f47', bracers: '#8a8f98',
+    right: { kind: 'sword' }, blade: '#f97316', glowBlade: true, guard: '#6b7280',
+    flameHand: 'always',
+    back: [{ kind: 'greatsword', pos: [0, 0.3, -0.2], rot: [0, 0, 2.4] }] },
+  t3_ladina: { name: 'Ladina Encapuzada', attack: 'dagger',
+    skin: '#c98b62', hat: 'hood', hatColor: '#4b5563', faceShadow: true, scarf: '#4b5563',
+    top: '#e7e1d3', sleeveColor: '#e7e1d3', vest: '#6b2f2a', armor: '#6b2f2a', straps: '#5a2a22',
+    robe: '#4b5563', robeLen: 0.75, robe2: '#8b8f99', robeJag: 0.1,
+    pants: '#3b2a26', boots: '#5a2a22', gloves: '#5a2a22', bracers: '#5a2a22', belt: '#5a2a22', buckle: '#9ca3af', bag: '#6b2f2a',
+    right: { kind: 'dagger' }, left: { kind: 'dagger' } },
+  t3_monge_laranja: { name: 'Monge do Manto Laranja', attack: 'fist',
+    skin: '#e0a676', hairStyle: 'bald', brow: '#5b3a1e',
+    top: '#d97706', sleeve: 'wide', scarf: '#f5f0e1',
+    robe: '#c2650a', robeLen: 0.72, robe2: '#e9d9b8', robeFlare: 0.36,
+    belt: '#6b5a3a', sash: '#6b5a3a', pants: '#1f1f1f', boots: '#5a3a1e', wraps: '#e9e1cf', gloves: '#6b4a2b', bracers: '#e9e1cf' },
+  t3_sacerdote: { name: 'Sacerdote', attack: 'sword',
+    skin: '#d9a07a', hair: '#2b1d14', hairStyle: 'long', beard: 'short', brow: '#2b1d14',
+    top: '#efe6d6', sleeve: 'wide', scarf: '#efe6d6', armor: '#e6dcc8', cross: '#a33a1e',
+    robe: '#efe6d6', robeLen: 0.8, robe2: '#8b4a2b', robeFlare: 0.37,
+    belt: '#4a2f1e', buckle: '#9ca3af', boots: '#3b2a20', gloves: '#4a2f1e', bracers: '#4a2f1e', bag: '#7a3b20',
+    right: { kind: 'mace' } },
+  t3_mago_branco: { name: 'Mago Branco', attack: 'staff',
+    skin: '#d9a07a', hair: '#f1f5f9', hairStyle: 'long', beard: 'long', beardColor: '#f8fafc', brow: '#f1f5f9',
+    hat: 'wizard', hatColor: '#e5e2da', hatBand: '#bdb8ad',
+    top: '#e5e2da', sleeve: 'wide', robe: '#e5e2da', robeLen: 0.8, robe2: '#9ca3af', robeFlare: 0.37, robeJag: 0.12,
+    belt: '#7c4a1e', buckle: '#d1d5db', bag: '#a0602c', books: '#a0602c', boots: '#6b3f1f', gloves: '#d9a07a', pants: '#6b3f1f',
+    right: { kind: 'staff', rot: [0, 0, 0], pos: [0, -0.05, 0.02] }, staffTop: 'star', wood: '#5b3a1e' },
+  t3_monge_espada: { name: 'Monge Espadachim', attack: 'sword',
+    skin: '#e0a676', hairStyle: 'bald', brow: '#3b2a1e',
+    top: '#e9e4d6', sleeve: 'wide', vest: '#6b4a2b', straps: '#5c3b22',
+    robe: '#6b4a2b', robeLen: 0.5, robe2: '#e9e4d6',
+    pants: '#4b5563', belt: '#5c3b22', sash: '#5c3b22', boots: '#4a2f1e', wraps: '#4a2f1e', gloves: '#4a2f1e', bag: '#5c3b22',
+    right: { kind: 'katana' } },
+  t3_monge_aprendiz: { name: 'Monge Aprendiz', attack: 'fist', headScale: 1.38,
+    skin: '#e8b07a', hairStyle: 'bald', brow: '#5b3a1e',
+    top: '#8b5a3c', sleeve: 'wide', vest: '#6b3f26', straps: '#5a341e',
+    robe: '#8b5a3c', robeLen: 0.45, robe2: '#c9a27a',
+    pants: '#7a4a2c', boots: '#5a341e', wraps: '#6b3f26', belt: '#5a341e', sash: '#5a341e', gloves: '#3b2416' },
+  t3_arqueira: { name: 'Arqueira Élfica', attack: 'bow',
+    skin: '#f0c49a', hair: '#e8d9a8', hairStyle: 'short', ears: 'elf', eyes: '#16a34a',
+    hat: 'hood', hatColor: '#3f5f3a', scarf: '#3f5f3a',
+    top: '#4a5d3a', armor: '#c8b79a', vest: '#6b4a2b',
+    robe: '#6b4a2b', robeLen: 0.45, robe2: '#3f5f3a', cape: '#3f5f3a',
+    pants: '#3d2b1f', boots: '#5c3b22', wraps: '#c8b79a', belt: '#5c3b22', buckle: '#d6d3d1', gloves: '#2f2a24',
+    quiver: '#8b5a2b', left: { kind: 'bow', rot: [0, 0, Math.PI / 2], pos: [0, -0.06, 0.02] }, wood: '#b0713a' },
+  t3_mago_cinza: { name: 'Mago Cinzento', attack: 'dagger',
+    skin: '#e8b48a', hair: '#e5e7eb', hairStyle: 'long', beard: 'long', beardColor: '#f1f5f9', ears: 'elf', brow: '#e5e7eb',
+    hat: 'wizard', hatColor: '#5b6b80', hatBand: '#b45348',
+    top: '#5b6b80', sleeve: 'wide', scarf: '#b45348',
+    robe: '#5b6b80', robeLen: 0.8, robe2: '#8b3a3a', robeFlare: 0.38,
+    pants: '#3f2a1e', boots: '#6b3f1f', belt: '#7c4a1e', buckle: '#d4a017', books: '#6d4c2a', bag: '#7c4a1e', gloves: '#e8b48a',
+    right: { kind: 'dagger' } }
+};
+
+const T3D_MODEL_CACHE = {};
+const T3D_THUMB_CACHE = {};
+
+function is3DToken(key) {
+  return typeof key === 'string' && Object.prototype.hasOwnProperty.call(T3D_TOKENS, key);
+}
+
+function t3dModel(key) {
+  if (!T3D_MODEL_CACHE[key]) T3D_MODEL_CACHE[key] = t3dHumanoid(T3D_TOKENS[key]);
+  return T3D_MODEL_CACHE[key];
+}
+
+/** Miniatura (PNG) do boneco parado, de frente, para galerias e seletores. */
+function t3dThumbnail(key) {
+  if (T3D_THUMB_CACHE[key]) return T3D_THUMB_CACHE[key];
+  if (typeof document === 'undefined') return '';
+  const c = document.createElement('canvas');
+  c.width = 160; c.height = 160;
+  const g = c.getContext('2d');
+  g.fillStyle = 'rgba(0, 0, 0, 0.22)';
+  g.beginPath(); g.ellipse(80, 140, 44, 16, 0, 0, Math.PI * 2); g.fill();
+  const { pose, rootOffset, flags } = t3dPose('idle', 0.4, t3dModel(key).style);
+  t3dDraw(g, t3dModel(key), { x: 80, y: 140, scale: 58, yaw: -0.45, pose, rootOffset, flags });
+  T3D_THUMB_CACHE[key] = c.toDataURL('image/png');
+  return T3D_THUMB_CACHE[key];
+}
+
 /* ===== 00x-extra-tokens.js ===== */
 /* ============================================================================
    1f. TOKENS EXTRAS — imagens pintadas (vista de cima e retratos)
@@ -3458,6 +4072,7 @@ function extraTokenSVG(key, faction) {
 /** Nome de qualquer token (do app ou extra) para listas e dicas. */
 function tokenDisplayName(key) {
   if (isExtraToken(key)) return EXTRA_TOKENS[key].name;
+  if (is3DToken(key)) return T3D_TOKENS[key].name;
   return (TOKEN_ALIASES[key] || [key])[0];
 }
 
@@ -3480,6 +4095,15 @@ function appendExtraTokenOptions(select) {
     }
     select.appendChild(og);
   }
+  const og3 = document.createElement('optgroup');
+  og3.label = 'Tokens 3D (animados)';
+  for (const [key, t] of Object.entries(T3D_TOKENS)) {
+    const o = document.createElement('option');
+    o.value = key;
+    o.textContent = t.name;
+    og3.appendChild(o);
+  }
+  select.appendChild(og3);
 }
 
 /* ---------------- Galeria visual de tokens ----------------
@@ -3500,7 +4124,7 @@ const TOKEN_PICKERS = {
 };
 
 function tokenPickerTabs() {
-  return [{ id: 'app', label: 'Do app' }, { id: 'topo', label: 'Vista de cima' }, { id: 'retrato', label: 'Retratos' }];
+  return [{ id: 'app', label: 'Do app' }, { id: '3d', label: 'Tokens 3D' }, { id: 'topo', label: 'Vista de cima' }, { id: 'retrato', label: 'Retratos' }];
 }
 
 /** Lista [key, nome] dos tokens do app (os que seguem o estilo ativo). */
@@ -3521,12 +4145,14 @@ function renderTokenPicker(id = 'insp') {
   let body = '';
   if (cfg.tab === 'app') {
     body = `<div class="token-pick-grid">${appTokenList().map(([k, name]) => cell(k, name, getTokenPreviewHTML(k))).join('')}</div>`;
+  } else if (cfg.tab === '3d') {
+    body = `<div class="token-pick-grid">${Object.entries(T3D_TOKENS).map(([k, t]) => cell(k, t.name, getTokenPreviewHTML(k))).join('')}</div>`;
   } else {
     body = EXTRA_TOKEN_GROUP_LIST.filter(g => g.kind === cfg.tab).map(g =>
       `<div class="token-pick-label">${escapeHtml(g.label)}</div><div class="token-pick-grid">${g.items.map(it =>
         cell(it.key, it.name, `<img src="${it.src}" alt="" loading="lazy" draggable="false">`)).join('')}</div>`).join('');
   }
-  const note = cfg.tab === 'app' ? '' : '<p class="hint">Cada figura tem vista de cima e retrato: a peça mostra a versão que combina com o Estilo dos tokens.</p>';
+  const note = cfg.tab === 'app' ? '' : cfg.tab === '3d' ? '<p class="hint">Bonecos 3D animados: respiram parados, andam ao mover e fazem o gesto de ataque, magia e item. Giram com a direção da peça.</p>' : '<p class="hint">Cada figura tem vista de cima e retrato: a peça mostra a versão que combina com o Estilo dos tokens.</p>';
   box.innerHTML = `<div class="seg seg-sm">${tabs}</div>${note}${body}`;
 }
 
@@ -3537,7 +4163,7 @@ function setTokenPickerTab(tab, id = 'insp') {
 
 /** Abre a galeria na aba do token atual. */
 function syncTokenPickerTab(key, id = 'insp') {
-  TOKEN_PICKERS[id].tab = isExtraToken(key) ? EXTRA_TOKENS[key].kind : 'app';
+  TOKEN_PICKERS[id].tab = isExtraToken(key) ? EXTRA_TOKENS[key].kind : is3DToken(key) ? '3d' : 'app';
 }
 
 /**
@@ -3651,6 +4277,15 @@ function getUnitTokenImage(unitOrSculpt, customDataUrl = null, options = {}) {
     return img;
   }
   const sculpt = effectiveTokenKey(typeof unitOrSculpt === 'string' ? unitOrSculpt : unitOrSculpt.sculpt);
+  if (is3DToken(sculpt)) {
+    const key = `t3d:${sculpt}`;
+    if (SVG_IMAGE_CACHE[key]) return SVG_IMAGE_CACHE[key];
+    const img = new Image();
+    img.src = t3dThumbnail(sculpt);
+    img.onload = () => requestRender();
+    SVG_IMAGE_CACHE[key] = img;
+    return img;
+  }
   if (isExtraToken(sculpt)) {
     // extras não dependem do estilo; o retrato usa o aro da facção da peça
     const faction = options.faction || EXTRA_TOKENS[sculpt].faction;
@@ -3691,6 +4326,7 @@ function getTokenPreviewHTML(sculptKey, customDataUrl = null, options = {}) {
     return uniquifySvgIds(buildCustomTokenSVG(customDataUrl, { faction: 'hero', framed: true, ...options }));
   }
   sculptKey = effectiveTokenKey(sculptKey);
+  if (is3DToken(sculptKey)) return `<img class="t3d-thumb" src="${t3dThumbnail(sculptKey)}" alt="" draggable="false">`;
   if (isExtraToken(sculptKey)) return uniquifySvgIds(extraTokenSVG(sculptKey, options.faction));
   const svgFn = SCULPT_SVGS[sculptKey] || SCULPT_SVGS.guerreiro;
   return uniquifySvgIds(svgFn());
@@ -5418,7 +6054,8 @@ function extraTokenMap() {
 
 /** O token existe (do app ou extra)? */
 function isKnownTokenKey(key) {
-  return typeof key === 'string' && (appTokenKeys().includes(key) || Object.prototype.hasOwnProperty.call(extraTokenMap(), key));
+  return typeof key === 'string' && (appTokenKeys().includes(key) || Object.prototype.hasOwnProperty.call(extraTokenMap(), key) ||
+    (typeof T3D_TOKENS !== 'undefined' && Object.prototype.hasOwnProperty.call(T3D_TOKENS, key)));
 }
 
 /** Facção natural do token (para desempate da sugestão). */
@@ -5569,6 +6206,7 @@ function normalizePieceTemplate(raw = {}, usedIds = new Set()) {
   const tpl = {
     id, name, faction,
     ...(normalizeSearchText(raw.category) === 'animal' ? { category: 'animal' } : {}),
+    ...(normalizeSearchText(raw.category) === '3d' ? { category: '3d' } : {}),
     sculpt: token.sculpt,
     customTokenDataUrl: token.customTokenDataUrl,
     customTokenFrame: token.customTokenFrame,
@@ -5591,6 +6229,124 @@ function extractPieceList(data) {
   if (data && Array.isArray(data.templates) && !data.units && !data.grid) return data.templates;
   return null;
 }
+
+/* ===== 03d-templates-3d.js ===== */
+/* ============================================================================
+   4d. PEÇAS DOS TOKENS 3D — os 9 personagens animados (categoria '3d')
+   Fichas PF2e Remaster de nível 3 (o Aprendiz é nível 2). PV e CA saem da ficha.
+   Ficam na seção "Tokens 3D" da gaveta Personagens.
+   ============================================================================ */
+(() => {
+  const piece = ({ id, name, sculpt, faction = 'hero', moveSpeed = 9, sheet, weapons, spells = [], items = [] }) => {
+    const t = {
+      id, name, sculpt, faction, moveSpeed, maxHp: 1, ac: 10, category: '3d',
+      sheet: { level: 3, shieldBonus: 0, dexCap: 5, armorItemBonus: 0, skills: [], feats: [], ...sheet },
+      weapons, spells, items
+    };
+    const probe = JSON.parse(JSON.stringify(t));
+    recalculateUnitFromSheet(probe, true);
+    t.maxHp = probe.maxHp;
+    t.ac = probe.ac;
+    return t;
+  };
+  const attrs = (FOR, DES, CON, INT, SAB, CAR) => ({ FOR, DES, CON, INT, SAB, CAR });
+  const prof = (armor, weapon, spell, perception, fort, ref, will) => ({ armor, weapon, spell, perception, fort, ref, will });
+  const S = (key) => ({ ...SPELL_CATALOG[key] });
+  const I = (key, qty) => ({ ...ITEM_CATALOG[key], ...(qty ? { qty } : {}) });
+
+  UNIT_TEMPLATES.push(
+    piece({
+      id: 't3d_elfo_chama', name: 'Elfo da Chama', sculpt: 't3_elfo_chama',
+      sheet: { ancestry: 'Elfo', background: 'Acadêmico', className: 'Magus (Lâmina Flamejante)', keyAttr: 'FOR',
+        ancestryHp: 6, classHp: 8, armorItemBonus: 4, dexCap: 1, attrs: attrs(4, 1, 1, 3, 0, 0), prof: prof(2, 2, 2, 2, 4, 2, 4),
+        skills: ['Arcanismo (T)', 'Atletismo (T)', 'Sociedade (T)'], feats: ['Golpe Conjurado (◆◆)', 'Arsenal Arcano', 'Lâmina Flamejante'] },
+      weapons: [
+        { name: 'Espada Flamejante', dmgDie: '1d8', reach: 1.5, dmgType: 'cortante', extra: [{ name: 'Chama', die: '1d4', bonus: 0, type: 'fogo' }] },
+        { name: 'Montante nas Costas', dmgDie: '1d12', reach: 1.5, dmgType: 'cortante' }
+      ],
+      spells: [S('chama_cristalina'), S('toque_chocante')],
+      items: [I('pocao_menor', 2)]
+    }),
+    piece({
+      id: 't3d_ladina', name: 'Ladina Encapuzada', sculpt: 't3_ladina', moveSpeed: 9,
+      sheet: { ancestry: 'Humana', background: 'Criminosa', className: 'Ladino (Ladrão)', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 8, armorItemBonus: 1, dexCap: 4, attrs: attrs(1, 4, 1, 1, 1, 2), prof: prof(2, 2, 0, 4, 2, 4, 4),
+        skills: ['Furtividade (E)', 'Ladroagem (E)', 'Acrobacia (T)', 'Enganação (T)'], feats: ['Ataque Furtivo 1d6', 'Mãos Leves', 'Golpe Ágil'] },
+      weapons: [
+        { name: 'Adaga', dmgDie: '1d4', reach: 1.5, dmgType: 'perfurante' },
+        { name: 'Adaga Arremessada', dmgDie: '1d4', reach: 3, dmgType: 'perfurante' }
+      ],
+      items: [I('pocao_menor', 2)]
+    }),
+    piece({
+      id: 't3d_monge_laranja', name: 'Monge do Manto Laranja', sculpt: 't3_monge_laranja', moveSpeed: 12,
+      sheet: { ancestry: 'Humano', background: 'Acólito', className: 'Monge (Punho de Ferro)', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 10, armorItemBonus: 0, dexCap: 5, attrs: attrs(3, 4, 2, 0, 2, 0), prof: prof(4, 4, 2, 4, 4, 4, 4),
+        skills: ['Atletismo (T)', 'Acrobacia (T)', 'Religião (T)'], feats: ['Rajada de Golpes (◆)', 'Postura do Tigre', 'Movimento Rápido'] },
+      weapons: [{ name: 'Golpe de Punho', dmgDie: '1d6', reach: 1.5, dmgType: 'contundente' }],
+      spells: [S('rajada_de_ki')],
+      items: [I('elixir_vida', 1)]
+    }),
+    piece({
+      id: 't3d_sacerdote', name: 'Sacerdote', sculpt: 't3_sacerdote',
+      sheet: { ancestry: 'Humano', background: 'Acólito', className: 'Clérigo (Enclausurado)', keyAttr: 'SAB',
+        ancestryHp: 8, classHp: 8, armorItemBonus: 1, dexCap: 3, attrs: attrs(2, 1, 1, 0, 4, 1), prof: prof(2, 2, 4, 2, 2, 2, 4),
+        skills: ['Religião (E)', 'Medicina (T)', 'Diplomacia (T)'], feats: ['Fonte Divina (Cura)', 'Domínio da Verdade', 'Cura Rápida'] },
+      weapons: [{ name: 'Maça', dmgDie: '1d6', reach: 1.5, dmgType: 'contundente' }],
+      spells: [S('julgamento_divino'), S('lanca_divina')],
+      items: [I('pocao_moderada', 1), I('perg_cura', 1)]
+    }),
+    piece({
+      id: 't3d_mago_branco', name: 'Mago Branco', sculpt: 't3_mago_branco', moveSpeed: 7.5,
+      sheet: { ancestry: 'Humano', background: 'Eremita', className: 'Mago (Escola da Ars Grammatica)', keyAttr: 'INT',
+        ancestryHp: 8, classHp: 6, armorItemBonus: 0, dexCap: 5, attrs: attrs(0, 2, 1, 4, 2, 0), prof: prof(2, 2, 4, 2, 2, 2, 4),
+        skills: ['Arcanismo (E)', 'Ocultismo (T)', 'Natureza (T)'], feats: ['Escudo Arcano', 'Vínculo com o Cajado', 'Magia Ampliada'] },
+      weapons: [{ name: 'Cajado da Estrela', dmgDie: '1d6', reach: 1.5, dmgType: 'contundente' }],
+      spells: [S('relampago'), S('raio_arcano'), S('misseis_magicos')],
+      items: [I('pocao_menor', 1)]
+    }),
+    piece({
+      id: 't3d_monge_espada', name: 'Monge Espadachim', sculpt: 't3_monge_espada', moveSpeed: 12,
+      sheet: { ancestry: 'Humano', background: 'Guerreiro de Templo', className: 'Monge (Armas Monásticas)', keyAttr: 'FOR',
+        ancestryHp: 8, classHp: 10, armorItemBonus: 0, dexCap: 5, attrs: attrs(4, 3, 2, 0, 2, 0), prof: prof(4, 4, 2, 4, 4, 4, 4),
+        skills: ['Atletismo (T)', 'Acrobacia (T)', 'Intimidação (T)'], feats: ['Rajada de Golpes (◆)', 'Arma Monástica (Katana)', 'Postura da Garça'] },
+      weapons: [
+        { name: 'Katana', dmgDie: '1d8', reach: 1.5, dmgType: 'cortante' },
+        { name: 'Golpe de Punho', dmgDie: '1d6', reach: 1.5, dmgType: 'contundente' }
+      ],
+      spells: [S('rajada_de_ki')],
+      items: [I('pocao_menor', 1)]
+    }),
+    piece({
+      id: 't3d_monge_aprendiz', name: 'Monge Aprendiz', sculpt: 't3_monge_aprendiz', moveSpeed: 12,
+      sheet: { level: 2, ancestry: 'Humano', background: 'Órfão do Mosteiro', className: 'Monge (Aprendiz)', keyAttr: 'DES',
+        ancestryHp: 8, classHp: 10, armorItemBonus: 0, dexCap: 5, attrs: attrs(2, 4, 2, 0, 1, 1), prof: prof(4, 2, 0, 2, 4, 4, 4),
+        skills: ['Acrobacia (T)', 'Atletismo (T)', 'Furtividade (T)'], feats: ['Rajada de Golpes (◆)', 'Passo Leve'] },
+      weapons: [{ name: 'Golpe de Punho', dmgDie: '1d6', reach: 1.5, dmgType: 'contundente' }],
+      items: [I('pocao_menor', 2)]
+    }),
+    piece({
+      id: 't3d_arqueira', name: 'Arqueira Élfica', sculpt: 't3_arqueira', moveSpeed: 9,
+      sheet: { ancestry: 'Elfa', background: 'Batedora', className: 'Patrulheiro (Precisão)', keyAttr: 'DES',
+        ancestryHp: 6, classHp: 10, armorItemBonus: 2, dexCap: 3, attrs: attrs(1, 4, 1, 1, 2, 0), prof: prof(2, 2, 0, 4, 4, 4, 2),
+        skills: ['Sobrevivência (E)', 'Natureza (T)', 'Furtividade (T)'], feats: ['Caçar Presa (◆)', 'Tiro Duplo', 'Olhar Élfico'] },
+      weapons: [
+        { name: 'Arco Longo', dmgDie: '1d8', reach: 30, dmgType: 'perfurante' },
+        { name: 'Espada Curta', dmgDie: '1d6', reach: 1.5, dmgType: 'perfurante' }
+      ],
+      items: [I('pocao_menor', 1)]
+    }),
+    piece({
+      id: 't3d_mago_cinza', name: 'Mago Cinzento', sculpt: 't3_mago_cinza', moveSpeed: 7.5,
+      sheet: { ancestry: 'Elfo', background: 'Acadêmico', className: 'Mago (Evocação)', keyAttr: 'INT',
+        ancestryHp: 6, classHp: 6, armorItemBonus: 0, dexCap: 5, attrs: attrs(0, 2, 1, 4, 1, 1), prof: prof(2, 2, 4, 2, 2, 2, 4),
+        skills: ['Arcanismo (E)', 'Sociedade (T)', 'Ocultismo (T)'], feats: ['Escudo Arcano', 'Livro de Magias Ampliado', 'Evocação Potente'] },
+      weapons: [{ name: 'Adaga', dmgDie: '1d4', reach: 1.5, dmgType: 'perfurante' }],
+      spells: [S('bola_de_fogo'), S('estilhacos_de_gelo'), S('misseis_magicos')],
+      items: [I('pocao_menor', 1)]
+    })
+  );
+})();
 
 /* ===== 04-state.js ===== */
 /* ============================================================================
@@ -6495,6 +7251,7 @@ function renderBoard() {
     ctx.restore();
   }
   ctx.restore();
+  scheduleT3DFrame();
 }
 
 function spawnFloatingText(col, row, text, color = '#fca5a5') {
@@ -6559,6 +7316,9 @@ function drawUnitToken(unit, isTargetable) {
   const center = getCellPixelCenter(unit.col, unit.row);
   const nudge = animUnitOffset(unit);
   if (nudge) { center.x += nudge.x; center.y += nudge.y; }
+  const walk = unitWalkOffset(unit);
+  if (walk) { center.x += walk.x; center.y += walk.y; }
+  const is3D = unitIs3D(unit);
   const hp = displayHp(unit);
   const s = STATE.camera.basePx * STATE.camera.zoom;
   const tokenR = s * 0.46;
@@ -6602,8 +7362,10 @@ function drawUnitToken(unit, isTargetable) {
     ctx.setLineDash([]);
   }
 
-  const img = getUnitTokenImage(unit.sculpt, unit.customTokenDataUrl, customTokenOptions(unit));
-  if (img && img.complete) {
+  const img = is3D ? null : getUnitTokenImage(unit.sculpt, unit.customTokenDataUrl, customTokenOptions(unit));
+  if (is3D) {
+    drawUnit3D(unit, center, tokenR, isDead);
+  } else if (img && img.complete) {
     if (isDead) ctx.filter = 'grayscale(100%) brightness(38%)';
     if (tokenArtRotates(unit)) {
       ctx.save();
@@ -6616,13 +7378,15 @@ function drawUnitToken(unit, isTargetable) {
     }
     ctx.filter = 'none';
   }
-  if (!isDead && !tokenArtRotates(unit)) drawFacingMarker(unit, center, tokenR);
+  if (!isDead && !is3D && !tokenArtRotates(unit)) drawFacingMarker(unit, center, tokenR);
 
   if (isDead) {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, tokenR, 0, Math.PI * 2);
-    ctx.fill();
+    if (!is3D) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, tokenR, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     ctx.fillStyle = 'rgba(185, 28, 28, 0.96)';
     ctx.strokeStyle = '#fca5a5';
@@ -8384,6 +9148,124 @@ const ANIM_IMPACTS = {
   hazard(f) { emitAt(f, f.A, 14, { angle: -Math.PI / 2, spread: 1.8, speed: 2.2, life: 0.5, kind: 'spark', size: 0.06, gravity: 3, colors: [f.a.color, '#ffffff'] }); }
 };
 
+/* ===== 07e-token3d-render.js ===== */
+/* ============================================================================
+   11e. TOKENS 3D NO TABULEIRO — desenho, caminhada e gestos
+   A peça 3D fica em pé sobre um disco da facção e gira com a direção da peça.
+   Movimento: parado (sempre), andar (ao mover no combate), atacar / magia / item
+   (acompanham a animação da ação em 07d). Só visual: as regras não mudam.
+   ============================================================================ */
+
+const T3D_RUNTIME = { walks: new Map(), timer: 0 };
+const T3D_FACTION_RING = { hero: '#f5d27a', villain: '#ef4444' };
+const T3D_FRAME_MS = 40; // ~25 quadros por segundo enquanto houver peça 3D no tabuleiro
+
+function unitIs3D(unit) {
+  return !!unit && !unit.customTokenDataUrl && is3DToken(unit.sculpt);
+}
+
+function t3dLive() {
+  return typeof animationsEnabled === 'function' ? animationsEnabled() : true;
+}
+
+/** Caminhada visual da casa antiga até a atual (a regra já moveu a peça). */
+function startUnitWalk(unit, fromCol, fromRow) {
+  if (!unitIs3D(unit) || !t3dLive() || (fromCol === unit.col && fromRow === unit.row)) return;
+  const cells = cellDistanceMeters(fromCol, fromRow, unit.col, unit.row) / (STATE.grid.cellScale || 1.5);
+  const duration = Math.max(320, Math.min(2200, cells * 300));
+  T3D_RUNTIME.walks.set(unit.id, { fromCol, fromRow, start: performance.now(), duration });
+  requestRender();
+}
+
+/** Deslocamento (px) da caminhada em andamento; null quando parada. */
+function unitWalkOffset(unit) {
+  const w = T3D_RUNTIME.walks.get(unit.id);
+  if (!w) return null;
+  const k = (performance.now() - w.start) / w.duration;
+  if (k >= 1 || !t3dLive()) { T3D_RUNTIME.walks.delete(unit.id); return null; }
+  const from = getCellPixelCenter(w.fromCol, w.fromRow);
+  const to = getCellPixelCenter(unit.col, unit.row);
+  const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+  return { x: (from.x - to.x) * (1 - e), y: (from.y - to.y) * (1 - e) };
+}
+
+/** Qual movimento a peça faz agora e em que instante dele. */
+function unit3DMotion(unit, now) {
+  const w = T3D_RUNTIME.walks.get(unit.id);
+  if (w) return { anim: 'walk', t: (now - w.start) / 1000 };
+  const a = typeof ANIM !== 'undefined' ? ANIM.current : null;
+  if (a && a.from && a.from.id === unit.id) {
+    const k = Math.max(0, Math.min(0.999, (now - a.start) / a.duration));
+    if (a.family === 'weapon') return { anim: 'attack', t: k * 1.1 };
+    if (a.family === 'spell') return { anim: 'cast', t: k * 1.4, color: a.color };
+    if (a.kind === 'heal' || a.kind === 'light') return { anim: 'item', t: k * 1.4 };
+  }
+  // fase própria por peça: não respiram todas juntas
+  const phase = (parseInt(hashString(unit.id), 36) % 1000) / 160;
+  return { anim: 'idle', t: t3dLive() ? now / 1000 + phase : phase };
+}
+
+function t3dGlow(x, y, r, color, alpha) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, rgba(color, alpha));
+  g.addColorStop(1, rgba(color, 0));
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** Desenha a peça 3D: disco da facção, sombra e o boneco virado para onde a peça aponta. */
+function drawUnit3D(unit, center, tokenR, isDead) {
+  const key = unit.sculpt;
+  const model = t3dModel(key);
+  const cfg = T3D_TOKENS[key];
+  const now = performance.now();
+  ctx.save();
+  // disco da facção
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, tokenR * 0.9, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(12, 10, 8, 0.32)';
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = isDead ? 'rgba(120, 120, 120, 0.7)' : (T3D_FACTION_RING[unit.faction] || T3D_FACTION_RING.hero);
+  ctx.stroke();
+  const feetY = center.y + tokenR * 0.62;
+  const scale = tokenR * 1.08;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+  ctx.beginPath();
+  ctx.ellipse(center.x, feetY, scale * 0.42, scale * 0.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const yaw = -normalizeFacing(unit.facing || 0) * Math.PI / 180;
+  if (isDead) {
+    ctx.filter = 'grayscale(100%) brightness(55%)';
+    const { pose } = t3dPose('idle', 0, model.style);
+    pose.root = [-1.45, 0, 0];
+    t3dDraw(ctx, model, { x: center.x, y: feetY, scale, yaw, pose, rootOffset: [0, 0.16, 0] });
+    ctx.restore();
+    return;
+  }
+  const m = unit3DMotion(unit, now);
+  const { pose, rootOffset, flags } = t3dPose(m.anim, m.t, model.style);
+  const anchors = t3dDraw(ctx, model, { x: center.x, y: feetY, scale, yaw, pose, rootOffset, flags });
+  if (flags.includes('cast')) {
+    const pulse = 0.5 + 0.5 * Math.sin(now / 90);
+    for (const h of ['handL', 'handR']) if (anchors[h]) t3dGlow(anchors[h].x, anchors[h].y, scale * (0.18 + 0.08 * pulse), m.color || '#c084fc', 0.85);
+  } else if (cfg.flameHand === 'always' && anchors.handL) {
+    t3dGlow(anchors.handL.x, anchors.handL.y, scale * 0.16, '#ff9a3c', 0.55);
+  }
+  if (flags.includes('item') && anchors.handR) t3dGlow(anchors.handR.x, anchors.handR.y, scale * 0.12, '#ef4444', 0.45);
+  ctx.restore();
+}
+
+/** Mantém o tabuleiro desenhando enquanto houver peça 3D viva (respiração, caminhada). */
+function scheduleT3DFrame() {
+  if (T3D_RUNTIME.timer || !t3dLive()) return;
+  if (!STATE.units.some(unitIs3D)) return;
+  T3D_RUNTIME.timer = setTimeout(() => { T3D_RUNTIME.timer = 0; requestRender(); }, T3D_FRAME_MS);
+}
+
 /* ===== 08-input.js ===== */
 /* ============================================================================
    12. CANVAS POINTER INTERACTION
@@ -8659,8 +9541,10 @@ function handleCombatBoardClick(cell, clickedUnit) {
     }
 
     faceTowardCell(activeUnit, cell.col, cell.row);
+    const from = { col: activeUnit.col, row: activeUnit.row };
     activeUnit.col = cell.col;
     activeUnit.row = cell.row;
+    startUnitWalk(activeUnit, from.col, from.row);
     activeUnit.actions = Math.max(0, activeUnit.actions - destInfo.actionsNeeded);
     spawnFloatingText(cell.col, cell.row, `🥾 -${destInfo.actionsNeeded}◆ (${destInfo.meters}m)`, '#86efac');
     addLog(`🥾 <strong>${activeUnit.name}</strong> moveu ${destInfo.meters}m para (${cell.col + 1}, ${cell.row + 1}) gastando <strong>${'◆'.repeat(destInfo.actionsNeeded)} (${destInfo.actionsNeeded} ação/ões)</strong>.`);
@@ -10223,6 +11107,7 @@ function setProceduralMap(theme) {
 
 /** Animais ficam na aba própria da caixa de ferramentas; o resto em Personagens. */
 const isAnimalTemplate = (t) => t.category === 'animal';
+const is3DTemplate = (t) => t.category === '3d';
 
 function renderPieceGallery() {
   const container = document.getElementById('pieceGalleryContainer');
@@ -10232,9 +11117,16 @@ function renderPieceGallery() {
   container.innerHTML = '';
   const q = normalizeSearchText(document.getElementById('galleryFilterText')?.value);
   const fac = document.getElementById('galleryFilterFaction')?.value || '';
-  const shown = UNIT_TEMPLATES.filter(t => !isAnimalTemplate(t) && (!fac || t.faction === fac) &&
-    (!q || normalizeSearchText(`${t.name} ${t.sheet?.className || ''} ${t.sheet?.ancestry || ''}`).includes(q)));
-  if (shown.length === 0) container.innerHTML = '<p class="hint" style="grid-column:1/-1">Nenhuma peça com esse filtro.</p>';
+  const matches = (t) => (!fac || t.faction === fac) &&
+    (!q || normalizeSearchText(`${t.name} ${t.sheet?.className || ''} ${t.sheet?.ancestry || ''}`).includes(q));
+  const shown = UNIT_TEMPLATES.filter(t => !isAnimalTemplate(t) && !is3DTemplate(t) && matches(t));
+  const shown3d = UNIT_TEMPLATES.filter(t => is3DTemplate(t) && matches(t));
+  const box3d = document.getElementById('piece3dGalleryContainer');
+  if (box3d) {
+    box3d.innerHTML = '';
+    box3d.parentElement.classList.toggle('hidden', shown3d.length === 0);
+  }
+  if (shown.length === 0 && shown3d.length === 0) container.innerHTML = '<p class="hint" style="grid-column:1/-1">Nenhuma peça com esse filtro.</p>';
   const animalBox = document.getElementById('animalGalleryContainer');
   if (animalBox) animalBox.innerHTML = '';
   const render = (t, box, tab) => {
@@ -10253,6 +11145,7 @@ function renderPieceGallery() {
     box.appendChild(card);
   };
   for (const t of shown) render(t, container, 'piece');
+  if (box3d) for (const t of shown3d) render(t, box3d, 'piece');
   if (typeof scheduleLibrarySave === 'function') scheduleLibrarySave();
   if (animalBox) for (const t of UNIT_TEMPLATES.filter(isAnimalTemplate)) render(t, animalBox, 'animal');
 }

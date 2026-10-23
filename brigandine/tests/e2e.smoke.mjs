@@ -373,7 +373,7 @@ await check('tokens extras: galeria troca o token da peça, desenha no tabuleiro
     return { afterClick, active, selectVal, rotRetrato, rotTopo, topoIsRaw, chibiSvg: chibiSrc.startsWith('data:image/svg'), loaded: img.naturalWidth > 0, kept: STATE.units[0].sculpt,
       groups: document.querySelectorAll('#inspTokenSelect optgroup').length, extras: Object.keys(EXTRA_TOKENS).length };
   });
-  assert.deepEqual(r, { afterClick: 'cr_samurai', active: 'Samurai', selectVal: 'cr_samurai', rotRetrato: false, rotTopo: true, topoIsRaw: true, chibiSvg: true, loaded: true, kept: 'vt_lobo_alfa', groups: 5, extras: 90 });
+  assert.deepEqual(r, { afterClick: 'cr_samurai', active: 'Samurai', selectVal: 'cr_samurai', rotRetrato: false, rotTopo: true, topoIsRaw: true, chibiSvg: true, loaded: true, kept: 'vt_lobo_alfa', groups: 6 /* 5 grupos pintados + Tokens 3D */, extras: 90 });
   await page.evaluate(() => { changeSelectedUnitToken('guerreiro'); document.getElementById('tokenPickerDetails').open = false; });
 });
 
@@ -765,6 +765,66 @@ await check('animações: seguram número e barra de PV até o impacto, clique p
   assert.equal(off.pref, false);
   assert.equal(off.pressed, 'false');
   assert.equal(off.prefOn, true);
+});
+
+await check('tokens 3D: seção na gaveta, seletor, caminhada, gestos de ataque/magia/item e salvar', async () => {
+  const r = await page.evaluate(() => {
+    setAppMode('setup');
+    setAnimationsEnabled(true);
+    renderPieceGallery();
+    const cards = document.querySelectorAll('#piece3dGalleryContainer .piece-card').length;
+    const thumbs = [...document.querySelectorAll('#piece3dGalleryContainer img.t3d-thumb')].every(i => i.src.startsWith('data:image/png'));
+    TOKEN_PICKERS.insp.tab = '3d';
+    STATE.selectedUnitId = STATE.units[0].id;
+    renderTokenPicker('insp');
+    const picks = document.querySelectorAll('#tokenPicker .token-pick').length;
+    // peça 3D nova e troca de token de uma peça existente
+    const before = STATE.units.length;
+    spawnUnitFromTemplate('t3d_arqueira', 1, 1);
+    const arq = STATE.units[STATE.units.length - 1];
+    const other = STATE.units.find(u => u.faction === 'villain' && u.hp > 0);
+    const target = STATE.units.find(u => u.faction === 'hero' && !/^t3_/.test(u.sculpt));
+    STATE.selectedUnitId = target.id;
+    TOKEN_PICKERS.insp.pick('t3_ladina');
+    const swapped = target.sculpt;
+    renderBoard();
+    // combate: andar, atacar, magia e poção
+    setAppMode('combat');
+    arq.actions = 3; arq.col = 1; arq.row = 1;
+    STATE.combat.activeUnitId = arq.id;
+    selectCombatMainMenu('move');
+    const reach = computeReachableCells(arq);
+    const dest = Object.entries(reach).find(([k, v]) => v.canAfford && v.actionsNeeded === 1 && k !== '1,1');
+    const [dc, dr] = dest[0].split(',').map(Number);
+    handleCombatBoardClick({ col: dc, row: dr }, null);
+    const walking = unit3DMotion(arq, performance.now()).anim;
+    T3D_RUNTIME.walks.clear();
+    arq.actions = 3; arq.strikesMade = 0; other.col = arq.col + 1; other.row = arq.row; other.hp = other.maxHp;
+    executeWeaponAttackAndDamage(arq, other, arq.weapons[1]);
+    const attacking = unit3DMotion(arq, performance.now()).anim;
+    finishAnimation();
+    const mago = (spawnUnitFromTemplate('t3d_mago_branco', 1, 3), STATE.units[STATE.units.length - 1]);
+    mago.actions = 3;
+    executeSpellCastOnCell(mago, mago.spells[1], { col: other.col, row: other.row }, other, false);
+    const casting = unit3DMotion(mago, performance.now()).anim;
+    finishAnimation();
+    mago.actions = 3; mago.hp = 5;
+    executeItemUseOnCell(mago, mago.items[0], { col: mago.col, row: mago.row }, mago);
+    const drinking = unit3DMotion(mago, performance.now()).anim;
+    finishAnimation();
+    renderBoard();
+    const saved = captureBoard(STATE).units.filter(u => /^t3_/.test(u.sculpt)).length;
+    return { cards, thumbs, picks, swapped, walking, attacking, casting, drinking, saved, added: STATE.units.length - before };
+  });
+  assert.equal(r.cards, 9);
+  assert.ok(r.thumbs, 'miniaturas geradas');
+  assert.equal(r.picks, 9, 'aba Tokens 3D do seletor');
+  assert.equal(r.swapped, 't3_ladina');
+  assert.equal(r.walking, 'walk');
+  assert.equal(r.attacking, 'attack');
+  assert.equal(r.casting, 'cast');
+  assert.equal(r.drinking, 'item');
+  assert.equal(r.saved, 3);
 });
 
 await check('sem erros de JavaScript durante o fluxo', async () => {

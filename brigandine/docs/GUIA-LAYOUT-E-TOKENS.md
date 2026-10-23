@@ -475,6 +475,7 @@ Itens de luz das peças (`kind: 'light'`) acendem com ◆ e ficam acesos até ap
   atingida em luz plena **até o fim da rodada**; depois volta a escurecer. Campo `flash: true` na magia;
   magias criadas no editor têm a caixa *Clarão* (desmarcada por padrão).
 - **Magias sombrias** (Maldição Sombria, Toque Sombrio, Uivo Espectral) **não** criam escuridão.
+- **Tokens 3D:** a chama na mão do Elfo da Chama e o brilho das mãos ao conjurar são só visuais (não iluminam).
 - **Animações** são só visuais: o brilho de uma magia, tocha ou explosão durante a animação não ilumina
   nada; quem ilumina de verdade continua sendo o clarão (até o fim da rodada) e os itens acesos.
 - **Regras de luz do PF2e Remaster** (Player Core, *Vision and Light*, e condições Oculto/Escondido/Cego):
