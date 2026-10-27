@@ -36,10 +36,6 @@ Tokens 3D (`00k`–`00m`, `07e`, `03d`): bonecos low-poly com chave `t3_*`; pers
 `T3D_TOKENS` + peça em `03d`. Modelo próprio (não o boneco base) usa `build` e um estilo de pose próprio, como o
 Guerreiro de Miniatura (`00n`, estilo `proto`, porte do protótipo Three.js — sem Three.js, sem GLB). A peça 3D faz o gesto da ação via `ANIM.current` (07d) e anda via `startUnitWalk`.
 
-Pixel art (`00p`, `07g`, `03e`, `src/tokens-pixel/`): folhas 8×5 de 128 px (idle, walk, attack, hit, death) com
-chave `px_*`, embutidas pelo build (`PIXEL_TOKEN_SHEETS`). `scripts/limpar-pixel-tokens.py` remove fragmentos de
-outras figuras das folhas.
-
 Cenas de combate: ver `docs/ARQUITETURA-CENAS.md`. Tudo que entra no tabuleiro precisa estar em
 `captureBoard` (12d) e em `applyLoadedPayload` (12) para ser salvo e reaberto nas cenas.
 

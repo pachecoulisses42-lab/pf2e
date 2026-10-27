@@ -26,11 +26,7 @@ const extraGroups = extraManifest.groups.map((g) => ({
   items: g.items.map(({ file, ...it }) => ({ ...it, src: `data:image/webp;base64,${readFileSync(join(root, 'src/tokens-extra', file)).toString('base64')}` }))
 }));
 const extraJs = `/* ===== tokens-extra (gerado no build) ===== */\nconst EXTRA_TOKEN_GROUPS = ${JSON.stringify(extraGroups)};\n`;
-// tokens em pixel art (src/tokens-pixel): folhas de animação embutidas como data URL
-const pixelManifest = JSON.parse(read('src/tokens-pixel/manifest.json'));
-const pixelSheets = pixelManifest.items.map(({ file, ...it }) => ({ ...it, src: `data:image/webp;base64,${readFileSync(join(root, 'src/tokens-pixel', file)).toString('base64')}` }));
-const pixelJs = `/* ===== tokens-pixel (gerado no build) ===== */\nconst PIXEL_TOKEN_SHEETS = ${JSON.stringify(pixelSheets)};\n`;
-const js = extraJs + pixelJs + jsFiles.map((f) => `/* ===== ${f} ===== */\n${read('src/js', f)}`).join('\n');
+const js = extraJs + jsFiles.map((f) => `/* ===== ${f} ===== */\n${read('src/js', f)}`).join('\n');
 
 const icons = read('src/icons.svg');
 

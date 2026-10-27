@@ -94,7 +94,6 @@ function setProceduralMap(theme) {
 /** Animais ficam na aba própria da caixa de ferramentas; o resto em Personagens. */
 const isAnimalTemplate = (t) => t.category === 'animal';
 const is3DTemplate = (t) => t.category === '3d';
-const isPixelTemplate = (t) => t.category === 'pixel';
 
 function renderPieceGallery() {
   const container = document.getElementById('pieceGalleryContainer');
@@ -106,20 +105,14 @@ function renderPieceGallery() {
   const fac = document.getElementById('galleryFilterFaction')?.value || '';
   const matches = (t) => (!fac || t.faction === fac) &&
     (!q || normalizeSearchText(`${t.name} ${t.sheet?.className || ''} ${t.sheet?.ancestry || ''}`).includes(q));
-  const shown = UNIT_TEMPLATES.filter(t => !isAnimalTemplate(t) && !is3DTemplate(t) && !isPixelTemplate(t) && matches(t));
-  const shownPx = UNIT_TEMPLATES.filter(t => isPixelTemplate(t) && matches(t));
-  const boxPx = document.getElementById('piecePixelGalleryContainer');
-  if (boxPx) {
-    boxPx.innerHTML = '';
-    boxPx.parentElement.classList.toggle('hidden', shownPx.length === 0);
-  }
+  const shown = UNIT_TEMPLATES.filter(t => !isAnimalTemplate(t) && !is3DTemplate(t) && matches(t));
   const shown3d = UNIT_TEMPLATES.filter(t => is3DTemplate(t) && matches(t));
   const box3d = document.getElementById('piece3dGalleryContainer');
   if (box3d) {
     box3d.innerHTML = '';
     box3d.parentElement.classList.toggle('hidden', shown3d.length === 0);
   }
-  if (shown.length === 0 && shown3d.length === 0 && shownPx.length === 0) container.innerHTML = '<p class="hint" style="grid-column:1/-1">Nenhuma peça com esse filtro.</p>';
+  if (shown.length === 0 && shown3d.length === 0) container.innerHTML = '<p class="hint" style="grid-column:1/-1">Nenhuma peça com esse filtro.</p>';
   const animalBox = document.getElementById('animalGalleryContainer');
   if (animalBox) animalBox.innerHTML = '';
   const render = (t, box, tab) => {
@@ -139,7 +132,6 @@ function renderPieceGallery() {
   };
   for (const t of shown) render(t, container, 'piece');
   if (box3d) for (const t of shown3d) render(t, box3d, 'piece');
-  if (boxPx) for (const t of shownPx) render(t, boxPx, 'piece');
   if (typeof scheduleLibrarySave === 'function') scheduleLibrarySave();
   if (animalBox) for (const t of UNIT_TEMPLATES.filter(isAnimalTemplate)) render(t, animalBox, 'animal');
 }

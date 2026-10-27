@@ -373,7 +373,7 @@ await check('tokens extras: galeria troca o token da peça, desenha no tabuleiro
     return { afterClick, active, selectVal, rotRetrato, rotTopo, topoIsRaw, chibiSvg: chibiSrc.startsWith('data:image/svg'), loaded: img.naturalWidth > 0, kept: STATE.units[0].sculpt,
       groups: document.querySelectorAll('#inspTokenSelect optgroup').length, extras: Object.keys(EXTRA_TOKENS).length };
   });
-  assert.deepEqual(r, { afterClick: 'cr_samurai', active: 'Samurai', selectVal: 'cr_samurai', rotRetrato: false, rotTopo: true, topoIsRaw: true, chibiSvg: true, loaded: true, kept: 'vt_lobo_alfa', groups: 7 /* 5 grupos pintados + Tokens 3D + Pixel art */, extras: 90 });
+  assert.deepEqual(r, { afterClick: 'cr_samurai', active: 'Samurai', selectVal: 'cr_samurai', rotRetrato: false, rotTopo: true, topoIsRaw: true, chibiSvg: true, loaded: true, kept: 'vt_lobo_alfa', groups: 6 /* 5 grupos pintados + Tokens 3D */, extras: 90 });
   await page.evaluate(() => { changeSelectedUnitToken('guerreiro'); document.getElementById('tokenPickerDetails').open = false; });
 });
 
@@ -888,47 +888,6 @@ await check('troca de modo: ferramenta da montagem não age no combate; régua/m
     return out;
   });
   assert.deepEqual(r, { template: null, ruler: false, hud: null, unitsSame: true, activeOk: true, nextOk: true, undoBlockedInCombat: true, noStack: true, undoCleared: true, wallBlocked: true, endReset: true });
-});
-
-await check('pixel art: seção na gaveta, aba do seletor, quadros de parado/andar/ataque/atingido/morte e salvar', async () => {
-  const r = await page.evaluate(async () => {
-    setAppMode('setup');
-    setAnimationsEnabled(true);
-    renderPieceGallery();
-    const cards = document.querySelectorAll('#piecePixelGalleryContainer .piece-card').length;
-    // espera as folhas carregarem para as miniaturas recortadas
-    await Promise.all(PIXEL_TOKEN_LIST.map(t => new Promise(res => { const im = pixelSheetImage(t.key); if (im.complete) res(); else im.onload = res; })));
-    STATE.units = [];
-    spawnUnitFromTemplate('tpx_cavaleiro_negro', 3, 3);
-    spawnUnitFromTemplate('tpx_guardiao_verde', 4, 3);
-    const [a, g] = STATE.units;
-    STATE.selectedUnitId = a.id;
-    TOKEN_PICKERS.insp.tab = 'pixel'; renderTokenPicker('insp');
-    const picks = document.querySelectorAll('#tokenPicker .token-pick').length;
-    renderBoard();
-    const idle = unitPixelFrame(a, performance.now(), false).row;
-    setAppMode('combat');
-    STATE.combat.activeUnitId = a.id;
-    startUnitWalk(a, a.col - 2, a.row);
-    const walk = unitPixelFrame(a, performance.now(), false).row;
-    T3D_RUNTIME.walks.clear();
-    a.actions = 3; a.strikesMade = 0; g.ac = -50; g.hp = 1;
-    executeWeaponAttackAndDamage(a, g, a.weapons[0]);
-    const attack = unitPixelFrame(a, performance.now(), false).row;
-    ANIM.current.impacted = true; ANIM.current.impactTime = performance.now();
-    const death = unitPixelFrame(g, performance.now(), g.hp <= 0);
-    finishAnimation();
-    const after = unitPixelFrame(g, performance.now(), g.hp <= 0);
-    renderBoard();
-    const saved = captureBoard(STATE).units.filter(u => /^px_/.test(u.sculpt)).length;
-    setAppMode('setup');
-    return { cards, picks, idle, walk, attack, death: death.row, deathEnd: [after.row, after.frame], saved };
-  });
-  assert.equal(r.cards, 4);
-  assert.equal(r.picks, 4);
-  assert.deepEqual([r.idle, r.walk, r.attack, r.death], [0, 1, 2, 4]);
-  assert.deepEqual(r.deathEnd, [4, 7], 'caído no último quadro da morte');
-  assert.equal(r.saved, 2);
 });
 
 await check('sem erros de JavaScript durante o fluxo', async () => {
