@@ -1,0 +1,138 @@
+{
+    "schemaVersion": 1,
+    "ruleSystem": "pf2e-remaster",
+    "characterId": "char-8832",
+    "name": "Valeros",
+    "characterClass": "FIGHTER",
+    "character": {
+        "level": 1,
+        "abilityMods": {
+            "STR": 4,
+            "DEX": 2,
+            "CON": 2,
+            "INT": 0,
+            "WIS": 1,
+            "CHA": 0
+        }
+    },
+    "zones": {
+        "zone1": {
+            "layout": "GRID_1X2",
+            "stations": [
+                {
+                    "type": "ACTION",
+                    "id": "st-01",
+                    "weapon": {
+                        "name": "Espada Longa",
+                        "attackAbility": "STR",
+                        "rank": "EXPERT",
+                        "diceCount": 1,
+                        "die": "D8",
+                        "damageType": "SLASHING",
+                        "potency": 0,
+                        "striking": "NONE",
+                        "elemental": [],
+                        "greaterSpecialization": false,
+                        "agile": false
+                    },
+                    "title": "Espada Longa",
+                    "diceFormula": "1d20+9",
+                    "secondaryDiceFormula": "1d8+6"
+                },
+                {
+                    "type": "ACTION",
+                    "id": "st-02",
+                    "weapon": {
+                        "name": "Arco Longo",
+                        "attackAbility": "DEX",
+                        "rank": "EXPERT",
+                        "diceCount": 1,
+                        "die": "D8",
+                        "damageType": "PIERCING",
+                        "potency": 0,
+                        "striking": "NONE",
+                        "elemental": [],
+                        "greaterSpecialization": false,
+                        "agile": false
+                    },
+                    "title": "Arco Longo",
+                    "diceFormula": "1d20+7",
+                    "secondaryDiceFormula": "1d8+2"
+                }
+            ]
+        },
+        "zone2": {
+            "layout": "GRID_2X2",
+            "stations": [
+                {
+                    "type": "SKILL",
+                    "id": "st-03",
+                    "check": {
+                        "kind": "ATHLETICS",
+                        "rank": "TRAINED",
+                        "itemBonus": 0,
+                        "abilityOverride": null,
+                        "customName": null
+                    },
+                    "title": "Atletismo",
+                    "diceFormula": "1d20+7"
+                },
+                {
+                    "type": "SKILL",
+                    "id": "st-04",
+                    "check": {
+                        "kind": "INTIMIDATION",
+                        "rank": "TRAINED",
+                        "itemBonus": 0,
+                        "abilityOverride": null,
+                        "customName": null
+                    },
+                    "title": "Intimidação",
+                    "diceFormula": "1d20+3"
+                },
+                {
+                    "type": "SKILL",
+                    "id": "st-05",
+                    "check": {
+                        "kind": "FORTITUDE",
+                        "rank": "EXPERT",
+                        "itemBonus": 0,
+                        "abilityOverride": null,
+                        "customName": null
+                    },
+                    "title": "Fortitude",
+                    "diceFormula": "1d20+7"
+                },
+                {
+                    "type": "SKILL",
+                    "id": "st-06",
+                    "check": {
+                        "kind": "PERCEPTION",
+                        "rank": "TRAINED",
+                        "itemBonus": 0,
+                        "abilityOverride": null,
+                        "customName": null
+                    },
+                    "title": "Percepção",
+                    "diceFormula": "1d20+4"
+                }
+            ]
+        },
+        "zone3": {
+            "layout": "GRID_1X1",
+            "stations": [
+                {
+                    "type": "RESOURCE",
+                    "id": "st-07",
+                    "maxHp": 20,
+                    "armor": {
+                        "rank": "TRAINED",
+                        "itemBonus": 2,
+                        "dexCap": 1
+                    },
+                    "title": "Vida & Defesa"
+                }
+            ]
+        }
+    }
+}

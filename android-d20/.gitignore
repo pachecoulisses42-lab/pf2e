@@ -8,3 +8,6 @@ local.properties
 captures/
 *.apk
 *.aab
+
+# the repo-root .gitignore ignores docs/; this app documents itself there
+!docs/
