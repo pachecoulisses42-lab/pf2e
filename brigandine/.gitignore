@@ -1,3 +1,7 @@
 # O repositório pai ignora dist/ e docs/; aqui eles são parte do subprojeto.
 !dist/
 !docs/
+
+# Tokens com licença que proíbe redistribuição: só na máquina local (scripts/importar-tokens-locais.py)
+src/tokens-local/
+dist-local/

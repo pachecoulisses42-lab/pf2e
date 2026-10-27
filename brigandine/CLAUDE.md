@@ -19,6 +19,11 @@ a partir de `src/`. Interface e textos em português.
 - Trocar de modo (montagem ↔ combate) desfaz a escolha da montagem (peça, pincel, objeto, clima) e desliga
   régua, mão, lixeira e lápis: nada da montagem age no combate, nem continua engatilhado ao voltar.
 
+- **Pacotes de tokens com licença que proíbe redistribuição** (ex.: Abyssal Corsair): o repositório é público,
+  então as imagens nunca entram no git nem em `dist/`. Receita em `scripts/tokens-locais/`, imagens em
+  `src/tokens-local/` (ignorado), app pessoal em `dist-local/` via `npm run build:local`. Entregar ao usuário o
+  arquivo de `dist-local/`.
+
 ## Verificação antes de entregar
 
 ```bash

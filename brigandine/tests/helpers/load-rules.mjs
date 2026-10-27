@@ -43,12 +43,13 @@ export function makeUnit(overrides = {}) {
 }
 
 /** Carrega catálogo, regras, ficha, modelos e os kits de token (sem DOM). */
-export function loadTemplates() {
+export function loadTemplates({ extraGroups = [], localPieces } = {}) {
   const ctx = vm.createContext({ console });
   // tokens extras como o build embute, com a imagem trocada por um marcador
   const manifest = JSON.parse(readFileSync(join(root, 'src/tokens-extra/manifest.json'), 'utf8'));
-  ctx.EXTRA_TOKEN_GROUPS = manifest.groups.map((g) => ({ ...g, items: g.items.map(({ file, ...it }) => ({ ...it, src: 'data:image/webp;base64,AA' })) }));
-  const files = ['01-catalog.js', '01b-rules.js', '02-sheet-engine.js', '03-templates.js', '03b-templates-extras.js', '03c-piece-import.js', '03d-templates-3d.js'];
+  ctx.EXTRA_TOKEN_GROUPS = [...manifest.groups, ...extraGroups].map((g) => ({ ...g, items: g.items.map(({ file, ...it }) => ({ ...it, src: 'data:image/webp;base64,AA' })) }));
+  if (localPieces) ctx.LOCAL_PIECES = localPieces;
+  const files = ['01-catalog.js', '01b-rules.js', '02-sheet-engine.js', '03-templates.js', '03b-templates-extras.js', '03c-piece-import.js', '03d-templates-3d.js', '03f-templates-local.js'];
   const tokenFiles = readdirSync(join(root, 'src/js')).filter((f) => /^00[a-y]/.test(f)).sort();
   for (const f of [...tokenFiles, ...files]) vm.runInContext(readFileSync(join(root, 'src/js', f), 'utf8'), ctx, { filename: f });
   return vm.runInContext(`({

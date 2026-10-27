@@ -6,8 +6,10 @@
  *   brigandine_pf2e_tatico_v5.html  – app completo, abre direto no navegador
  *   brigandine-ds.css               – design system (tokens + componentes) para reuso
  *   design-system.html              – documentação visual do design system
+ * `node scripts/build.mjs --local` (npm run build:local) acrescenta os pacotes de src/tokens-local/
+ * (licença sem redistribuição, fora do git) e grava só dist-local/brigandine_pf2e_tatico_v5.html.
  */
-import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync } from 'node:fs';
 import vm from 'node:vm';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,7 +27,20 @@ const extraGroups = extraManifest.groups.map((g) => ({
   ...g,
   items: g.items.map(({ file, ...it }) => ({ ...it, src: `data:image/webp;base64,${readFileSync(join(root, 'src/tokens-extra', file)).toString('base64')}` }))
 }));
-const extraJs = `/* ===== tokens-extra (gerado no build) ===== */\nconst EXTRA_TOKEN_GROUPS = ${JSON.stringify(extraGroups)};\n`;
+const LOCAL = process.argv.includes('--local');
+const localManifestPath = join(root, 'src/tokens-local/manifest.json');
+if (LOCAL && !existsSync(localManifestPath)) {
+  console.error('Nenhum pacote local: rode scripts/importar-tokens-locais.py antes de npm run build:local.');
+  process.exit(1);
+}
+const localManifest = LOCAL ? JSON.parse(readFileSync(localManifestPath, 'utf8')) : null;
+if (localManifest) {
+  for (const g of localManifest.groups) {
+    extraGroups.push({ ...g, items: g.items.map(({ file, ...it }) => ({ ...it, src: `data:image/webp;base64,${readFileSync(join(root, 'src/tokens-local', file)).toString('base64')}` })) });
+  }
+}
+const extraJs = `/* ===== tokens-extra (gerado no build) ===== */\nconst EXTRA_TOKEN_GROUPS = ${JSON.stringify(extraGroups)};\n` +
+  (localManifest ? `const LOCAL_PIECES = ${JSON.stringify(localManifest.pieces)};\n` : '');
 const js = extraJs + jsFiles.map((f) => `/* ===== ${f} ===== */\n${read('src/js', f)}`).join('\n');
 
 const icons = read('src/icons.svg');
@@ -35,6 +50,13 @@ const html = read('src/index.html')
   .replace('<!--@icons-->', () => icons)
   .replace('/*@js*/', () => js);
 
+if (LOCAL) {
+  // cópia pessoal: nunca vai para o repositório (dist-local/ está no .gitignore)
+  mkdirSync(join(root, 'dist-local'), { recursive: true });
+  writeFileSync(join(root, 'dist-local/brigandine_pf2e_tatico_v5.html'), html);
+  console.log('dist-local/brigandine_pf2e_tatico_v5.html (com tokens locais)');
+  process.exit(0);
+}
 mkdirSync(join(root, 'dist'), { recursive: true });
 writeFileSync(join(root, 'dist/brigandine_pf2e_tatico_v5.html'), html);
 writeFileSync(join(root, 'dist/brigandine-ds.css'), css);
