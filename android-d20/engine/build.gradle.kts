@@ -15,7 +15,7 @@ java {
 }
 
 dependencies {
-    implementation(libs.kotlinx.serialization.json)
+    api(libs.kotlinx.serialization.json)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit)
 }
