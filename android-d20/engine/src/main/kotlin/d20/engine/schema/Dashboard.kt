@@ -32,19 +32,22 @@ enum class PfClass(val ptName: String) {
 sealed interface Station {
     val id: String
 
+    /** Card fill chosen by the user; null falls back to a default by module type. */
+    val color: CardColor?
+
     /** Display title: the user's custom name when the station has one, else a default label. */
     val title: String
 }
 
 @Serializable
 @SerialName("ACTION")
-data class ActionStation(override val id: String, val weapon: WeaponSpec) : Station {
+data class ActionStation(override val id: String, val weapon: WeaponSpec, override val color: CardColor? = null) : Station {
     override val title: String get() = weapon.name
 }
 
 @Serializable
 @SerialName("SPELL")
-data class SpellStation(override val id: String, val spell: SpellSpec) : Station {
+data class SpellStation(override val id: String, val spell: SpellSpec, override val color: CardColor? = null) : Station {
     override val title: String get() = spell.name
 }
 
@@ -55,6 +58,7 @@ data class SkillStation(
     val check: CheckSpec,
     /** Conditions this check can impose or remove (Demoralize, Trip, ...). */
     val effects: List<ConditionEffect> = emptyList(),
+    override val color: CardColor? = null,
 ) : Station {
     override val title: String get() = check.customName?.takeIf { it.isNotBlank() } ?: check.kind.ptName
 }
@@ -62,7 +66,7 @@ data class SkillStation(
 /** Potion or bomb: one tap uses one item, rolls its dice and lists the conditions it imposes. */
 @Serializable
 @SerialName("CONSUMABLE")
-data class ConsumableStation(override val id: String, val consumable: ConsumableSpec) : Station {
+data class ConsumableStation(override val id: String, val consumable: ConsumableSpec, override val color: CardColor? = null) : Station {
     override val title: String
         get() = consumable.name.ifBlank { "${consumable.kind.ptName} (${consumable.grade.ptName})" }
 }
@@ -70,7 +74,7 @@ data class ConsumableStation(override val id: String, val consumable: Consumable
 /** Opens the conditions module: shows active conditions and processes turns. Holds no configuration. */
 @Serializable
 @SerialName("CONDITIONS")
-data class ConditionsStation(override val id: String) : Station {
+data class ConditionsStation(override val id: String, override val color: CardColor? = null) : Station {
     override val title: String get() = "Condições"
 }
 
@@ -83,6 +87,7 @@ data class ResourceStation(
     val armor: ArmorSpec,
     /** Optional shield; Hardness, HP and AC bonus come from [ShieldKind]. */
     val shield: ShieldKind? = null,
+    override val color: CardColor? = null,
 ) : Station {
     override val title: String get() = "Vida & Defesa"
 }

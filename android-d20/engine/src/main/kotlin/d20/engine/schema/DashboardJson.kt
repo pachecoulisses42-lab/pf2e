@@ -20,6 +20,7 @@ object DashboardJson {
         encodeDefaults = true
         prettyPrint = true
         ignoreUnknownKeys = true
+        explicitNulls = false // omit unset optional fields (colour, shield) instead of writing null
     }
 
     fun encode(d: Dashboard, validate: Boolean = true): String {

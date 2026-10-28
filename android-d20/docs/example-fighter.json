@@ -73,9 +73,7 @@
                     "check": {
                         "kind": "ATHLETICS",
                         "rank": "TRAINED",
-                        "itemBonus": 0,
-                        "abilityOverride": null,
-                        "customName": null
+                        "itemBonus": 0
                     },
                     "effects": [],
                     "title": "Atletismo",
@@ -87,9 +85,7 @@
                     "check": {
                         "kind": "INTIMIDATION",
                         "rank": "TRAINED",
-                        "itemBonus": 0,
-                        "abilityOverride": null,
-                        "customName": null
+                        "itemBonus": 0
                     },
                     "effects": [],
                     "title": "Intimidação",
@@ -101,9 +97,7 @@
                     "check": {
                         "kind": "FORTITUDE",
                         "rank": "EXPERT",
-                        "itemBonus": 0,
-                        "abilityOverride": null,
-                        "customName": null
+                        "itemBonus": 0
                     },
                     "effects": [],
                     "title": "Fortitude",
@@ -115,9 +109,7 @@
                     "check": {
                         "kind": "PERCEPTION",
                         "rank": "TRAINED",
-                        "itemBonus": 0,
-                        "abilityOverride": null,
-                        "customName": null
+                        "itemBonus": 0
                     },
                     "effects": [],
                     "title": "Percepção",
@@ -137,7 +129,6 @@
                         "itemBonus": 2,
                         "dexCap": 1
                     },
-                    "shield": null,
                     "title": "Vida & Defesa"
                 }
             ]

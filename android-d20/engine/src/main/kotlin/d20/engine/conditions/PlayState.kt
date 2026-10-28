@@ -4,6 +4,12 @@ import d20.engine.core.Modifier
 import d20.engine.core.ModType
 import d20.engine.pf2e.Ability
 import d20.engine.pf2e.CheckKind
+import d20.engine.pf2e.ConsumableSpec
+import d20.engine.pf2e.ShieldBlock
+import d20.engine.pf2e.ShieldKind
+import d20.engine.schema.Dashboard
+import d20.engine.schema.maxHp
+import d20.engine.schema.resourceStation
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -175,4 +181,29 @@ object PlayRules {
         }
         return st to null
     }
+
+    /** A fresh game state: full Hit Points and, if the character carries one, a full (lowered) shield. */
+    fun initialFor(d: Dashboard): PlayState = PlayState(hp = d.maxHp(), shieldHp = d.resourceStation()?.shield?.maxHp)
+
+    /** A broken shield (at or below its broken threshold) cannot be raised. */
+    fun setShieldRaised(s: PlayState, kind: ShieldKind, raised: Boolean): PlayState {
+        val usable = (s.shieldHp ?: kind.maxHp) > kind.brokenThreshold
+        return s.copy(shieldRaised = raised && usable)
+    }
+
+    /** Shield Block: Hardness absorbs damage, you and the shield take the rest; a broken shield is lowered. */
+    fun applyBlock(s: PlayState, kind: ShieldKind, incomingDamage: Int, maxHp: Int): Pair<PlayState, String> {
+        val r = ShieldBlock.resolve(kind, s.shieldHp ?: kind.maxHp, incomingDamage)
+        val (hit, hpMsg) = changeHp(s.copy(shieldHp = r.newShieldHp, shieldRaised = s.shieldRaised && !r.broken), -r.damageToYou, maxHp)
+        val msg = buildString {
+            append("Bloqueio: ${r.blocked} absorvido, você sofre ${r.damageToYou}, o escudo sofre ${r.damageToShield} (PV ${r.newShieldHp}/${kind.maxHp}).")
+            if (r.broken) append(" Escudo quebrado.")
+            hpMsg?.let { append(" ").append(it) }
+        }
+        return hit to msg
+    }
+
+    fun remaining(s: PlayState, stationId: String, spec: ConsumableSpec): Int = (spec.quantity - (s.used[stationId] ?: 0)).coerceAtLeast(0)
+
+    fun useItem(s: PlayState, stationId: String): PlayState = s.copy(used = s.used + (stationId to (s.used[stationId] ?: 0) + 1))
 }
