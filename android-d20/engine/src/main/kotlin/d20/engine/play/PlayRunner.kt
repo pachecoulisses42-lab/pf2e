@@ -32,7 +32,12 @@ import d20.engine.schema.Station
 enum class Tone { SUCCESS, FAILURE, CRITICAL, NEUTRAL }
 
 /** Play-mode inputs chosen by selection only: multiple attack step and the target's AC / DC (optional). */
-data class PlayContext(val map: MapStep = MapStep.FIRST, val targetDc: Int? = null)
+data class PlayContext(
+    val map: MapStep = MapStep.FIRST,
+    val targetDc: Int? = null,
+    /** Your active conditions: their status penalties apply to the roll. */
+    val conditions: List<d20.engine.conditions.ActiveCondition> = emptyList(),
+)
 
 /** What to apply when no target AC was set: a normal hit, a critical (x2 plus trait dice) or a x3 effect. */
 enum class DamageChoice { NORMAL, CRITICAL, TRIPLE }
@@ -120,17 +125,17 @@ class PlayRunner(private val engine: Pf2eEngine) {
 
     fun run(d: Dashboard, station: Station, ctx: PlayContext): RollOutcome = when (station) {
         is ActionStation -> attack(
-            station.weapon.name, "Ataque • ${ctx.map.ptName}", engine.weaponAttack(d.character, station.weapon, ctx.map, ctx.targetDc),
+            station.weapon.name, "Ataque • ${ctx.map.ptName}", engine.weaponAttack(d.character, station.weapon, ctx.map, ctx.targetDc, ctx.conditions),
         )
         is SpellStation -> when (station.spell.mode) {
             SpellMode.ATTACK -> attack(
-                station.spell.name, "Ataque mágico", engine.spellAttack(d.character, station.spell, ctx.targetDc),
+                station.spell.name, "Ataque mágico", engine.spellAttack(d.character, station.spell, ctx.targetDc, ctx.conditions),
             )
-            SpellMode.SAVE -> spellSave(station, d)
+            SpellMode.SAVE -> spellSave(station, d, ctx)
         }
         is SkillStation -> check(
             station.title, if (station.check.kind.isSave) "Resistência" else "Teste",
-            engine.check(d.character, station.check, ctx.targetDc),
+            engine.check(d.character, station.check, ctx.targetDc, ctx.conditions),
         ).let { it.copy(notices = effectNotices(station.effects, it.degree)) }
         is ConsumableStation -> consumable(station, d, ctx)
         is ResourceStation -> throw IllegalArgumentException("Estações de recurso não rolam dados")
@@ -150,8 +155,8 @@ class PlayRunner(private val engine: Pf2eEngine) {
         dc = r.dc, degree = r.degree, tone = tone(r), damage = null,
     )
 
-    private fun spellSave(s: SpellStation, d: Dashboard): RollOutcome {
-        val r = engine.spellSave(d.character, s.spell)
+    private fun spellSave(s: SpellStation, d: Dashboard, ctx: PlayContext): RollOutcome {
+        val r = engine.spellSave(d.character, s.spell, ctx.conditions)
         return RollOutcome(
             title = s.spell.name, subtitle = "CD de ${r.targetSave.ptName}: toque o resultado do alvo",
             natural = null, total = null, breakdown = emptyList(),
@@ -170,7 +175,7 @@ class PlayRunner(private val engine: Pf2eEngine) {
                 damage = null, heal = heal, notices = effectNotices(spec.effects, null),
             )
         }
-        val r = engine.bombAttack(d.character, spec, ctx.targetDc)
+        val r = engine.bombAttack(d.character, spec, ctx.targetDc, ctx.conditions)
         val stats = ConsumableTables.bomb(spec.kind, spec.grade)
         val degree = r.check.degree
         val choice = when (degree) {
@@ -257,7 +262,9 @@ class PlayRunner(private val engine: Pf2eEngine) {
     private fun signed(n: Int) = if (n >= 0) "+$n" else "$n"
 
     companion object {
-        fun armorClass(d: Dashboard, r: ResourceStation, shieldRaised: Boolean = false): Int =
-            r.armor.armorClass(d.character, r.shield, shieldRaised)
+        fun armorClass(
+            d: Dashboard, r: ResourceStation, shieldRaised: Boolean = false,
+            conditions: List<d20.engine.conditions.ActiveCondition> = emptyList(),
+        ): Int = r.armor.armorClass(d.character, r.shield, shieldRaised, conditions)
     }
 }

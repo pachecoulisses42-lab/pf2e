@@ -94,8 +94,14 @@ enum class CheckKind(val ptName: String, val defaultAbility: Ability) {
 
 /** Level and the six ability *modifiers* (picked from a list in the UI, never typed). */
 @Serializable
-data class Pf2eCharacter(val level: Int, val abilityMods: Map<Ability, Int>) {
+data class Pf2eCharacter(
+    val level: Int,
+    val abilityMods: Map<Ability, Int>,
+    /** Saving throw proficiency; a missing entry counts as Trained. */
+    val saves: Map<CheckKind, Rank> = emptyMap(),
+) {
     fun mod(ability: Ability): Int = abilityMods[ability] ?: 0
+    fun saveRank(kind: CheckKind): Rank = saves[kind] ?: Rank.TRAINED
 }
 
 @Serializable
@@ -153,9 +159,15 @@ data class CheckSpec(
 @Serializable
 data class ArmorSpec(val rank: Rank, val itemBonus: Int, val dexCap: Int) {
     /** AC; a raised shield adds its circumstance bonus. */
-    fun armorClass(c: Pf2eCharacter, shield: ShieldKind? = null, raised: Boolean = false): Int =
+    fun armorClass(
+        c: Pf2eCharacter,
+        shield: ShieldKind? = null,
+        raised: Boolean = false,
+        conditions: List<d20.engine.conditions.ActiveCondition> = emptyList(),
+    ): Int =
         10 + minOf(c.mod(Ability.DEX), dexCap) + rank.bonus(c.level) + itemBonus +
-            if (shield != null && raised) shield.acBonus else 0
+            (if (shield != null && raised) shield.acBonus else 0) +
+            d20.engine.conditions.StatusPenalties.total(conditions, Ability.DEX)
 }
 
 data class BlockResult(val blocked: Int, val damageToYou: Int, val damageToShield: Int, val newShieldHp: Int, val broken: Boolean)
