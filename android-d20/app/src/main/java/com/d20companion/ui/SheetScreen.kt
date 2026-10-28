@@ -87,6 +87,7 @@ fun SheetScreen(vm: SheetViewModel, state: SheetState, soundOn: Boolean, nav: Na
                 Text(if (state.loading) "Carregando…" else "Personagem não encontrado", color = c.muted, modifier = Modifier.align(Alignment.Center))
             } else {
                 SheetBody(d, state, vm, soundOn, menu = listOf(
+                    MenuEntry("Início", nav.toHome),
                     MenuEntry("Personagens", nav.toList),
                     MenuEntry("Condições", vm::openConditions, badge),
                     MenuEntry("Ajustes", nav.toSettings),

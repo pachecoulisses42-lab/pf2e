@@ -64,7 +64,7 @@ fun ListScreen(vm: ListViewModel, characters: List<CharacterSummary>, nav: NavAc
                     Text("Pathfinder 2e Remaster", color = c.muted, fontSize = 11.5.sp, fontWeight = FontWeight.Medium)
                 }
                 NeoButton("+ Novo", { creating = true })
-                NavMenu(listOf(MenuEntry("Painel", nav.toPanel), MenuEntry("Condições", nav.toConditions), MenuEntry("Ajustes", nav.toSettings)))
+                NavMenu(listOf(MenuEntry("Início", nav.toHome), MenuEntry("Painel", nav.toPanel), MenuEntry("Condições", nav.toConditions), MenuEntry("Ajustes", nav.toSettings)))
             }
             if (characters.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -108,20 +108,7 @@ fun ListScreen(vm: ListViewModel, characters: List<CharacterSummary>, nav: NavAc
         }
     }
 
-    if (creating) {
-        var name by remember { mutableStateOf("") }
-        var cls by remember { mutableStateOf(PfClass.FIGHTER) }
-        NeoSheet(
-            title = "Novo personagem", onDismiss = { creating = false },
-            footer = {
-                NeoButton("Cancelar", { creating = false }, ghost = true, modifier = Modifier.weight(1f))
-                NeoButton("Criar personagem", { creating = false; vm.create(name, cls, onOpen) }, enabled = name.isNotBlank(), modifier = Modifier.weight(2f))
-            },
-        ) {
-            NameField("Nome do personagem (texto livre)", name) { name = it }
-            Dropdown("Classe (carrega um painel inicial)", PfClass.entries, cls, { it.ptName }, { cls = it })
-        }
-    }
+    if (creating) NewCharacterSheet(onDismiss = { creating = false }) { name, cls -> creating = false; vm.create(name, cls, onOpen) }
     deleting?.let { ch ->
         NeoSheet(
             title = "Excluir ${ch.name}?", onDismiss = { deleting = null },
@@ -132,5 +119,22 @@ fun ListScreen(vm: ListViewModel, characters: List<CharacterSummary>, nav: NavAc
         ) {
             Text("Isso remove o personagem e o painel salvo. Exporte o JSON antes se quiser guardar uma cópia.", color = c.text, fontSize = 13.sp)
         }
+    }
+}
+
+/** Name (the only free text) and class, which loads a starter panel. Shared by the home and list screens. */
+@Composable
+fun NewCharacterSheet(onDismiss: () -> Unit, onCreate: (String, PfClass) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var cls by remember { mutableStateOf(PfClass.FIGHTER) }
+    NeoSheet(
+        title = "Novo personagem", onDismiss = onDismiss,
+        footer = {
+            NeoButton("Cancelar", onDismiss, ghost = true, modifier = Modifier.weight(1f))
+            NeoButton("Criar personagem", { onCreate(name, cls) }, enabled = name.isNotBlank(), modifier = Modifier.weight(2f))
+        },
+    ) {
+        NameField("Nome do personagem (texto livre)", name) { name = it }
+        Dropdown("Classe (carrega um painel inicial)", PfClass.entries, cls, { it.ptName }, { cls = it })
     }
 }

@@ -29,7 +29,7 @@ fun SettingsScreen(themeMode: Int, soundOn: Boolean, onTheme: (Int) -> Unit, onS
         ) {
             Row(Modifier.fillMaxWidth().padding(end = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("Ajustes", color = c.text, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, modifier = Modifier.weight(1f))
-                NavMenu(listOf(MenuEntry("Personagens", nav.toList), MenuEntry("Painel", nav.toPanel), MenuEntry("Condições", nav.toConditions)))
+                NavMenu(listOf(MenuEntry("Início", nav.toHome), MenuEntry("Personagens", nav.toList), MenuEntry("Painel", nav.toPanel), MenuEntry("Condições", nav.toConditions)))
             }
             SectionTitle("Tema")
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(end = 5.dp)) {

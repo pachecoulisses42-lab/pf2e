@@ -27,22 +27,29 @@ fun D20App(container: AppContainer) {
 
     D20Theme(darkTheme = dark) {
         val controller = rememberNavController()
-        // "Painel" and "Condições" act on the character opened last; without one they fall back to the list.
+        // Starts on the home screen. "Painel" and "Condições" act on the character opened last; without one they open the list.
         fun toSheet(conditions: Boolean) {
-            val id = prefs.lastCharacterId ?: return controller.navigate("list") { launchSingleTop = true }
+            val id = prefs.lastCharacterId ?: return controller.navigate("list") { popUpTo("home"); launchSingleTop = true }
             controller.navigate("sheet/$id?conditions=$conditions") { launchSingleTop = true }
         }
         val nav = NavActions(
-            toList = { controller.navigate("list") { popUpTo("list") { inclusive = true }; launchSingleTop = true } },
+            toHome = { controller.navigate("home") { popUpTo("home") { inclusive = true }; launchSingleTop = true } },
+            toList = { controller.navigate("list") { popUpTo("home"); launchSingleTop = true } },
             toPanel = { toSheet(false) },
             toConditions = { toSheet(true) },
             toSettings = { controller.navigate("settings") { launchSingleTop = true } },
         )
-        NavHost(navController = controller, startDestination = "list") {
+        val open: (String) -> Unit = { id -> prefs.lastCharacterId = id; controller.navigate("sheet/$id?conditions=false") }
+        NavHost(navController = controller, startDestination = "home") {
+            composable("home") {
+                val vm: ListViewModel = viewModel(factory = ListViewModel.factory(container))
+                val characters by vm.characters.collectAsStateWithLifecycle()
+                HomeScreen(vm, characters, characters.firstOrNull { it.id == prefs.lastCharacterId }, nav, open)
+            }
             composable("list") {
                 val vm: ListViewModel = viewModel(factory = ListViewModel.factory(container))
                 val characters by vm.characters.collectAsStateWithLifecycle()
-                ListScreen(vm, characters, nav, onOpen = { id -> prefs.lastCharacterId = id; controller.navigate("sheet/$id?conditions=false") })
+                ListScreen(vm, characters, nav, onOpen = open)
             }
             composable(
                 "sheet/{id}?conditions={conditions}",
