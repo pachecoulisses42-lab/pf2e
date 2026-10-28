@@ -22,7 +22,8 @@ class Pf2eEngine(private val roller: Roller) {
         }
         val check = CheckResult(roller.roll(20), ModifierStack.resolve(mods), targetAc)
         if (check.degree?.let { it <= d20.engine.core.Degree.FAILURE } == true) return AttackResult(check, null)
-        return AttackResult(check, rollWeaponDamage(c, w))
+        val critPossible = check.degree == null || check.degree == d20.engine.core.Degree.CRITICAL_SUCCESS
+        return AttackResult(check, rollWeaponDamage(c, w, critPossible))
     }
 
     fun check(c: Pf2eCharacter, spec: CheckSpec, dc: Int?): CheckResult {
@@ -51,14 +52,17 @@ class Pf2eEngine(private val roller: Roller) {
         return SpellSaveResult(dc, s.targetSave, damage)
     }
 
-    private fun rollWeaponDamage(c: Pf2eCharacter, w: WeaponSpec): DamageRoll {
+    private fun rollWeaponDamage(c: Pf2eCharacter, w: WeaponSpec, critPossible: Boolean): DamageRoll {
         val strBonus = if (w.attackAbility == Ability.STR) c.mod(Ability.STR) else 0
         val flat = strBonus + w.rank.specializationDamage(w.greaterSpecialization)
         val parts = mutableListOf(rollPart(w.name, w.damageType, w.totalDice, w.die, flat))
         for (rune in w.elemental) {
             parts += rollPart(rune.ptName, rune.damageType, 1, DieType.D6, 0)
         }
-        return DamageRoll(parts)
+        // Critical-only dice are rolled up front (after everything else) so a later "critical" choice needs no new roll.
+        val fatal = if (critPossible) w.fatalDie?.let { rollPart(w.name, w.damageType, w.totalDice + 1, it, flat) } else null
+        val deadly = if (critPossible) w.deadlyDie?.let { rollPart("Mortal", w.damageType, deadlyDice(w), it, 0) } else null
+        return DamageRoll(parts, fatal, deadly)
     }
 
     private fun rollPart(label: String, type: DamageType, count: Int, die: DieType, flat: Int): DamagePart {
@@ -67,6 +71,13 @@ class Pf2eEngine(private val roller: Roller) {
     }
 
     companion object {
+        /** Deadly adds 1 die, 2 with a greater striking rune and 3 with a major striking rune. */
+        fun deadlyDice(w: WeaponSpec): Int = when (w.striking) {
+            StrikingRune.GREATER -> 2
+            StrikingRune.MAJOR -> 3
+            else -> 1
+        }
+
         /** Spell DC = 10 + casting ability + proficiency. */
         fun spellDc(c: Pf2eCharacter, s: SpellSpec): Int =
             10 + c.mod(s.castingAbility) + s.rank.bonus(c.level)

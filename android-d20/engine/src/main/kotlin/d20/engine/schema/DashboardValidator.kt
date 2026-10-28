@@ -46,6 +46,9 @@ object DashboardValidator {
         if (w.potency !in 0..3) add("$key: runa de potência deve ser +0..+3")
         if (w.elemental.size > 3) add("$key: no máximo 3 runas elementais")
         if (w.elemental.distinct().size != w.elemental.size) add("$key: runa elemental repetida")
+        if (w.traits.count { it.deadly != null } > 1) add("$key: só um traço Mortal por arma")
+        if (w.traits.count { it.fatal != null } > 1) add("$key: só um traço Fatal por arma")
+        if (w.traits.distinct().size != w.traits.size) add("$key: traço repetido")
     }
 
     private fun spell(key: String, s: SpellSpec) = buildList {

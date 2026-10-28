@@ -33,7 +33,8 @@
                         "striking": "NONE",
                         "elemental": [],
                         "greaterSpecialization": false,
-                        "agile": false
+                        "agile": false,
+                        "traits": []
                     },
                     "title": "Espada Longa",
                     "diceFormula": "1d20+9",
@@ -53,7 +54,8 @@
                         "striking": "NONE",
                         "elemental": [],
                         "greaterSpecialization": false,
-                        "agile": false
+                        "agile": false,
+                        "traits": []
                     },
                     "title": "Arco Longo",
                     "diceFormula": "1d20+7",
@@ -130,6 +132,7 @@
                         "itemBonus": 2,
                         "dexCap": 1
                     },
+                    "shield": null,
                     "title": "Vida & Defesa"
                 }
             ]

@@ -3,7 +3,9 @@ package d20.engine.play
 import d20.engine.core.Degree
 import d20.engine.pf2e.AttackResult
 import d20.engine.pf2e.CheckResult
+import d20.engine.pf2e.DamagePart
 import d20.engine.pf2e.DamageRoll
+import d20.engine.pf2e.DamageType
 import d20.engine.pf2e.MapStep
 import d20.engine.pf2e.Pf2eEngine
 import d20.engine.pf2e.SpellMode
@@ -21,15 +23,41 @@ enum class Tone { SUCCESS, FAILURE, CRITICAL, NEUTRAL }
 /** Play-mode inputs chosen by selection only: multiple attack step and the target's AC / DC (optional). */
 data class PlayContext(val map: MapStep = MapStep.FIRST, val targetDc: Int? = null)
 
+/** What to apply when no target AC was set: a normal hit, a critical (x2 plus trait dice) or a x3 effect. */
+enum class DamageChoice { NORMAL, CRITICAL, TRIPLE }
+
+/** One line per damage type, kept typed so the UI can colour each element. */
+data class DamageLine(val type: DamageType, val text: String)
+
 data class DamageSummary(
-    /** One line per damage type, e.g. "Cortante: [5, 3] +6 = 14". */
-    val lines: List<String>,
+    val normalLines: List<DamageLine>,
+    val criticalLines: List<DamageLine>,
+    val tripleLines: List<DamageLine>,
     val normal: Int,
     val criticalTotal: Int,
-    /** The number to apply, or null while the crit/hit outcome is unknown or awaiting the target's save. */
-    val applied: Int?,
-    val critical: Boolean?,
-)
+    val tripleTotal: Int,
+    /** Null while the outcome is unknown (no target AC chosen yet) or awaiting a target's save. */
+    val choice: DamageChoice?,
+    /** Save spells: the damage after the target's save, overriding [choice]. */
+    val overrideApplied: Int? = null,
+) {
+    val lines: List<DamageLine>
+        get() = when (choice) {
+            DamageChoice.CRITICAL -> criticalLines
+            DamageChoice.TRIPLE -> tripleLines
+            else -> normalLines
+        }
+
+    val applied: Int?
+        get() = overrideApplied ?: when (choice) {
+            null -> null
+            DamageChoice.NORMAL -> normal
+            DamageChoice.CRITICAL -> criticalTotal
+            DamageChoice.TRIPLE -> tripleTotal
+        }
+
+    val critical: Boolean? get() = choice?.let { it == DamageChoice.CRITICAL }
+}
 
 /** UI-neutral result of one tap. The presentation layer only renders this. */
 data class RollOutcome(
@@ -51,10 +79,13 @@ data class RollOutcome(
         val dmg = checkNotNull(damage)
         return copy(
             targetDegree = target,
-            damage = dmg.copy(applied = save.damageFor(target)),
+            damage = dmg.copy(overrideApplied = save.damageFor(target)),
             subtitle = "Alvo: ${degreeName(target)}",
         )
     }
+
+    /** After a roll without a target: pick normal, critical or x3. */
+    fun chooseDamage(choice: DamageChoice): RollOutcome = copy(damage = damage?.copy(choice = choice))
 }
 
 fun degreeName(d: Degree): String = when (d) {
@@ -84,7 +115,7 @@ class PlayRunner(private val engine: Pf2eEngine) {
         title = title, subtitle = subtitle,
         natural = r.check.natural, total = r.check.total, breakdown = breakdown(r.check),
         dc = r.check.dc, degree = r.check.degree, tone = tone(r.check),
-        damage = r.damage?.let { summary(it, r.damageToApply, r.criticalApplied) },
+        damage = r.damage?.let { summary(it, r.criticalApplied?.let { crit -> if (crit) DamageChoice.CRITICAL else DamageChoice.NORMAL }) },
     )
 
     private fun check(title: String, subtitle: String, r: CheckResult): RollOutcome = RollOutcome(
@@ -99,7 +130,7 @@ class PlayRunner(private val engine: Pf2eEngine) {
             title = s.spell.name, subtitle = "CD de ${r.targetSave.ptName}: toque o resultado do alvo",
             natural = null, total = null, breakdown = emptyList(),
             dc = r.dc, degree = null, tone = Tone.NEUTRAL,
-            damage = summary(r.damage, applied = null, critical = null), pendingSave = r,
+            damage = summary(r.damage, choice = null), pendingSave = r,
         )
     }
 
@@ -113,17 +144,36 @@ class PlayRunner(private val engine: Pf2eEngine) {
     private fun breakdown(r: CheckResult): List<String> =
         listOf("d20 ${r.natural}") + r.modifiers.applied.map { "${it.label} ${signed(it.value)}" }
 
-    private fun summary(roll: DamageRoll, applied: Int?, critical: Boolean?) = DamageSummary(
-        lines = roll.parts.map { p ->
-            val flat = if (p.flat != 0) " ${signed(p.flat)}" else ""
-            "${p.type.ptName}: ${p.dice}$flat = ${p.subtotal}"
-        },
-        normal = roll.total, criticalTotal = roll.criticalTotal, applied = applied, critical = critical,
+    private fun summary(roll: DamageRoll, choice: DamageChoice?) = DamageSummary(
+        normalLines = roll.parts.map { normalLine(it) },
+        criticalLines = criticalLines(roll),
+        tripleLines = roll.parts.map { DamageLine(it.type, "${it.type.ptName}: ×3 de ${it.subtotal} = ${it.subtotal * 3}") },
+        normal = roll.total, criticalTotal = roll.criticalTotal, tripleTotal = roll.tripleTotal, choice = choice,
     )
+
+    private fun normalLine(p: DamagePart): DamageLine {
+        val flat = if (p.flat != 0) " ${signed(p.flat)}" else ""
+        return DamageLine(p.type, "${p.type.ptName}: ${p.dice}$flat = ${p.subtotal}")
+    }
+
+    private fun criticalLines(roll: DamageRoll): List<DamageLine> {
+        val lines = mutableListOf<DamageLine>()
+        roll.parts.forEachIndexed { i, p ->
+            val src = if (i == 0) roll.fatalPart ?: p else p
+            val flat = if (src.flat != 0) " ${signed(src.flat)}" else ""
+            val tag = if (i == 0 && roll.fatalPart != null) "Fatal ${src.diceNotation}" else "×2"
+            lines += DamageLine(p.type, "${p.type.ptName}: $tag ${src.dice}$flat → ${src.subtotal * 2}")
+        }
+        roll.deadlyPart?.let {
+            lines += DamageLine(it.type, "${it.type.ptName}: Mortal ${it.dice} = ${it.dice.sum()} (não dobra)")
+        }
+        return lines
+    }
 
     private fun signed(n: Int) = if (n >= 0) "+$n" else "$n"
 
     companion object {
-        fun armorClass(d: Dashboard, r: ResourceStation): Int = r.armor.armorClass(d.character)
+        fun armorClass(d: Dashboard, r: ResourceStation, shieldRaised: Boolean = false): Int =
+            r.armor.armorClass(d.character, r.shield, shieldRaised)
     }
 }

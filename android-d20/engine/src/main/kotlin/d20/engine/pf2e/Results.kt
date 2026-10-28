@@ -23,14 +23,27 @@ data class DamagePart(
     val subtotal: Int get() = dice.sum() + flat
 }
 
-data class DamageRoll(val parts: List<DamagePart>) {
+data class DamageRoll(
+    val parts: List<DamagePart>,
+    /** Fatal: the weapon dice rolled at the fatal size (+1 die); replaces the first part's dice on a critical. */
+    val fatalPart: DamagePart? = null,
+    /** Deadly: extra dice added after doubling, so they are not doubled. */
+    val deadlyPart: DamagePart? = null,
+) {
     private val raw: Int get() = parts.sumOf { it.subtotal }
 
     /** Damage on a normal hit (minimum 1). */
     val total: Int get() = maxOf(1, raw)
 
-    /** A critical hit doubles every die and bonus (not just the dice). */
-    val criticalTotal: Int get() = maxOf(1, raw * 2)
+    /** A critical hit doubles every die and bonus (Fatal included); Deadly dice are added afterwards. */
+    val criticalTotal: Int
+        get() {
+            val base = (fatalPart ?: parts.first()).subtotal + parts.drop(1).sumOf { it.subtotal }
+            return maxOf(1, base * 2 + (deadlyPart?.dice?.sum() ?: 0))
+        }
+
+    /** Effects that triple damage (the user picks this after a roll without a target). */
+    val tripleTotal: Int get() = maxOf(1, raw * 3)
 }
 
 data class AttackResult(val check: CheckResult, val damage: DamageRoll?) {

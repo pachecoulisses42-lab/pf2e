@@ -46,8 +46,8 @@ class PlayRunnerTest {
         assertEquals(18, dmg.normal)
         assertEquals(36, dmg.criticalTotal)
         assertEquals(2, dmg.lines.size)
-        assertTrue(dmg.lines[0].contains("Cortante"))
-        assertTrue(dmg.lines[1].contains("Fogo"))
+        assertTrue(dmg.lines[0].text.contains("Cortante"))
+        assertTrue(dmg.lines[1].text.contains("Fogo"))
     }
 
     @Test

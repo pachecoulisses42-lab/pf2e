@@ -3,6 +3,7 @@ package d20.engine.schema
 import d20.engine.pf2e.ArmorSpec
 import d20.engine.pf2e.CheckSpec
 import d20.engine.pf2e.Pf2eCharacter
+import d20.engine.pf2e.ShieldKind
 import d20.engine.pf2e.SpellSpec
 import d20.engine.pf2e.WeaponSpec
 import kotlinx.serialization.SerialName
@@ -54,7 +55,13 @@ data class SkillStation(override val id: String, val check: CheckSpec) : Station
 /** HP and AC tracker. Current HP is play-state and lives outside the locked dashboard. */
 @Serializable
 @SerialName("RESOURCE")
-data class ResourceStation(override val id: String, val maxHp: Int, val armor: ArmorSpec) : Station {
+data class ResourceStation(
+    override val id: String,
+    val maxHp: Int,
+    val armor: ArmorSpec,
+    /** Optional shield; Hardness, HP and AC bonus come from [ShieldKind]. */
+    val shield: ShieldKind? = null,
+) : Station {
     override val title: String get() = "Vida & Defesa"
 }
 

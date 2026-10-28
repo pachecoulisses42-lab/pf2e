@@ -29,6 +29,10 @@ enum class Rank(val ptName: String, val abbr: String, private val tier: Int, pri
 enum class DamageType(val ptName: String) {
     SLASHING("Cortante"), BLUDGEONING("Impactante"), PIERCING("Perfurante"),
     FIRE("Fogo"), COLD("Gelo"), ELECTRICITY("Eletricidade"), ACID("Ácido"), SONIC("Sônico"),
+    BLEED("Sangramento"), POISON("Veneno"), MENTAL("Mental"), FORCE("Energia"),
+    SPIRIT("Espírito"), VITALITY("Vitalidade"), VOID("Vazio");
+
+    val isPhysical: Boolean get() = this == SLASHING || this == BLUDGEONING || this == PIERCING
 }
 
 /** Elemental property runes: each adds 1d6 of its own damage type, in its own field. */
@@ -52,6 +56,26 @@ enum class MapStep(val ptName: String, private val normal: Int, private val agil
     FIRST("1º ataque", 0, 0), SECOND("2º ataque", -5, -4), THIRD("3º ataque", -10, -8);
 
     fun penalty(agileWeapon: Boolean): Int = if (agileWeapon) agile else normal
+}
+
+/** Weapon traits that change critical hits. Deadly adds dice after doubling; Fatal resizes the dice and adds one. */
+@Serializable
+enum class WeaponTrait(val ptName: String, val deadly: DieType?, val fatal: DieType?) {
+    DEADLY_D6("Mortal d6", DieType.D6, null), DEADLY_D8("Mortal d8", DieType.D8, null), DEADLY_D10("Mortal d10", DieType.D10, null),
+    FATAL_D8("Fatal d8", null, DieType.D8), FATAL_D10("Fatal d10", null, DieType.D10), FATAL_D12("Fatal d12", null, DieType.D12),
+}
+
+/** Base shields with Hardness, Hit Points and AC bonus taken from the Pathfinder equipment data. */
+@Serializable
+enum class ShieldKind(val ptName: String, val hardness: Int, val maxHp: Int, val acBonus: Int) {
+    BUCKLER("Broquel", 3, 6, 1),
+    WOODEN("Escudo de madeira", 3, 12, 2),
+    STEEL("Escudo de aço", 5, 20, 2),
+    TOWER("Escudo de torre", 5, 20, 2),
+    FORTRESS("Escudo de fortaleza", 6, 24, 3);
+
+    /** The shield is broken at half its Hit Points. */
+    val brokenThreshold: Int get() = maxHp / 2
 }
 
 @Serializable
@@ -91,8 +115,12 @@ data class WeaponSpec(
     val elemental: List<ElementalRune> = emptyList(),
     val greaterSpecialization: Boolean = false,
     val agile: Boolean = false,
+    /** At most one Deadly and one Fatal. */
+    val traits: List<WeaponTrait> = emptyList(),
 ) {
     val totalDice: Int get() = diceCount + striking.extraDice
+    val deadlyDie: DieType? get() = traits.firstNotNullOfOrNull { it.deadly }
+    val fatalDie: DieType? get() = traits.firstNotNullOfOrNull { it.fatal }
 }
 
 @Serializable
@@ -124,6 +152,20 @@ data class CheckSpec(
 
 @Serializable
 data class ArmorSpec(val rank: Rank, val itemBonus: Int, val dexCap: Int) {
-    fun armorClass(c: Pf2eCharacter): Int =
-        10 + minOf(c.mod(Ability.DEX), dexCap) + rank.bonus(c.level) + itemBonus
+    /** AC; a raised shield adds its circumstance bonus. */
+    fun armorClass(c: Pf2eCharacter, shield: ShieldKind? = null, raised: Boolean = false): Int =
+        10 + minOf(c.mod(Ability.DEX), dexCap) + rank.bonus(c.level) + itemBonus +
+            if (shield != null && raised) shield.acBonus else 0
+}
+
+data class BlockResult(val blocked: Int, val damageToYou: Int, val damageToShield: Int, val newShieldHp: Int, val broken: Boolean)
+
+object ShieldBlock {
+    /** Shield Block reaction: the shield's Hardness absorbs damage; you and the shield each take the rest. */
+    fun resolve(kind: ShieldKind, shieldHp: Int, incomingDamage: Int): BlockResult {
+        val blocked = minOf(kind.hardness, incomingDamage)
+        val rest = incomingDamage - blocked
+        val newHp = (shieldHp - rest).coerceAtLeast(0)
+        return BlockResult(blocked, rest, rest, newHp, newHp <= kind.brokenThreshold)
+    }
 }
