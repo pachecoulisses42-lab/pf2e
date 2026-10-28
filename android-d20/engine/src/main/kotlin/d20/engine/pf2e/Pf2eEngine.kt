@@ -26,6 +26,35 @@ class Pf2eEngine(private val roller: Roller) {
         return AttackResult(check, rollWeaponDamage(c, w, critPossible))
     }
 
+    /**
+     * Throws a bomb: DES + proficiency + the bomb's item bonus. Splash hits on any result but a critical failure,
+     * direct damage only on a hit (or while the result is unknown); neither adds the Strength modifier.
+     */
+    fun bombAttack(c: Pf2eCharacter, spec: ConsumableSpec, targetAc: Int?): BombResult {
+        val stats = ConsumableTables.bomb(spec.kind, spec.grade)
+        val mods = buildList {
+            add(Modifier(Ability.DEX.abbr, ModType.ABILITY, c.mod(Ability.DEX)))
+            add(Modifier("Prof. ${spec.rank.abbr}", ModType.PROFICIENCY, spec.rank.bonus(c.level)))
+            if (stats.attackBonus != 0) add(Modifier("Item +${stats.attackBonus}", ModType.ITEM, stats.attackBonus))
+        }
+        val check = CheckResult(roller.roll(20), ModifierStack.resolve(mods), targetAc)
+        val degree = check.degree
+        if (degree == d20.engine.core.Degree.CRITICAL_FAILURE) return BombResult(check, null, null)
+        val label = spec.name.ifBlank { spec.kind.ptName }
+        val splash = DamagePart("Respingo", stats.type, "${stats.splash}", emptyList(), stats.splash)
+        val hitOrUnknown = degree == null || degree == d20.engine.core.Degree.SUCCESS || degree == d20.engine.core.Degree.CRITICAL_SUCCESS
+        if (!hitOrUnknown) return BombResult(check, DamageRoll(listOf(splash)), null)
+        val direct = if (stats.die != null) rollPart(label, stats.type, stats.diceCount, stats.die, 0)
+        else DamagePart(label, stats.type, "${stats.directFlat}", emptyList(), stats.directFlat)
+        return BombResult(check, DamageRoll(listOf(direct), splashPart = splash), stats.persistent)
+    }
+
+    /** Rolls a healing potion's dice. */
+    fun rollHealing(grade: ConsumableGrade): Int {
+        val (n, flat) = ConsumableTables.healing(grade)
+        return List(n) { roller.roll(8) }.sum() + flat
+    }
+
     fun check(c: Pf2eCharacter, spec: CheckSpec, dc: Int?): CheckResult {
         val ability = spec.abilityOverride ?: spec.kind.defaultAbility
         val mods = buildList {

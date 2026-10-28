@@ -29,21 +29,24 @@ data class DamageRoll(
     val fatalPart: DamagePart? = null,
     /** Deadly: extra dice added after doubling, so they are not doubled. */
     val deadlyPart: DamagePart? = null,
+    /** Splash damage: added to the target's damage but never multiplied. */
+    val splashPart: DamagePart? = null,
 ) {
+    private val splash: Int get() = splashPart?.subtotal ?: 0
     private val raw: Int get() = parts.sumOf { it.subtotal }
 
     /** Damage on a normal hit (minimum 1). */
-    val total: Int get() = maxOf(1, raw)
+    val total: Int get() = maxOf(1, raw + splash)
 
-    /** A critical hit doubles every die and bonus (Fatal included); Deadly dice are added afterwards. */
+    /** A critical hit doubles every die and bonus (Fatal included); Deadly dice and splash are added afterwards. */
     val criticalTotal: Int
         get() {
             val base = (fatalPart ?: parts.first()).subtotal + parts.drop(1).sumOf { it.subtotal }
-            return maxOf(1, base * 2 + (deadlyPart?.dice?.sum() ?: 0))
+            return maxOf(1, base * 2 + (deadlyPart?.dice?.sum() ?: 0) + splash)
         }
 
     /** Effects that triple damage (the user picks this after a roll without a target). */
-    val tripleTotal: Int get() = maxOf(1, raw * 3)
+    val tripleTotal: Int get() = maxOf(1, raw * 3 + splash)
 }
 
 data class AttackResult(val check: CheckResult, val damage: DamageRoll?) {
@@ -68,3 +71,6 @@ data class SpellSaveResult(
     /** Basic saving throw: crit success 0, success half, failure full, crit failure double. */
     fun damageFor(targetDegree: Degree): Int = targetDegree.basicSaveDamage(damage.total)
 }
+
+/** A thrown bomb: the attack, its damage (null on a critical failure) and persistent damage on a hit. */
+data class BombResult(val check: CheckResult, val damage: DamageRoll?, val persistent: d20.engine.conditions.PersistentSpec?)

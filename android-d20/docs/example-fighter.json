@@ -76,6 +76,7 @@
                         "abilityOverride": null,
                         "customName": null
                     },
+                    "effects": [],
                     "title": "Atletismo",
                     "diceFormula": "1d20+7"
                 },
@@ -89,6 +90,7 @@
                         "abilityOverride": null,
                         "customName": null
                     },
+                    "effects": [],
                     "title": "Intimidação",
                     "diceFormula": "1d20+3"
                 },
@@ -102,6 +104,7 @@
                         "abilityOverride": null,
                         "customName": null
                     },
+                    "effects": [],
                     "title": "Fortitude",
                     "diceFormula": "1d20+7"
                 },
@@ -115,6 +118,7 @@
                         "abilityOverride": null,
                         "customName": null
                     },
+                    "effects": [],
                     "title": "Percepção",
                     "diceFormula": "1d20+4"
                 }

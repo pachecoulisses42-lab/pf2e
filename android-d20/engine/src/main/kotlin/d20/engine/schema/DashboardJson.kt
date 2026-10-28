@@ -63,7 +63,11 @@ object DashboardJson {
                 put("secondaryDiceFormula", JsonPrimitive(Formulas.spellDamage(s.spell)))
             }
             is SkillStation -> put("diceFormula", JsonPrimitive(Formulas.check(c, s.check)))
-            is ResourceStation -> Unit
+            is ConsumableStation -> Formulas.consumable(c, s.consumable)?.let { (main, second) ->
+                put("diceFormula", JsonPrimitive(main))
+                second?.let { put("secondaryDiceFormula", JsonPrimitive(it)) }
+            }
+            is ResourceStation, is ConditionsStation -> Unit
         }
     }
 }

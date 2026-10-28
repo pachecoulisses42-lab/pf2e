@@ -1,7 +1,9 @@
 package d20.engine.schema
 
 import d20.engine.pf2e.ArmorSpec
+import d20.engine.conditions.ConditionEffect
 import d20.engine.pf2e.CheckSpec
+import d20.engine.pf2e.ConsumableSpec
 import d20.engine.pf2e.Pf2eCharacter
 import d20.engine.pf2e.ShieldKind
 import d20.engine.pf2e.SpellSpec
@@ -48,8 +50,28 @@ data class SpellStation(override val id: String, val spell: SpellSpec) : Station
 
 @Serializable
 @SerialName("SKILL")
-data class SkillStation(override val id: String, val check: CheckSpec) : Station {
+data class SkillStation(
+    override val id: String,
+    val check: CheckSpec,
+    /** Conditions this check can impose or remove (Demoralize, Trip, ...). */
+    val effects: List<ConditionEffect> = emptyList(),
+) : Station {
     override val title: String get() = check.customName?.takeIf { it.isNotBlank() } ?: check.kind.ptName
+}
+
+/** Potion or bomb: one tap uses one item, rolls its dice and lists the conditions it imposes. */
+@Serializable
+@SerialName("CONSUMABLE")
+data class ConsumableStation(override val id: String, val consumable: ConsumableSpec) : Station {
+    override val title: String
+        get() = consumable.name.ifBlank { "${consumable.kind.ptName} (${consumable.grade.ptName})" }
+}
+
+/** Opens the conditions module: shows active conditions and processes turns. Holds no configuration. */
+@Serializable
+@SerialName("CONDITIONS")
+data class ConditionsStation(override val id: String) : Station {
+    override val title: String get() = "Condições"
 }
 
 /** HP and AC tracker. Current HP is play-state and lives outside the locked dashboard. */

@@ -5,6 +5,9 @@ import d20.engine.pf2e.Ability
 import d20.engine.pf2e.ArmorSpec
 import d20.engine.pf2e.CheckKind
 import d20.engine.pf2e.CheckSpec
+import d20.engine.pf2e.ConsumableGrade
+import d20.engine.pf2e.ConsumableKind
+import d20.engine.pf2e.ConsumableSpec
 import d20.engine.pf2e.DamageType
 import d20.engine.pf2e.Rank
 import d20.engine.pf2e.SpellMode
@@ -26,7 +29,8 @@ enum class ZoneKey(val ptName: String) {
 }
 
 enum class StationType(val ptName: String) {
-    ACTION("Ataque com arma"), SPELL("Magia"), SKILL("Perícia / Resistência"), RESOURCE("Vida & Defesa"),
+    ACTION("Ataque com arma"), SPELL("Magia"), SKILL("Perícia / Resistência"), CONSUMABLE("Poção ou bomba"),
+    RESOURCE("Vida, escudo & defesa"), CONDITIONS("Condições"),
 }
 
 /** Pure, immutable edit operations behind the Setup-mode builder (the UI only calls these). */
@@ -74,6 +78,8 @@ object DashboardEditor {
         StationType.ACTION -> ActionStation(id, WeaponSpec("Nova arma", Ability.STR, Rank.TRAINED, 1, DieType.D8, DamageType.SLASHING))
         StationType.SPELL -> SpellStation(id, SpellSpec("Nova magia", SpellMode.ATTACK, Ability.INT, Rank.TRAINED, 2, DieType.D6, DamageType.FIRE))
         StationType.SKILL -> SkillStation(id, CheckSpec(CheckKind.ATHLETICS, Rank.TRAINED))
+        StationType.CONSUMABLE -> ConsumableStation(id, ConsumableSpec("", ConsumableKind.HEALING_POTION, ConsumableGrade.LESSER))
         StationType.RESOURCE -> ResourceStation(id, 10, ArmorSpec(Rank.UNTRAINED, 0, 5))
+        StationType.CONDITIONS -> ConditionsStation(id)
     }
 }

@@ -25,4 +25,18 @@ object Formulas {
         val ability = spec.abilityOverride ?: spec.kind.defaultAbility
         return "1d20${signed(c.mod(ability) + spec.rank.bonus(c.level) + spec.itemBonus)}"
     }
+
+    /** Healing: ("2d8+5", null). Bombs: (attack, damage). Custom items have no formula. */
+    fun consumable(c: Pf2eCharacter, spec: ConsumableSpec): Pair<String, String?>? = when {
+        spec.kind == ConsumableKind.HEALING_POTION -> {
+            val (n, flat) = ConsumableTables.healing(spec.grade)
+            ("${n}d8" + if (flat != 0) signed(flat) else "") to null
+        }
+        spec.kind.isBomb -> {
+            val b = ConsumableTables.bomb(spec.kind, spec.grade)
+            val direct = if (b.die != null) "${b.diceCount}${b.die.label}" else "${b.directFlat}"
+            "1d20${signed(c.mod(Ability.DEX) + spec.rank.bonus(c.level) + b.attackBonus)}" to "$direct +${b.splash} respingo"
+        }
+        else -> null
+    }
 }

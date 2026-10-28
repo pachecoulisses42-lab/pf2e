@@ -32,7 +32,9 @@ object DashboardValidator {
                 errors += when (s) {
                     is ActionStation -> weapon(key, s.weapon)
                     is SpellStation -> spell(key, s.spell)
-                    is SkillStation -> check(key, s.check)
+                    is SkillStation -> check(key, s.check) + effects(key, s.effects)
+                    is ConsumableStation -> consumable(key, s.consumable)
+                    is ConditionsStation -> emptyList()
                     is ResourceStation -> resource(key, s)
                 }
             }
@@ -59,6 +61,21 @@ object DashboardValidator {
     private fun check(key: String, c: CheckSpec) = buildList {
         if (c.itemBonus !in 0..4) add("$key: bônus de item deve ser +0..+4")
         c.customName?.let { if (it.isNotEmpty() && !Text.isValid(it)) add("$key: nome customizado inválido") }
+    }
+
+    private fun effects(key: String, list: List<d20.engine.conditions.ConditionEffect>) = buildList {
+        if (list.size > 3) add("$key: no máximo 3 efeitos de condição")
+        for (e in list) {
+            if (e.condition.valued && e.value !in 1..4) add("$key: valor de ${e.condition.ptName} deve ser 1..4")
+            if (e.rounds != null && e.rounds !in 1..10) add("$key: duração deve ser 1..10 rodadas")
+        }
+    }
+
+    private fun consumable(key: String, c: d20.engine.pf2e.ConsumableSpec) = buildList {
+        if (c.name.isNotEmpty() && !Text.isValid(c.name)) add("$key: nome do item inválido")
+        if (c.grade !in d20.engine.pf2e.ConsumableTables.grades(c.kind)) add("$key: ${c.kind.ptName} não existe no grau ${c.grade.ptName}")
+        if (c.quantity !in 0..99) add("$key: quantidade deve ser 0..99")
+        addAll(effects(key, c.effects))
     }
 
     private fun resource(key: String, r: ResourceStation) = buildList {
