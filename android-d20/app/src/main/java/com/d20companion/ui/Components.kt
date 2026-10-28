@@ -5,10 +5,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -82,7 +82,10 @@ fun <T> Dropdown(
     }
 }
 
-/** − / + stepper bounded to [range]; [display] lets callers format the value (e.g. "+3"). */
+/**
+ * − / + stepper bounded to [range]; [display] lets callers format the value (e.g. "+3").
+ * Buttons share the width (weight) with no inner padding so both always fit, even in a half-width column.
+ */
 @Composable
 fun Stepper(
     label: String,
@@ -95,10 +98,26 @@ fun Stepper(
 ) {
     Column(modifier) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            OutlinedButton(onClick = { onChange((value - step).coerceIn(range)) }, enabled = value > range.first) { Text("−") }
-            Text(display(value), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center, modifier = Modifier.width(64.dp))
-            OutlinedButton(onClick = { onChange((value + step).coerceIn(range)) }, enabled = value < range.last) { Text("+") }
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(
+                onClick = { onChange((value - step).coerceIn(range)) },
+                enabled = value > range.first,
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier.weight(1f),
+            ) { Text("−") }
+            Text(
+                display(value),
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                modifier = Modifier.weight(1.2f),
+            )
+            OutlinedButton(
+                onClick = { onChange((value + step).coerceIn(range)) },
+                enabled = value < range.last,
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier.weight(1f),
+            ) { Text("+") }
         }
     }
 }
