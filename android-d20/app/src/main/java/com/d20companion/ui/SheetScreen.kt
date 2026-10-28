@@ -10,11 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Scaffold
@@ -23,6 +18,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,7 +48,6 @@ import d20.engine.schema.GridLayout
 import d20.engine.schema.PfClass
 import d20.engine.schema.ResourceStation
 import d20.engine.schema.Station
-import d20.engine.schema.StationType
 import d20.engine.schema.ZoneConfig
 import d20.engine.schema.ZoneKey
 import d20.engine.schema.resourceStation
@@ -62,6 +57,7 @@ fun SheetScreen(vm: SheetViewModel, state: SheetState, soundOn: Boolean, nav: Na
     val context = LocalContext.current
     val c = D20.colors
     val snackbar = remember { SnackbarHostState() }
+    val saved by vm.savedModules.collectAsState()
     var showCharacter by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Station?>(null) }
     var addingTo by remember { mutableStateOf<ZoneKey?>(null) }
@@ -82,31 +78,19 @@ fun SheetScreen(vm: SheetViewModel, state: SheetState, soundOn: Boolean, nav: Na
 
     val d = state.dashboard
     val badge = state.play.conditions.map { it.kind }.distinct().size + state.play.persistent.size + state.play.afflictions.size
-    val items = listOf(
-        NavItem("Personagens", Icons.Default.Menu),
-        NavItem("Painel", Icons.Default.Home),
-        NavItem("Condições", Icons.Default.Warning, badge),
-        NavItem("Ajustes", Icons.Default.Settings),
-    )
-
     Scaffold(
         containerColor = c.bg,
         snackbarHost = { SnackbarHost(snackbar) },
-        bottomBar = {
-            NeoBottomBar(items, selected = 1, onSelect = {
-                when (it) {
-                    0 -> nav.toList()
-                    2 -> vm.openConditions()
-                    3 -> nav.toSettings()
-                }
-            })
-        },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             if (d == null) {
                 Text(if (state.loading) "Carregando…" else "Personagem não encontrado", color = c.muted, modifier = Modifier.align(Alignment.Center))
             } else {
-                SheetBody(d, state, vm, soundOn, onCharacter = { showCharacter = true }, onEdit = { editing = it }, onAdd = { addingTo = it }, context = context)
+                SheetBody(d, state, vm, soundOn, menu = listOf(
+                    MenuEntry("Personagens", nav.toList),
+                    MenuEntry("Condições", vm::openConditions, badge),
+                    MenuEntry("Ajustes", nav.toSettings),
+                ), onCharacter = { showCharacter = true }, onEdit = { editing = it }, onAdd = { addingTo = it }, context = context)
             }
         }
     }
@@ -137,14 +121,19 @@ fun SheetScreen(vm: SheetViewModel, state: SheetState, soundOn: Boolean, nav: Na
                 onSave = { updated -> vm.edit { DashboardEditor.replaceStation(it, updated) }; editing = null },
                 onDelete = { vm.edit { DashboardEditor.removeStation(it, station.id) }; editing = null },
                 onDismiss = { editing = null },
+                onSaveToLibrary = vm::saveModule,
             )
         }
         addingTo?.let { key ->
-            NeoSheet(title = "Adicionar módulo · ${key.ptName}", onDismiss = { addingTo = null }) {
-                StationType.entries.forEach { type ->
-                    NeoButton(type.ptName, { vm.tryEdit { DashboardEditor.addStation(it, key, type) }; addingTo = null }, ghost = true, modifier = Modifier.fillMaxWidth())
-                }
-            }
+            AddModuleSheet(
+                zone = key, saved = saved,
+                actions = AddModuleActions(
+                    onBlank = { type -> editing = vm.addBlank(key, type); addingTo = null },
+                    onPick = { module -> editing = vm.addModule(key, module); addingTo = null },
+                    onDeleteSaved = vm::deleteSavedModule,
+                    onDismiss = { addingTo = null },
+                ),
+            )
         }
         if (showCharacter) CharacterSheet(d, vm) { showCharacter = false }
         if (state.blockOpen) BlockSheet(d, state, vm)
@@ -153,7 +142,7 @@ fun SheetScreen(vm: SheetViewModel, state: SheetState, soundOn: Boolean, nav: Na
 
 @Composable
 private fun SheetBody(
-    d: Dashboard, state: SheetState, vm: SheetViewModel, soundOn: Boolean,
+    d: Dashboard, state: SheetState, vm: SheetViewModel, soundOn: Boolean, menu: List<MenuEntry>,
     onCharacter: () -> Unit, onEdit: (Station) -> Unit, onAdd: (ZoneKey) -> Unit, context: android.content.Context,
 ) {
     val setup = state.mode == Mode.SETUP
@@ -162,7 +151,7 @@ private fun SheetBody(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 11.dp, top = 10.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Header(d, setup, vm, onCharacter)
+        Header(d, setup, vm, menu, onCharacter)
         if (state.errors.isNotEmpty()) ErrorBanner(state.errors)
         if (!setup) PlayControls(state, vm)
         val actions = CardActions(onHp = vm::adjustHp, onToggleShield = vm::toggleShield, onBlock = vm::openBlock)
@@ -198,7 +187,7 @@ private fun SheetBody(
 }
 
 @Composable
-private fun Header(d: Dashboard, setup: Boolean, vm: SheetViewModel, onCharacter: () -> Unit) {
+private fun Header(d: Dashboard, setup: Boolean, vm: SheetViewModel, menu: List<MenuEntry>, onCharacter: () -> Unit) {
     val c = D20.colors
     Row(Modifier.fillMaxWidth().padding(end = 5.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Avatar(d.name.firstOrNull()?.uppercase() ?: "?", d.characterClass.cardColor().fill())
@@ -212,6 +201,7 @@ private fun Header(d: Dashboard, setup: Boolean, vm: SheetViewModel, onCharacter
         } else {
             NeoButton("Editar", vm::unlock)
         }
+        NavMenu(menu)
     }
 }
 

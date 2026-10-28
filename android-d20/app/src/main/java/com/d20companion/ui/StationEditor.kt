@@ -108,7 +108,13 @@ fun NeoSheet(
 
 /** Setup-mode editor for one station. Every field is a selection except the optional custom names. */
 @Composable
-fun StationEditorSheet(station: Station, onSave: (Station) -> Unit, onDelete: () -> Unit, onDismiss: () -> Unit) {
+fun StationEditorSheet(
+    station: Station,
+    onSave: (Station) -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
+    onSaveToLibrary: ((Station) -> Unit)? = null,
+) {
     var draft by remember(station.id) { mutableStateOf(station) }
     val c = D20.colors
     NeoSheet(
@@ -135,6 +141,16 @@ fun StationEditorSheet(station: Station, onSave: (Station) -> Unit, onDelete: ()
         }
         SectionTitle("Cor do cartão")
         ColorPicker(draft.color, draft.effectiveColor()) { draft = withColor(draft, it) }
+        if (onSaveToLibrary != null && draft !is ResourceStation && draft !is ConditionsStation) {
+            NeoButton(
+                "Salvar em Meus módulos", { onSaveToLibrary(sanitized(draft)) }, ghost = true,
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp, end = 3.dp, bottom = 3.dp),
+            )
+            Text(
+                "Guarda uma cópia desta versão para usar em qualquer personagem. Um módulo salvo com o mesmo nome é substituído.",
+                color = c.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium,
+            )
+        }
     }
 }
 

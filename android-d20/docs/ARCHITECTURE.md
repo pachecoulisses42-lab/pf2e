@@ -14,6 +14,12 @@ o deck "Arquitetura Modular para RPGs Mobile") para o código.
 - Estado unidirecional em `vm/SheetViewModel.kt` (`SheetState` + funções que o alteram).
 - **Setup**: edição do rascunho com `schema/DashboardEditor.kt` (funções puras e testadas). Seleção de layout,
   atribuição de módulos e configuração de payload (`ui/StationEditor.kt`, só seleções).
+- **Adicionar módulo** (`ui/AddModuleSheet.kt`): escolhe o tipo, depois "Criar do zero", **Meus módulos** ou um
+  módulo básico de `schema/ModuleLibrary.kt` (armas, truques/magias, poções, bombas, ações de perícia). O escolhido é
+  **copiado** com id novo (`DashboardEditor.addCopy`) e abre no editor; o original nunca muda. "Salvar em Meus
+  módulos" guarda a versão editada (`SavedModules`, JSON em `data/Prefs.kt` via `data/ModuleStore.kt`), compartilhada
+  por todos os personagens.
+- **Navegação**: menu "⋮" no topo (`NavMenu` em `ui/Neo.kt`) com Personagens / Painel / Condições / Ajustes.
 - **Salvar & Travar**: `lockAndSave()` valida com `DashboardValidator`, persiste (Room) e vai para Play.
 - **Play**: painel congelado; toque → `PlayRunner.run` → `RollOverlay`. Botões de edição ficam ocultos.
 

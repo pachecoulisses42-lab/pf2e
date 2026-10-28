@@ -12,11 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Scaffold
@@ -59,23 +54,8 @@ fun ListScreen(vm: ListViewModel, characters: List<CharacterSummary>, nav: NavAc
         }
     }
 
-    val items = listOf(
-        NavItem("Personagens", Icons.Default.Menu),
-        NavItem("Painel", Icons.Default.Home),
-        NavItem("Condições", Icons.Default.Warning),
-        NavItem("Ajustes", Icons.Default.Settings),
-    )
     Scaffold(
         containerColor = c.bg,
-        bottomBar = {
-            NeoBottomBar(items, selected = 0, onSelect = {
-                when (it) {
-                    1 -> nav.toPanel()
-                    2 -> nav.toConditions()
-                    3 -> nav.toSettings()
-                }
-            })
-        },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().padding(start = 16.dp, end = 11.dp, top = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth().padding(end = 5.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -84,6 +64,7 @@ fun ListScreen(vm: ListViewModel, characters: List<CharacterSummary>, nav: NavAc
                     Text("Pathfinder 2e Remaster", color = c.muted, fontSize = 11.5.sp, fontWeight = FontWeight.Medium)
                 }
                 NeoButton("+ Novo", { creating = true })
+                NavMenu(listOf(MenuEntry("Painel", nav.toPanel), MenuEntry("Condições", nav.toConditions), MenuEntry("Ajustes", nav.toSettings)))
             }
             if (characters.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

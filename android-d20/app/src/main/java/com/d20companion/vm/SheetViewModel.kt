@@ -6,6 +6,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.d20companion.AppContainer
 import com.d20companion.data.CharacterRepository
+import com.d20companion.data.ModuleStore
 import d20.engine.conditions.Affliction
 import d20.engine.conditions.ConditionKind
 import d20.engine.conditions.ConditionsEngine
@@ -28,9 +29,12 @@ import d20.engine.schema.CardColor
 import d20.engine.schema.ConditionsStation
 import d20.engine.schema.ConsumableStation
 import d20.engine.schema.Dashboard
+import d20.engine.schema.DashboardEditor
 import d20.engine.schema.DashboardValidator
 import d20.engine.schema.ResourceStation
 import d20.engine.schema.Station
+import d20.engine.schema.StationType
+import d20.engine.schema.ZoneKey
 import d20.engine.schema.effectiveColor
 import d20.engine.schema.maxHp
 import d20.engine.schema.resourceStation
@@ -71,6 +75,7 @@ data class SheetState(
 class SheetViewModel(
     private val id: String,
     private val repo: CharacterRepository,
+    private val store: ModuleStore,
     roller: Roller = RandomRoller(),
 ) : ViewModel() {
 
@@ -79,6 +84,9 @@ class SheetViewModel(
 
     private val _state = MutableStateFlow(SheetState())
     val state: StateFlow<SheetState> = _state.asStateFlow()
+
+    /** The user's saved modules, offered next to the basic ones when adding a module. */
+    val savedModules: StateFlow<List<Station>> = store.modules
 
     init {
         viewModelScope.launch {
@@ -109,6 +117,31 @@ class SheetViewModel(
             )
         }
     }
+
+    /** Copies a basic or saved module into [key]; returns the copy so the editor can open it, or null if the zone is full. */
+    fun addModule(key: ZoneKey, module: Station): Station? {
+        val d = _state.value.dashboard ?: return null
+        return DashboardEditor.addCopy(d, key, module).fold(
+            onSuccess = { (next, copy) -> _state.update { it.copy(dashboard = next, errors = emptyList()) }; copy },
+            onFailure = { e -> _state.update { it.copy(message = e.message) }; null },
+        )
+    }
+
+    /** Adds a blank module of [type] (the "Criar do zero" option); returns it so the editor can open it. */
+    fun addBlank(key: ZoneKey, type: StationType): Station? {
+        val d = _state.value.dashboard ?: return null
+        return DashboardEditor.addStation(d, key, type).fold(
+            onSuccess = { next -> _state.update { it.copy(dashboard = next, errors = emptyList()) }; key.of(next).stations.last() },
+            onFailure = { e -> _state.update { it.copy(message = e.message) }; null },
+        )
+    }
+
+    fun saveModule(station: Station) {
+        store.save(station)
+        _state.update { it.copy(message = "\"${station.title}\" salvo em Meus módulos") }
+    }
+
+    fun deleteSavedModule(id: String) = store.delete(id)
 
     /** "Salvar & Travar": validate the schema, persist, then freeze the panel for Play. */
     fun lockAndSave() {
@@ -289,7 +322,7 @@ class SheetViewModel(
 
     companion object {
         fun factory(id: String, container: AppContainer) = viewModelFactory {
-            initializer { SheetViewModel(id, container.repository) }
+            initializer { SheetViewModel(id, container.repository, container.modules) }
         }
     }
 }

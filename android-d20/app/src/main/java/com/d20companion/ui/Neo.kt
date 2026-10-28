@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,9 +16,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -30,7 +35,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -181,32 +185,33 @@ fun SectionHeader(title: String, count: Int, expanded: Boolean, onToggle: () -> 
     }
 }
 
-data class NavItem(val label: String, val icon: ImageVector, val badge: Int = 0)
+/** One entry of the top-right "⋮" menu that replaces the bottom navigation bar. */
+data class MenuEntry(val label: String, val onClick: () -> Unit, val badge: Int = 0)
 
+/** "⋮" button in the header; opens the navigation menu (Personagens, Painel, Condições, Ajustes). */
 @Composable
-fun NeoBottomBar(items: List<NavItem>, selected: Int, onSelect: (Int) -> Unit) {
+fun NavMenu(entries: List<MenuEntry>) {
     val c = D20.colors
-    Row(
-        Modifier.fillMaxWidth().background(c.surface).drawBehind {
-            drawLine(c.line, Offset(0f, 0f), Offset(size.width, 0f), strokeWidth = 3.dp.toPx())
-        }.padding(top = 3.dp),
-    ) {
-        items.forEachIndexed { i, item ->
-            val tint = if (i == selected) c.brand else c.muted
-            Column(
-                Modifier.weight(1f).clickable { onSelect(i) }.padding(vertical = 7.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Box {
-                    Icon(item.icon, contentDescription = item.label, tint = tint)
-                    if (item.badge > 0) {
-                        Box(
-                            Modifier.align(Alignment.TopEnd).padding(start = 16.dp).clip(CircleShape).background(ResultColors.Failure),
-                            contentAlignment = Alignment.Center,
-                        ) { Text("${item.badge}", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 5.dp)) }
-                    }
-                }
-                Text(item.label, color = tint, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+    var open by remember { mutableStateOf(false) }
+    Box {
+        NeoSurface(Modifier.size(38.dp), shadowOffset = 3.dp, contentAlignment = Alignment.Center, onClick = { open = true }) {
+            Text("⋮", color = c.text, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = c.surface) {
+            entries.forEach { e ->
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(e.label, color = c.text, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            if (e.badge > 0) {
+                                Box(Modifier.clip(CircleShape).background(ResultColors.Failure), contentAlignment = Alignment.Center) {
+                                    Text("${e.badge}", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp))
+                                }
+                            }
+                        }
+                    },
+                    onClick = { open = false; e.onClick() },
+                )
             }
         }
     }

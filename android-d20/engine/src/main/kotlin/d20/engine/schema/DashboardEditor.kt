@@ -52,6 +52,16 @@ object DashboardEditor {
         return Result.success(key.with(d, zone.copy(stations = zone.stations + station)))
     }
 
+    /** Adds a copy of a template or saved module; returns the new panel and the copy (so the editor can open it). */
+    fun addCopy(d: Dashboard, key: ZoneKey, module: Station): Result<Pair<Dashboard, Station>> {
+        val zone = key.of(d)
+        if (zone.stations.size >= zone.layout.slots) {
+            return Result.failure(IllegalStateException("${key.ptName} está cheia (${zone.layout.slots} slots)"))
+        }
+        val copy = module.withId(nextId(d))
+        return Result.success(key.with(d, zone.copy(stations = zone.stations + copy)) to copy)
+    }
+
     fun removeStation(d: Dashboard, id: String): Dashboard = mapZones(d) { z ->
         z.copy(stations = z.stations.filterNot { it.id == id })
     }
