@@ -63,6 +63,9 @@ object DashboardEditor {
     fun rename(d: Dashboard, raw: String) = d.copy(name = Text.sanitize(raw))
     fun setClass(d: Dashboard, cls: PfClass) = d.copy(characterClass = cls)
     fun setLevel(d: Dashboard, level: Int) = d.copy(character = d.character.copy(level = level.coerceIn(1, 20)))
+    fun setSaveRank(d: Dashboard, kind: d20.engine.pf2e.CheckKind, rank: Rank) =
+        d.copy(character = d.character.copy(saves = d.character.saves + (kind to rank)))
+
     fun setAbility(d: Dashboard, ability: Ability, mod: Int) =
         d.copy(character = d.character.copy(abilityMods = d.character.abilityMods + (ability to mod.coerceIn(-5, 10))))
 

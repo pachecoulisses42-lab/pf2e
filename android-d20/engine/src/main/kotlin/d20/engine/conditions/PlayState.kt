@@ -185,6 +185,17 @@ object PlayRules {
     /** A fresh game state: full Hit Points and, if the character carries one, a full (lowered) shield. */
     fun initialFor(d: Dashboard): PlayState = PlayState(hp = d.maxHp(), shieldHp = d.resourceStation()?.shield?.maxHp)
 
+    /** Brings a saved state in line with an edited dashboard: HP within the new maximum, shield matching the new shield. */
+    fun reconcile(d: Dashboard, s: PlayState): PlayState {
+        val shield = d.resourceStation()?.shield
+        val shieldHp = shield?.let { (s.shieldHp ?: it.maxHp).coerceIn(0, it.maxHp) }
+        return s.copy(
+            hp = s.hp.coerceIn(0, d.maxHp()),
+            shieldHp = shieldHp,
+            shieldRaised = s.shieldRaised && shield != null && (shieldHp ?: 0) > shield.brokenThreshold,
+        )
+    }
+
     /** A broken shield (at or below its broken threshold) cannot be raised. */
     fun setShieldRaised(s: PlayState, kind: ShieldKind, raised: Boolean): PlayState {
         val usable = (s.shieldHp ?: kind.maxHp) > kind.brokenThreshold

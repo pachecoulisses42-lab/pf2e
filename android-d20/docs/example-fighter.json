@@ -118,7 +118,7 @@
             ]
         },
         "zone3": {
-            "layout": "GRID_1X1",
+            "layout": "GRID_1X2",
             "stations": [
                 {
                     "type": "RESOURCE",
@@ -130,6 +130,11 @@
                         "dexCap": 1
                     },
                     "title": "Vida & Defesa"
+                },
+                {
+                    "type": "CONDITIONS",
+                    "id": "st-08",
+                    "title": "Condições"
                 }
             ]
         }

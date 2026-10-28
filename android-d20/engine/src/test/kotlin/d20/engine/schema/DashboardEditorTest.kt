@@ -57,4 +57,12 @@ class DashboardEditorTest {
         d = DashboardEditor.setClass(d, PfClass.WIZARD)
         assertEquals(PfClass.WIZARD, d.characterClass)
     }
+
+    @Test
+    fun `saving throw proficiency is editable and defaults to trained`() {
+        assertEquals(Rank.TRAINED, blank.character.saveRank(d20.engine.pf2e.CheckKind.FORTITUDE))
+        val d = DashboardEditor.setSaveRank(blank, d20.engine.pf2e.CheckKind.REFLEX, Rank.EXPERT)
+        assertEquals(Rank.EXPERT, d.character.saveRank(d20.engine.pf2e.CheckKind.REFLEX))
+        assertEquals(Rank.TRAINED, d.character.saveRank(d20.engine.pf2e.CheckKind.WILL))
+    }
 }

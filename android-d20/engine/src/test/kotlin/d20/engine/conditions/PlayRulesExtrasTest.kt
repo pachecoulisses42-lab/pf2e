@@ -78,4 +78,19 @@ class PlayRulesExtrasTest {
         assertEquals(CardColor.AZUL, ConsumableStation("c", spec, CardColor.AZUL).effectiveColor())
         assertEquals(CardColor.VIOLETA, ResourceStation("r", 10, ArmorSpec(Rank.TRAINED, 0, 0)).effectiveColor())
     }
+
+    @Test
+    fun `reconcile clamps HP and follows the shield that was chosen`() {
+        val d = dashWithShield(ShieldKind.WOODEN)
+        val old = PlayState(hp = 99, shieldHp = null, shieldRaised = true)
+        val r = PlayRules.reconcile(d, old)
+        assertEquals(20, r.hp)
+        assertEquals(12, r.shieldHp)
+        assertTrue(r.shieldRaised)
+        val none = PlayRules.reconcile(dashWithShield(null), r)
+        assertNull(none.shieldHp)
+        assertEquals(false, none.shieldRaised)
+        val broken = PlayRules.reconcile(d, PlayState(hp = 5, shieldHp = 4, shieldRaised = true))
+        assertEquals(false, broken.shieldRaised)
+    }
 }

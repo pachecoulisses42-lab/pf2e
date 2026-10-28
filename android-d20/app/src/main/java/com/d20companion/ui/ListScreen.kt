@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,20 +13,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,17 +30,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.d20companion.data.CharacterSummary
 import com.d20companion.vm.ListViewModel
 import d20.engine.schema.PfClass
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ListScreen(vm: ListViewModel, characters: List<CharacterSummary>, onOpen: (String) -> Unit) {
+fun ListScreen(vm: ListViewModel, characters: List<CharacterSummary>, nav: NavActions, onOpen: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val c = D20.colors
     var creating by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<CharacterSummary?>(null) }
     // JSON waiting for the user to pick a destination file (Storage Access Framework).
@@ -62,41 +59,66 @@ fun ListScreen(vm: ListViewModel, characters: List<CharacterSummary>, onOpen: (S
         }
     }
 
+    val items = listOf(
+        NavItem("Personagens", Icons.Default.Menu),
+        NavItem("Painel", Icons.Default.Home),
+        NavItem("Condições", Icons.Default.Warning),
+        NavItem("Ajustes", Icons.Default.Settings),
+    )
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Meus personagens") }) },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { creating = true }) { Icon(Icons.Default.Add, "Novo personagem") }
+        containerColor = c.bg,
+        bottomBar = {
+            NeoBottomBar(items, selected = 0, onSelect = {
+                when (it) {
+                    1 -> nav.toPanel()
+                    2 -> nav.toConditions()
+                    3 -> nav.toSettings()
+                }
+            })
         },
     ) { padding ->
-        if (characters.isEmpty()) {
-            Column(Modifier.padding(padding).fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Nenhum personagem ainda.", style = MaterialTheme.typography.titleMedium)
-                Text("Toque em + para criar o primeiro.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(Modifier.padding(padding).fillMaxSize().padding(start = 16.dp, end = 11.dp, top = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth().padding(end = 5.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text("Meus personagens", color = c.text, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+                    Text("Pathfinder 2e Remaster", color = c.muted, fontSize = 11.5.sp, fontWeight = FontWeight.Medium)
+                }
+                NeoButton("+ Novo", { creating = true })
             }
-        } else {
-            LazyColumn(Modifier.padding(padding).fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(characters, key = { it.id }) { c ->
-                    GlowCard(glow = c.characterClass.glow(), modifier = Modifier.fillMaxWidth(), onClick = { onOpen(c.id) }) {
-                        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                            Column(Modifier.weight(1f)) {
-                                Text(c.name, style = MaterialTheme.typography.titleMedium, maxLines = 1)
-                                Text(c.characterClass.ptName, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            var menu by remember { mutableStateOf(false) }
-                            IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, "Opções") }
-                            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                                DropdownMenuItem(text = { Text("Duplicar") }, onClick = { menu = false; vm.duplicate(c.id) })
-                                DropdownMenuItem(text = { Text("Exportar JSON") }, onClick = {
-                                    menu = false
-                                    scope.launch {
-                                        val export = vm.export(c.id)
-                                        if (export != null) {
-                                            pendingExport = export.second
-                                            saveLauncher.launch("${export.first.ifBlank { "personagem" }}.json")
-                                        }
+            if (characters.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Nenhum personagem ainda.\nToque em + Novo para criar o primeiro.", color = c.muted, fontWeight = FontWeight.Medium)
+                }
+            } else {
+                LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(14.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp)) {
+                    items(characters, key = { it.id }) { ch ->
+                        val fill = ch.characterClass.cardColor().fill()
+                        NeoSurface(Modifier.fillMaxWidth().padding(end = 5.dp), fill = fill, onClick = { onOpen(ch.id) }) {
+                            Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Avatar(ch.name.firstOrNull()?.uppercase() ?: "?", c.surface)
+                                Column(Modifier.weight(1f)) {
+                                    Text(ch.name, color = Ink, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, maxLines = 1)
+                                    Text("${ch.characterClass.ptName} · nível ${ch.level}", color = Ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("PV ${ch.hp}/${ch.maxHp} · CA ${ch.armorClass}", color = Ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                }
+                                var menu by remember { mutableStateOf(false) }
+                                Box {
+                                    Pill("⋮", false, { menu = true })
+                                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                                        DropdownMenuItem(text = { Text("Duplicar") }, onClick = { menu = false; vm.duplicate(ch.id) })
+                                        DropdownMenuItem(text = { Text("Exportar JSON") }, onClick = {
+                                            menu = false
+                                            scope.launch {
+                                                val export = vm.export(ch.id)
+                                                if (export != null) {
+                                                    pendingExport = export.second
+                                                    saveLauncher.launch("${export.first.ifBlank { "personagem" }}.json")
+                                                }
+                                            }
+                                        })
+                                        DropdownMenuItem(text = { Text("Excluir") }, onClick = { menu = false; deleting = ch })
                                     }
-                                })
-                                DropdownMenuItem(text = { Text("Excluir") }, onClick = { menu = false; deleting = c })
+                                }
                             }
                         }
                     }
@@ -105,37 +127,29 @@ fun ListScreen(vm: ListViewModel, characters: List<CharacterSummary>, onOpen: (S
         }
     }
 
-    if (creating) NewCharacterDialog(onDismiss = { creating = false }) { name, cls ->
-        creating = false
-        vm.create(name, cls, onOpen)
+    if (creating) {
+        var name by remember { mutableStateOf("") }
+        var cls by remember { mutableStateOf(PfClass.FIGHTER) }
+        NeoSheet(
+            title = "Novo personagem", onDismiss = { creating = false },
+            footer = {
+                NeoButton("Cancelar", { creating = false }, ghost = true, modifier = Modifier.weight(1f))
+                NeoButton("Criar personagem", { creating = false; vm.create(name, cls, onOpen) }, enabled = name.isNotBlank(), modifier = Modifier.weight(2f))
+            },
+        ) {
+            NameField("Nome do personagem (texto livre)", name) { name = it }
+            Dropdown("Classe (carrega um painel inicial)", PfClass.entries, cls, { it.ptName }, { cls = it })
+        }
     }
-    deleting?.let { c ->
-        AlertDialog(
-            onDismissRequest = { deleting = null },
-            title = { Text("Excluir ${c.name}?") },
-            text = { Text("Isso remove o personagem e o painel salvo. Exporte o JSON antes se quiser guardar uma cópia.") },
-            confirmButton = { TextButton(onClick = { vm.delete(c.id); deleting = null }) { Text("Excluir", color = MaterialTheme.colorScheme.error) } },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancelar") } },
-        )
+    deleting?.let { ch ->
+        NeoSheet(
+            title = "Excluir ${ch.name}?", onDismiss = { deleting = null },
+            footer = {
+                NeoButton("Cancelar", { deleting = null }, ghost = true, modifier = Modifier.weight(1f))
+                NeoButton("Excluir", { vm.delete(ch.id); deleting = null }, fill = ResultColors.Failure, modifier = Modifier.weight(1f))
+            },
+        ) {
+            Text("Isso remove o personagem e o painel salvo. Exporte o JSON antes se quiser guardar uma cópia.", color = c.text, fontSize = 13.sp)
+        }
     }
-}
-
-@Composable
-private fun NewCharacterDialog(onDismiss: () -> Unit, onCreate: (String, PfClass) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var cls by remember { mutableStateOf(PfClass.FIGHTER) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Novo personagem") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                NameField("Nome do personagem (texto livre)", name) { name = it }
-                Dropdown("Classe (carrega um painel inicial)", PfClass.entries, cls, { it.ptName }, { cls = it })
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onCreate(name, cls) }, enabled = name.isNotBlank()) { Text("Criar") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
-    )
 }

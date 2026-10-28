@@ -55,7 +55,7 @@ object Presets {
                     skill("st-05", CheckKind.FORTITUDE, Rank.EXPERT), skill("st-06", CheckKind.PERCEPTION, Rank.TRAINED),
                 ),
             ),
-            zone3 = ZoneConfig(GridLayout.GRID_1X1, listOf(ResourceStation("st-07", 20, ArmorSpec(Rank.TRAINED, 2, 1)))),
+            zone3 = ZoneConfig(GridLayout.GRID_1X2, listOf(ResourceStation("st-07", 20, ArmorSpec(Rank.TRAINED, 2, 1)), ConditionsStation("st-08"))),
         ),
     )
 
@@ -77,7 +77,7 @@ object Presets {
                     skill("st-05", CheckKind.ACROBATICS, Rank.TRAINED), skill("st-06", CheckKind.PERCEPTION, Rank.EXPERT),
                 ),
             ),
-            zone3 = ZoneConfig(GridLayout.GRID_1X1, listOf(ResourceStation("st-07", 16, ArmorSpec(Rank.TRAINED, 1, 4)))),
+            zone3 = ZoneConfig(GridLayout.GRID_1X2, listOf(ResourceStation("st-07", 16, ArmorSpec(Rank.TRAINED, 1, 4)), ConditionsStation("st-08"))),
         ),
     )
 
@@ -99,7 +99,7 @@ object Presets {
                     skill("st-05", CheckKind.OCCULTISM, Rank.TRAINED), skill("st-06", CheckKind.PERCEPTION, Rank.TRAINED),
                 ),
             ),
-            zone3 = ZoneConfig(GridLayout.GRID_1X1, listOf(ResourceStation("st-07", 12, ArmorSpec(Rank.UNTRAINED, 0, 5)))),
+            zone3 = ZoneConfig(GridLayout.GRID_1X2, listOf(ResourceStation("st-07", 12, ArmorSpec(Rank.UNTRAINED, 0, 5)), ConditionsStation("st-08"))),
         ),
     )
 
@@ -121,7 +121,7 @@ object Presets {
                     skill("st-05", CheckKind.WILL, Rank.EXPERT), skill("st-06", CheckKind.DIPLOMACY, Rank.TRAINED),
                 ),
             ),
-            zone3 = ZoneConfig(GridLayout.GRID_1X1, listOf(ResourceStation("st-07", 18, ArmorSpec(Rank.TRAINED, 1, 2)))),
+            zone3 = ZoneConfig(GridLayout.GRID_1X2, listOf(ResourceStation("st-07", 18, ArmorSpec(Rank.TRAINED, 1, 2)), ConditionsStation("st-08"))),
         ),
     )
 }
