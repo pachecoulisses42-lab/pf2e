@@ -26,7 +26,8 @@ object Formulas {
 
     fun spellAttack(c: Pf2eCharacter, s: SpellSpec): String = "1d20${signed(spellAttackBonus(c, s))}"
 
-    fun spellDamage(s: SpellSpec): String = "${s.diceCount}${s.die.label}"
+    fun spellDamage(s: SpellSpec): String =
+        (listOf("${s.diceCount}${s.die.label}") + ExtraDamageStack.resolve(s.extras).applied.map { it.notation }).joinToString(" + ")
 
     fun check(c: Pf2eCharacter, spec: CheckSpec): String = "1d20${signed(checkBonus(c, spec))}"
 

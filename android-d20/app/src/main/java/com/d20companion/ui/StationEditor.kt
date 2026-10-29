@@ -47,6 +47,9 @@ import d20.engine.pf2e.ConsumableSpec
 import d20.engine.pf2e.ConsumableTables
 import d20.engine.pf2e.DamageType
 import d20.engine.pf2e.ElementalRune
+import d20.engine.pf2e.ExtraDamage
+import d20.engine.pf2e.ExtraKind
+import d20.engine.pf2e.ExtraSource
 import d20.engine.pf2e.Rank
 import d20.engine.pf2e.ShieldKind
 import d20.engine.pf2e.SpellMode
@@ -261,6 +264,58 @@ private fun SpellForm(s: SpellSpec, onChange: (SpellSpec) -> Unit) {
     if (s.mode == SpellMode.SAVE) {
         Dropdown("Resistência do alvo", saveKinds, s.targetSave, { it.ptName }, { onChange(s.copy(targetSave = it)) })
     }
+    SectionTitle("Danos extras")
+    ExtrasEditor(s.extras) { onChange(s.copy(extras = it)) }
+}
+
+/**
+ * Extra damage from other sources. Typed sources (Circunstância, Estado, Mágico, Item) keep only the largest of each
+ * type; "Sem tipo" always stacks. Weakness is added after doubling or halving.
+ */
+@Composable
+private fun ExtrasEditor(extras: List<ExtraDamage>, onChange: (List<ExtraDamage>) -> Unit) {
+    val c = D20.colors
+    extras.forEachIndexed { i, e ->
+        fun set(n: ExtraDamage) = onChange(extras.mapIndexed { j, old -> if (j == i) n else old })
+        NeoSurface(Modifier.fillMaxWidth().padding(end = 3.dp, bottom = 3.dp), fill = c.surface, shadowOffset = 3.dp) {
+            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Dropdown("Fonte", ExtraSource.entries, e.source, { it.ptName }, { src ->
+                    set(e.copy(source = src, kind = defaultKind(src, e.kind)))
+                })
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Dropdown("Tipo de bônus", ExtraKind.entries, e.kind, { it.ptName }, { set(e.copy(kind = it)) }, Modifier.weight(1f))
+                    Dropdown(
+                        "Tipo de dano", listOf<DamageType?>(null) + DamageType.entries, e.damageType,
+                        { it?.ptName ?: "Igual à magia" }, { set(e.copy(damageType = it)) }, Modifier.weight(1f),
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Stepper("Dados", e.diceCount, 0..10, { set(e.copy(diceCount = it)) }, Modifier.weight(1f), display = { if (it == 0) "—" else "$it" })
+                    Dropdown("Dado", DieType.entries, e.die, { it.label }, { set(e.copy(die = it)) }, Modifier.weight(1f))
+                }
+                Stepper("Valor fixo", e.flat, -10..30, { set(e.copy(flat = it)) }, display = ::signed)
+                if (e.source.afterMultipliers) {
+                    Text("Somada depois de dobrar ou reduzir à metade, e só se o alvo sofrer dano.", color = c.muted, fontSize = 10.5.sp)
+                }
+                NeoButton("Remover dano extra", { onChange(extras.filterIndexed { j, _ -> j != i }) }, ghost = true)
+            }
+        }
+    }
+    if (extras.size < 6) {
+        NeoButton("+ Adicionar dano extra", {
+            onChange(extras + ExtraDamage(ExtraSource.DANGEROUS_SORCERY, ExtraKind.STATUS, flat = 1))
+        }, ghost = true)
+    }
+    if (extras.size > 1) {
+        Text("Do mesmo tipo de bônus só vale o maior; \"Sem tipo\" sempre soma.", color = c.muted, fontSize = 10.5.sp)
+    }
+}
+
+/** Sensible bonus type when the source changes: Dangerous Sorcery is a status bonus, weakness is untyped. */
+private fun defaultKind(source: ExtraSource, current: ExtraKind): ExtraKind = when (source) {
+    ExtraSource.DANGEROUS_SORCERY -> ExtraKind.STATUS
+    ExtraSource.WEAKNESS -> ExtraKind.UNTYPED
+    else -> current
 }
 
 @Composable

@@ -56,6 +56,8 @@ data class DamageSummary(
     val choice: DamageChoice?,
     /** Save spells: the damage after the target's save, overriding [choice]. */
     val overrideApplied: Int? = null,
+    /** Extra damage left out by the stacking rule, shown so the user knows why it is missing. */
+    val notes: List<String> = emptyList(),
 ) {
     val lines: List<DamageLine>
         get() = when (choice) {
@@ -229,19 +231,24 @@ class PlayRunner(private val engine: Pf2eEngine) {
         listOf("d20 ${r.natural}") + r.modifiers.applied.map { "${it.label} ${signed(it.value)}" }
 
     private fun summary(roll: DamageRoll, choice: DamageChoice?): DamageSummary {
-        val splash = roll.splashPart?.let { DamageLine(it.type, "${it.type.ptName}: Respingo ${it.subtotal} (não multiplica)") }
+        val tail = listOfNotNull(roll.splashPart?.let { DamageLine(it.type, "${it.type.ptName}: Respingo ${it.subtotal} (não multiplica)") }) +
+            roll.postParts.map { DamageLine(it.type, "${it.type.ptName}: ${it.label} ${it.subtotal} (após multiplicar)") }
         return DamageSummary(
-            normalLines = roll.parts.map { normalLine(it) } + listOfNotNull(splash),
-            criticalLines = criticalLines(roll) + listOfNotNull(splash),
-            tripleLines = roll.parts.map { DamageLine(it.type, "${it.type.ptName}: ×3 de ${it.subtotal} = ${it.subtotal * 3}") } + listOfNotNull(splash),
+            normalLines = roll.parts.mapIndexed { i, p -> normalLine(p, i > 0) } + tail,
+            criticalLines = criticalLines(roll) + tail,
+            tripleLines = roll.parts.mapIndexed { i, p -> DamageLine(p.type, "${p.type.ptName}: ${tag(p, i > 0)}×3 de ${p.subtotal} = ${p.subtotal * 3}") } + tail,
             normal = roll.total, criticalTotal = roll.criticalTotal, tripleTotal = roll.tripleTotal, choice = choice,
+            notes = roll.ignored.map { "$it não acumula com outro do mesmo tipo" },
         )
     }
 
-    private fun normalLine(p: DamagePart): DamageLine {
-        if (p.dice.isEmpty()) return DamageLine(p.type, "${p.type.ptName}: ${p.flat}")
+    /** Extra parts (runes, extra damage) name their source; the first part is the weapon or spell itself. */
+    private fun tag(p: DamagePart, extra: Boolean) = if (extra) "${p.label} " else ""
+
+    private fun normalLine(p: DamagePart, extra: Boolean): DamageLine {
+        if (p.dice.isEmpty()) return DamageLine(p.type, "${p.type.ptName}: ${tag(p, extra)}${signed(p.flat)}")
         val flat = if (p.flat != 0) " ${signed(p.flat)}" else ""
-        return DamageLine(p.type, "${p.type.ptName}: ${p.dice}$flat = ${p.subtotal}")
+        return DamageLine(p.type, "${p.type.ptName}: ${tag(p, extra)}${p.dice}$flat = ${p.subtotal}")
     }
 
     private fun criticalLines(roll: DamageRoll): List<DamageLine> {
@@ -249,9 +256,9 @@ class PlayRunner(private val engine: Pf2eEngine) {
         roll.parts.forEachIndexed { i, p ->
             val src = if (i == 0) roll.fatalPart ?: p else p
             val flat = if (src.flat != 0) " ${signed(src.flat)}" else ""
-            val tag = if (i == 0 && roll.fatalPart != null) "Fatal ${src.diceNotation}" else "×2"
+            val mult = if (i == 0 && roll.fatalPart != null) "Fatal ${src.diceNotation}" else "×2"
             val dice = if (src.dice.isEmpty()) "" else " ${src.dice}"
-            lines += DamageLine(p.type, "${p.type.ptName}: $tag$dice$flat → ${src.subtotal * 2}")
+            lines += DamageLine(p.type, "${p.type.ptName}: ${tag(p, i > 0)}$mult$dice$flat → ${src.subtotal * 2}")
         }
         roll.deadlyPart?.let {
             lines += DamageLine(it.type, "${it.type.ptName}: Mortal ${it.dice} = ${it.dice.sum()} (não dobra)")

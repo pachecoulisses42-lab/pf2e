@@ -31,22 +31,33 @@ data class DamageRoll(
     val deadlyPart: DamagePart? = null,
     /** Splash damage: added to the target's damage but never multiplied. */
     val splashPart: DamagePart? = null,
+    /** Added after every multiplier (the target's weakness), and only when some damage is dealt. */
+    val postParts: List<DamagePart> = emptyList(),
+    /** Extra damage left out by the stacking rule, e.g. "Zona elemental (Estado)". */
+    val ignored: List<String> = emptyList(),
 ) {
     private val splash: Int get() = splashPart?.subtotal ?: 0
     private val raw: Int get() = parts.sumOf { it.subtotal }
+    private val post: Int get() = postParts.sumOf { it.subtotal }
+
+    /** Adds the after-multiplier parts to an already multiplied (or halved) amount. */
+    fun afterMultipliers(amount: Int): Int = if (amount > 0) amount + post else amount
+
+    /** Damage on a normal hit before the after-multiplier parts (minimum 1). */
+    val baseTotal: Int get() = maxOf(1, raw + splash)
 
     /** Damage on a normal hit (minimum 1). */
-    val total: Int get() = maxOf(1, raw + splash)
+    val total: Int get() = afterMultipliers(baseTotal)
 
     /** A critical hit doubles every die and bonus (Fatal included); Deadly dice and splash are added afterwards. */
     val criticalTotal: Int
         get() {
             val base = (fatalPart ?: parts.first()).subtotal + parts.drop(1).sumOf { it.subtotal }
-            return maxOf(1, base * 2 + (deadlyPart?.dice?.sum() ?: 0) + splash)
+            return afterMultipliers(maxOf(1, base * 2 + (deadlyPart?.dice?.sum() ?: 0) + splash))
         }
 
     /** Effects that triple damage (the user picks this after a roll without a target). */
-    val tripleTotal: Int get() = maxOf(1, raw * 3 + splash)
+    val tripleTotal: Int get() = afterMultipliers(maxOf(1, raw * 3 + splash))
 }
 
 data class AttackResult(val check: CheckResult, val damage: DamageRoll?) {
@@ -69,7 +80,7 @@ data class SpellSaveResult(
     val damage: DamageRoll,
 ) {
     /** Basic saving throw: crit success 0, success half, failure full, crit failure double. */
-    fun damageFor(targetDegree: Degree): Int = targetDegree.basicSaveDamage(damage.total)
+    fun damageFor(targetDegree: Degree): Int = damage.afterMultipliers(targetDegree.basicSaveDamage(damage.baseTotal))
 }
 
 /** A thrown bomb: the attack, its damage (null on a critical failure) and persistent damage on a hit. */

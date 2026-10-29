@@ -56,6 +56,13 @@ object DashboardValidator {
     private fun spell(key: String, s: SpellSpec) = buildList {
         if (!Text.isValid(s.name)) add("$key: nome da magia inválido")
         if (s.diceCount !in 1..12) add("$key: quantidade de dados da magia deve ser 1..12")
+        if (s.extras.size > 6) add("$key: no máximo 6 danos extras")
+        s.extras.forEachIndexed { i, e ->
+            val n = "$key: dano extra ${i + 1}"
+            if (e.diceCount !in 0..10) add("$n: dados devem ser 0..10")
+            if (e.flat !in -10..30) add("$n: valor fixo deve ser −10..+30")
+            if (e.diceCount == 0 && e.flat == 0) add("$n: informe dados ou valor fixo")
+        }
     }
 
     private fun check(key: String, c: CheckSpec) = buildList {

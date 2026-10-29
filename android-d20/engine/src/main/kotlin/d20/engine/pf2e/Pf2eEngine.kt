@@ -79,13 +79,12 @@ class Pf2eEngine(private val roller: Roller) {
         ) + StatusPenalties.modifiers(conditions, s.castingAbility)
         val check = CheckResult(roller.roll(20), ModifierStack.resolve(mods), targetAc)
         if (check.degree?.let { it <= d20.engine.core.Degree.FAILURE } == true) return AttackResult(check, null)
-        return AttackResult(check, DamageRoll(listOf(rollPart(s.name, s.damageType, s.diceCount, s.die, 0))))
+        return AttackResult(check, rollSpellDamage(s))
     }
 
     fun spellSave(c: Pf2eCharacter, s: SpellSpec, conditions: List<ActiveCondition> = emptyList()): SpellSaveResult {
         val dc = spellDc(c, s, conditions)
-        val damage = DamageRoll(listOf(rollPart(s.name, s.damageType, s.diceCount, s.die, 0)))
-        return SpellSaveResult(dc, s.targetSave, damage)
+        return SpellSaveResult(dc, s.targetSave, rollSpellDamage(s))
     }
 
     private fun rollWeaponDamage(c: Pf2eCharacter, w: WeaponSpec, critPossible: Boolean): DamageRoll {
@@ -99,6 +98,18 @@ class Pf2eEngine(private val roller: Roller) {
         val fatal = if (critPossible) w.fatalDie?.let { rollPart(w.name, w.damageType, w.totalDice + 1, it, flat) } else null
         val deadly = if (critPossible) w.deadlyDie?.let { rollPart("Mortal", w.damageType, deadlyDice(w), it, 0) } else null
         return DamageRoll(parts, fatal, deadly)
+    }
+
+    /** The spell's dice plus its extra damage, after the stacking rule; weakness-like sources go after multipliers. */
+    private fun rollSpellDamage(s: SpellSpec): DamageRoll {
+        val resolved = ExtraDamageStack.resolve(s.extras)
+        val (post, pre) = resolved.applied.partition { it.source.afterMultipliers }
+        fun part(e: ExtraDamage) = rollPart(e.label, e.damageType ?: s.damageType, e.diceCount, e.die, e.flat)
+        return DamageRoll(
+            parts = listOf(rollPart(s.name, s.damageType, s.diceCount, s.die, 0)) + pre.map(::part),
+            postParts = post.map(::part),
+            ignored = resolved.ignored.map { it.label },
+        )
     }
 
     private fun rollPart(label: String, type: DamageType, count: Int, die: DieType, flat: Int): DamagePart {

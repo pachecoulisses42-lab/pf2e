@@ -144,6 +144,8 @@ data class SpellSpec(
     val damageType: DamageType,
     /** Which save the target rolls (only relevant to [SpellMode.SAVE]). */
     val targetSave: CheckKind = CheckKind.REFLEX,
+    /** Extra damage from other sources (Dangerous Sorcery, elemental zone, the target's weakness, ...). */
+    val extras: List<ExtraDamage> = emptyList(),
 )
 
 @Serializable

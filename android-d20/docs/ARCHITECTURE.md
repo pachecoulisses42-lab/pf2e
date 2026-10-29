@@ -19,6 +19,9 @@ o deck "Arquitetura Modular para RPGs Mobile") para o código.
   **copiado** com id novo (`DashboardEditor.addCopy`) e abre no editor; o original nunca muda. "Salvar em Meus
   módulos" guarda a versão editada (`SavedModules`, JSON em `data/Prefs.kt` via `data/ModuleStore.kt`), compartilhada
   por todos os personagens.
+- **Danos extras em magias** (`pf2e/ExtraDamage.kt`): fonte (Feitiçaria Perigosa, Zona elemental, Fraqueza do alvo…),
+  tipo de bônus (Circunstância, Estado, Mágico, Item, Sem tipo), dados/valor fixo e tipo de dano. Do mesmo tipo só vale o
+  maior (`ExtraDamageStack`); "Sem tipo" soma. Fraqueza entra depois de dobrar/reduzir à metade e só se houver dano.
 - **Tela inicial** (`ui/HomeScreen.kt`, destino inicial): Novo personagem, Carregar personagem, Ajustes e "Continuar com" o último aberto.
 - **Navegação**: menu "⋮" no topo (`NavMenu` em `ui/Neo.kt`) com Início / Personagens / Painel / Condições / Ajustes.
 - **Salvar & Travar**: `lockAndSave()` valida com `DashboardValidator`, persiste (Room) e vai para Play.
