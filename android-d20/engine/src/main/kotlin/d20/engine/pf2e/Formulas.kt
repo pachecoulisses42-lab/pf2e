@@ -7,10 +7,11 @@ object Formulas {
     /** Static attack bonus (no status penalties). */
     fun attackBonus(c: Pf2eCharacter, w: WeaponSpec): Int = c.mod(w.attackAbility) + w.rank.bonus(c.level) + w.potency
 
-    fun spellAttackBonus(c: Pf2eCharacter, s: SpellSpec): Int = c.mod(s.castingAbility) + s.rank.bonus(c.level)
+    fun spellAttackBonus(c: Pf2eCharacter, s: SpellSpec): Int = c.mod(s.castingAbility) + s.rankFor(c).bonus(c.level)
 
-    fun checkBonus(c: Pf2eCharacter, spec: CheckSpec): Int =
-        c.mod(spec.abilityOverride ?: spec.kind.defaultAbility) + spec.rank.bonus(c.level) + spec.itemBonus
+    /** Static check bonus, including the worn armor's runes and check penalty (no status penalties). */
+    fun checkBonus(c: Pf2eCharacter, spec: CheckSpec, armor: ArmorSpec? = null): Int =
+        d20.engine.core.ModifierStack.resolve(Pf2eEngine.checkModifiers(c, spec, armor)).total
 
     fun bombBonus(c: Pf2eCharacter, spec: ConsumableSpec): Int =
         c.mod(Ability.DEX) + spec.rank.bonus(c.level) + ConsumableTables.bomb(spec.kind, spec.grade).attackBonus

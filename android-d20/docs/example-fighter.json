@@ -14,7 +14,8 @@
             "WIS": 1,
             "CHA": 0
         },
-        "saves": {}
+        "saves": {},
+        "classRank": "TRAINED"
     },
     "zones": {
         "zone1": {
@@ -126,8 +127,17 @@
                     "maxHp": 20,
                     "armor": {
                         "rank": "TRAINED",
-                        "itemBonus": 2,
-                        "dexCap": 1
+                        "itemBonus": 4,
+                        "dexCap": 1,
+                        "name": "Cota de malha",
+                        "category": "MEDIUM",
+                        "checkPenalty": 2,
+                        "speedPenalty": 5,
+                        "strength": 3,
+                        "potency": 0,
+                        "resilient": 0,
+                        "skillRunes": [],
+                        "resistances": []
                     },
                     "title": "Vida & Defesa"
                 },

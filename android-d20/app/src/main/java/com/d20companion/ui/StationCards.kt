@@ -35,6 +35,7 @@ import d20.engine.schema.ConditionsStation
 import d20.engine.schema.ConsumableStation
 import d20.engine.schema.Dashboard
 import d20.engine.schema.ResourceStation
+import d20.engine.schema.resourceStation
 import d20.engine.schema.SkillStation
 import d20.engine.schema.SpellStation
 import d20.engine.schema.Station
@@ -90,7 +91,7 @@ fun StationCard(
                     val k = station.check
                     val ability = k.abilityOverride ?: k.kind.defaultAbility
                     val pen = StatusPenalties.modifiers(conds, ability).firstOrNull()
-                    CardFace(station.title, signed(Formulas.checkBonus(c, k) + (pen?.value ?: 0)),
+                    CardFace(station.title, signed(Formulas.checkBonus(c, k, dashboard.resourceStation()?.armor) + (pen?.value ?: 0)),
                         ability.abbr + " · " + k.rank.ptName + penaltyNote(pen?.label, pen?.value), on, compact, setup) {
                         TagRow(station.effects.take(2).map { it.condition.ptName }, on)
                     }
@@ -179,6 +180,13 @@ private fun ResourceFace(r: ResourceStation, d: Dashboard, play: PlayState, setu
                 }
             }
         }
+        val armor = r.armor
+        val gear = buildList {
+            add(armor.name.ifBlank { armor.category.ptName })
+            armor.effectiveSpeedPenalty(d.character).takeIf { it > 0 }?.let { add("−$it pés") }
+            armor.resistances.forEach { add("Resist. ${it.type.ptName} ${it.value}") }
+        }
+        Text(gear.joinToString(" · "), color = on, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)
         if (shield != null) {
             val hp = play.shieldHp ?: shield.maxHp
             val broken = hp <= shield.brokenThreshold

@@ -61,21 +61,17 @@ class Pf2eEngine(private val roller: Roller) {
         return List(n) { roller.roll(8) }.sum() + flat
     }
 
-    fun check(c: Pf2eCharacter, spec: CheckSpec, dc: Int?, conditions: List<ActiveCondition> = emptyList()): CheckResult {
+    /** [armor]: the worn armor of an active "Vida, escudo & defesa" module (runes and check penalty apply). */
+    fun check(c: Pf2eCharacter, spec: CheckSpec, dc: Int?, conditions: List<ActiveCondition> = emptyList(), armor: ArmorSpec? = null): CheckResult {
         val ability = spec.abilityOverride ?: spec.kind.defaultAbility
-        val mods = buildList {
-            add(Modifier(ability.abbr, ModType.ABILITY, c.mod(ability)))
-            add(Modifier("Prof. ${spec.rank.abbr}", ModType.PROFICIENCY, spec.rank.bonus(c.level)))
-            if (spec.itemBonus != 0) add(Modifier("Item", ModType.ITEM, spec.itemBonus))
-            addAll(StatusPenalties.modifiers(conditions, ability))
-        }
+        val mods = checkModifiers(c, spec, armor) + StatusPenalties.modifiers(conditions, ability)
         return CheckResult(roller.roll(20), ModifierStack.resolve(mods), dc)
     }
 
     fun spellAttack(c: Pf2eCharacter, s: SpellSpec, targetAc: Int?, conditions: List<ActiveCondition> = emptyList()): AttackResult {
         val mods = listOf(
             Modifier(s.castingAbility.abbr, ModType.ABILITY, c.mod(s.castingAbility)),
-            Modifier("Prof. ${s.rank.abbr}", ModType.PROFICIENCY, s.rank.bonus(c.level)),
+            Modifier("Prof. ${s.rankFor(c).abbr}", ModType.PROFICIENCY, s.rankFor(c).bonus(c.level)),
         ) + StatusPenalties.modifiers(conditions, s.castingAbility)
         val check = CheckResult(roller.roll(20), ModifierStack.resolve(mods), targetAc)
         if (check.degree?.let { it <= d20.engine.core.Degree.FAILURE } == true) return AttackResult(check, null)
@@ -127,6 +123,17 @@ class Pf2eEngine(private val roller: Roller) {
 
         /** Spell DC = 10 + casting ability + proficiency. */
         fun spellDc(c: Pf2eCharacter, s: SpellSpec, conditions: List<ActiveCondition> = emptyList()): Int =
-            10 + c.mod(s.castingAbility) + s.rank.bonus(c.level) + StatusPenalties.total(conditions, s.castingAbility)
+            10 + c.mod(s.castingAbility) + s.rankFor(c).bonus(c.level) + StatusPenalties.total(conditions, s.castingAbility)
+
+        /** Ability, proficiency, item bonus and armor effects of a check (no status penalties). */
+        fun checkModifiers(c: Pf2eCharacter, spec: CheckSpec, armor: ArmorSpec? = null): List<Modifier> {
+            val ability = spec.abilityOverride ?: spec.kind.defaultAbility
+            return buildList {
+                add(Modifier(ability.abbr, ModType.ABILITY, c.mod(ability)))
+                add(Modifier("Prof. ${spec.rank.abbr}", ModType.PROFICIENCY, spec.rank.bonus(c.level)))
+                if (spec.itemBonus != 0) add(Modifier("Item", ModType.ITEM, spec.itemBonus))
+                armor?.let { addAll(it.checkModifiers(c, spec.kind, ability)) }
+            }
+        }
     }
 }

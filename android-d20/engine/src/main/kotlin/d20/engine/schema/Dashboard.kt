@@ -1,5 +1,6 @@
 package d20.engine.schema
 
+import d20.engine.pf2e.Ability
 import d20.engine.pf2e.ArmorSpec
 import d20.engine.conditions.ConditionEffect
 import d20.engine.pf2e.CheckSpec
@@ -21,10 +22,12 @@ enum class GridLayout(val slots: Int, val ptName: String) {
 
 /** Drives the card glow colour (guide §6.1: glow follows `characterClass`). */
 @Serializable
-enum class PfClass(val ptName: String) {
-    ALCHEMIST("Alquimista"), BARBARIAN("Bárbaro"), BARD("Bardo"), CHAMPION("Campeão"), CLERIC("Clérigo"),
-    DRUID("Druida"), FIGHTER("Guerreiro"), INVESTIGATOR("Investigador"), MONK("Monge"), RANGER("Patrulheiro"),
-    ROGUE("Ladino"), SORCERER("Feiticeiro"), SWASHBUCKLER("Espadachim"), WITCH("Bruxo"), WIZARD("Mago"),
+enum class PfClass(val ptName: String, val keyAbility: Ability) {
+    ALCHEMIST("Alquimista", Ability.INT), BARBARIAN("Bárbaro", Ability.STR), BARD("Bardo", Ability.CHA),
+    CHAMPION("Campeão", Ability.STR), CLERIC("Clérigo", Ability.WIS), DRUID("Druida", Ability.WIS),
+    FIGHTER("Guerreiro", Ability.STR), INVESTIGATOR("Investigador", Ability.INT), MONK("Monge", Ability.STR),
+    RANGER("Patrulheiro", Ability.STR), ROGUE("Ladino", Ability.DEX), SORCERER("Feiticeiro", Ability.CHA),
+    SWASHBUCKLER("Espadachim", Ability.DEX), WITCH("Bruxo", Ability.INT), WIZARD("Mago", Ability.INT),
 }
 
 /** A module that snaps into a zone slot. Types mirror the guide: ACTION | SPELL | SKILL | RESOURCE. */
@@ -99,6 +102,12 @@ data class ZoneConfig(val layout: GridLayout, val stations: List<Station>)
 data class Zones(val zone1: ZoneConfig, val zone2: ZoneConfig, val zone3: ZoneConfig) {
     fun all(): List<Pair<String, ZoneConfig>> = listOf("zone1" to zone1, "zone2" to zone2, "zone3" to zone3)
 }
+
+/** The class DC's key attribute: the one chosen in the Ficha, else the class's usual one. */
+fun Dashboard.keyAbility(): Ability = character.keyAbility ?: characterClass.keyAbility
+
+/** Class DC = 10 + key attribute + class proficiency (level + 2/4/6/8). */
+fun Dashboard.classDc(): Int = 10 + character.mod(keyAbility()) + character.classRank.bonus(character.level)
 
 @Serializable
 data class Dashboard(

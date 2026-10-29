@@ -50,6 +50,8 @@ import d20.engine.schema.ResourceStation
 import d20.engine.schema.Station
 import d20.engine.schema.ZoneConfig
 import d20.engine.schema.ZoneKey
+import d20.engine.schema.classDc
+import d20.engine.schema.keyAbility
 import d20.engine.schema.resourceStation
 
 @Composable
@@ -194,7 +196,7 @@ private fun Header(d: Dashboard, setup: Boolean, vm: SheetViewModel, menu: List<
         Avatar(d.name.firstOrNull()?.uppercase() ?: "?", d.characterClass.cardColor().fill())
         Column(Modifier.weight(1f)) {
             Text(if (setup) d.name else "Olá, ${d.name}!", color = c.text, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, maxLines = 1)
-            Text("${d.characterClass.ptName} · nível ${d.character.level}", color = c.muted, fontSize = 11.5.sp, fontWeight = FontWeight.Medium)
+            Text("${d.characterClass.ptName} · nível ${d.character.level} · CD de classe ${d.classDc()}", color = c.muted, fontSize = 11.5.sp, fontWeight = FontWeight.Medium)
         }
         if (setup) {
             NeoButton("Ficha", onCharacter, ghost = true)
@@ -252,7 +254,7 @@ private fun cardHeight(zone: ZoneConfig, setup: Boolean, d: Dashboard): Dp {
     val base = when (zone.layout) { GridLayout.GRID_1X1 -> 124; GridLayout.GRID_1X2 -> 140; GridLayout.GRID_2X2 -> 104 }
     val tallest = zone.stations.maxOfOrNull { s ->
         when (s) {
-            is ResourceStation -> if (setup) 130 else base + 28 + (if (s.shield != null) 74 else 0)
+            is ResourceStation -> if (setup) 148 else base + 46 + (if (s.shield != null) 74 else 0)
             is ActionStation -> base + (if (s.weapon.traits.isNotEmpty()) 22 else 0) + (if (s.weapon.elemental.isNotEmpty()) 24 else 0)
             else -> base
         }
@@ -294,6 +296,26 @@ private fun CharacterSheet(d: Dashboard, vm: SheetViewModel, onDismiss: () -> Un
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Dropdown("Classe", PfClass.entries, d.characterClass, { it.ptName }, { cls -> vm.edit { DashboardEditor.setClass(it, cls) } }, Modifier.weight(1f))
             Stepper("Nível", d.character.level, 1..20, { l -> vm.edit { DashboardEditor.setLevel(it, l) } }, Modifier.weight(1f))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Dropdown("Proficiência de classe", Rank.entries.drop(1), d.character.classRank, { "${it.abbr} · ${it.ptName}" }, { r -> vm.edit { DashboardEditor.setClassRank(it, r) } }, Modifier.weight(1f))
+            Dropdown(
+                "Atributo-chave", listOf<Ability?>(null) + Ability.entries, d.character.keyAbility,
+                { it?.abbr ?: "Da classe (${d.characterClass.keyAbility.abbr})" }, { a -> vm.edit { DashboardEditor.setKeyAbility(it, a) } }, Modifier.weight(1f),
+            )
+        }
+        NeoSurface(Modifier.fillMaxWidth().padding(end = 3.dp, bottom = 3.dp), fill = CardColor_MOSTARDA, shadowOffset = 3.dp) {
+            Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("CD DE CLASSE", color = Ink, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, letterSpacing = 0.5.sp)
+                    Text(
+                        "10 + ${d.keyAbility().abbr} ${signed(d.character.mod(d.keyAbility()))} + prof. ${d.character.classRank.abbr} ${signed(d.character.classRank.bonus(d.character.level))}" +
+                            " · usada nas magias com proficiência \"Da classe\"",
+                        color = Ink, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Text("${d.classDc()}", color = Ink, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp)
+            }
         }
         SectionTitle("Modificadores de atributo")
         Ability.entries.chunked(2).forEach { pair ->

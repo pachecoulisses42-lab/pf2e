@@ -60,7 +60,7 @@ object ModuleLibrary {
     private fun spell(
         name: String, mode: SpellMode, count: Int, die: DieType, type: DamageType, group: String,
         ability: Ability = Ability.INT, save: CheckKind = CheckKind.REFLEX,
-    ) = ModuleTemplate(StationType.SPELL, group, SpellStation(TPL, SpellSpec(name, mode, ability, Rank.TRAINED, count, die, type, save)))
+    ) = ModuleTemplate(StationType.SPELL, group, SpellStation(TPL, SpellSpec(name, mode, ability, Rank.TRAINED, count, die, type, save, fromClass = true)))
 
     private fun item(kind: ConsumableKind, grade: ConsumableGrade, group: String, quantity: Int = 2, name: String = "") =
         ModuleTemplate(StationType.CONSUMABLE, group, ConsumableStation(TPL, ConsumableSpec(name, kind, grade, quantity = quantity)))

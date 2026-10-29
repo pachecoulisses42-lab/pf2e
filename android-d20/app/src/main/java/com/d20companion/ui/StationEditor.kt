@@ -40,6 +40,9 @@ import d20.engine.conditions.EffectTarget
 import d20.engine.conditions.EffectTrigger
 import d20.engine.core.DieType
 import d20.engine.pf2e.Ability
+import d20.engine.pf2e.ArmorCatalog
+import d20.engine.pf2e.ArmorCategory
+import d20.engine.pf2e.ArmorSpec
 import d20.engine.pf2e.CheckKind
 import d20.engine.pf2e.CheckSpec
 import d20.engine.pf2e.ConsumableKind
@@ -51,7 +54,9 @@ import d20.engine.pf2e.ExtraDamage
 import d20.engine.pf2e.ExtraKind
 import d20.engine.pf2e.ExtraSource
 import d20.engine.pf2e.Rank
+import d20.engine.pf2e.Resistance
 import d20.engine.pf2e.ShieldKind
+import d20.engine.pf2e.SkillRune
 import d20.engine.pf2e.SpellMode
 import d20.engine.pf2e.SpellSpec
 import d20.engine.pf2e.StrikingRune
@@ -65,8 +70,8 @@ import d20.engine.schema.ResourceStation
 import d20.engine.schema.SkillStation
 import d20.engine.schema.SpellStation
 import d20.engine.schema.Station
-import d20.engine.schema.effectiveColor
 import d20.engine.schema.Text as SchemaText
+import d20.engine.schema.effectiveColor
 
 private val physicalTypes = listOf(DamageType.SLASHING, DamageType.BLUDGEONING, DamageType.PIERCING)
 private val saveKinds = listOf(CheckKind.FORTITUDE, CheckKind.REFLEX, CheckKind.WILL)
@@ -254,7 +259,11 @@ private fun SpellForm(s: SpellSpec, onChange: (SpellSpec) -> Unit) {
     Dropdown("Tipo", SpellMode.entries, s.mode, { it.ptName }, { onChange(s.copy(mode = it)) })
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Dropdown("Atributo", Ability.entries, s.castingAbility, { "${it.abbr} · ${it.ptName}" }, { onChange(s.copy(castingAbility = it)) }, Modifier.weight(1f))
-        Dropdown("Proficiência", Rank.entries, s.rank, { "${it.abbr} · ${it.ptName}" }, { onChange(s.copy(rank = it)) }, Modifier.weight(1f))
+        Dropdown(
+            "Proficiência", listOf<Rank?>(null) + Rank.entries, if (s.fromClass) null else s.rank,
+            { it?.let { r -> "${r.abbr} · ${r.ptName}" } ?: "Da classe (Ficha)" },
+            { r -> onChange(if (r == null) s.copy(fromClass = true) else s.copy(fromClass = false, rank = r)) }, Modifier.weight(1f),
+        )
     }
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Stepper("Dados de dano", s.diceCount, 1..12, { onChange(s.copy(diceCount = it)) }, Modifier.weight(1f))
@@ -356,15 +365,103 @@ private fun ResourceForm(r: ResourceStation, onChange: (ResourceStation) -> Unit
         Stepper("PV máximos (±10)", r.maxHp, 1..999, { onChange(r.copy(maxHp = it)) }, Modifier.weight(1f), step = 10)
     }
     SectionTitle("Armadura")
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Dropdown("Proficiência", Rank.entries, r.armor.rank, { "${it.abbr} · ${it.ptName}" }, { onChange(r.copy(armor = r.armor.copy(rank = it))) }, Modifier.weight(1f))
-        Stepper("Bônus de item", r.armor.itemBonus, 0..4, { onChange(r.copy(armor = r.armor.copy(itemBonus = it))) }, Modifier.weight(1f), display = { if (it == 0) "—" else "+$it" })
-    }
-    Stepper("Limite de Destreza", r.armor.dexCap, 0..5, { onChange(r.copy(armor = r.armor.copy(dexCap = it))) })
+    ArmorEditor(r.armor) { onChange(r.copy(armor = it)) }
     SectionTitle("Escudo")
     ShieldOption("Sem escudo", null, r.shield == null) { onChange(r.copy(shield = null)) }
     ShieldKind.entries.forEach { k ->
         ShieldOption(k.ptName, "Dureza ${k.hardness} · PV ${k.maxHp} · CA +${k.acBonus}", r.shield == k) { onChange(r.copy(shield = k)) }
+    }
+}
+
+/** Armor: pick a basic one or build from scratch, then adjust stats and runes. Every number is a selection. */
+@Composable
+private fun ArmorEditor(a: ArmorSpec, onChange: (ArmorSpec) -> Unit) {
+    val c = D20.colors
+    var choosing by remember { mutableStateOf(false) }
+    ShieldOption(a.name.ifBlank { "Armadura sem nome" }, armorSummary(a), selected = true) { choosing = !choosing }
+    NeoButton(if (choosing) "Fechar lista" else "Escolher armadura", { choosing = !choosing }, ghost = true, modifier = Modifier.fillMaxWidth().padding(end = 3.dp, bottom = 3.dp))
+    if (choosing) {
+        ShieldOption("＋ Criar do zero", "Começa sem bônus; ajuste tudo abaixo", false) {
+            onChange(ArmorCatalog.apply(a, ArmorSpec(a.rank, 0, 6, "Armadura personalizada", ArmorCategory.LIGHT)))
+            choosing = false
+        }
+        ArmorCatalog.basics.forEach { base ->
+            ShieldOption(base.name, armorSummary(base), a.name == base.name && a.itemBonus == base.itemBonus && a.dexCap == base.dexCap) {
+                onChange(ArmorCatalog.apply(a, base))
+                choosing = false
+            }
+        }
+    }
+    Dropdown("Proficiência", Rank.entries, a.rank, { "${it.abbr} · ${it.ptName}" }, { onChange(a.copy(rank = it)) })
+    NameField("Nome da armadura (texto livre)", a.name) { onChange(a.copy(name = it)) }
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Dropdown("Categoria", ArmorCategory.entries, a.category, { it.ptName }, { onChange(a.copy(category = it)) }, Modifier.weight(1f))
+        Stepper("Bônus de CA", a.itemBonus, 0..6, { onChange(a.copy(itemBonus = it)) }, Modifier.weight(1f), display = { if (it == 0) "—" else "+$it" })
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Stepper("Limite de DES", a.dexCap, 0..6, { onChange(a.copy(dexCap = it)) }, Modifier.weight(1f), display = { "+$it" })
+        Stepper("Penalidade", a.checkPenalty, 0..5, { onChange(a.copy(checkPenalty = it)) }, Modifier.weight(1f), display = { if (it == 0) "—" else "−$it" })
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Stepper("Deslocamento", a.speedPenalty, 0..20, { onChange(a.copy(speedPenalty = it)) }, Modifier.weight(1f), step = 5, display = { if (it == 0) "—" else "−$it pés" })
+        Dropdown("Força exigida", listOf<Int?>(null) + (-1..6).toList(), a.strength, { it?.let(::signed) ?: "Nenhuma" }, { onChange(a.copy(strength = it)) }, Modifier.weight(1f))
+    }
+    Text(
+        "A penalidade vale em perícias de FOR e DES; com a Força exigida ela some e o deslocamento perde 5 pés a menos.",
+        color = c.muted, fontSize = 10.5.sp,
+    )
+    SectionTitle("Runas da armadura")
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Stepper("Potência (CA)", a.potency, 0..3, { onChange(a.copy(potency = it)) }, Modifier.weight(1f), display = { if (it == 0) "—" else "+$it" })
+        Dropdown("Resiliência", (0..3).toList(), a.resilient, { resilientName(it) }, { onChange(a.copy(resilient = it)) }, Modifier.weight(1f))
+    }
+    a.skillRunes.forEachIndexed { i, rune ->
+        fun set(n: SkillRune) = onChange(a.copy(skillRunes = a.skillRunes.mapIndexed { j, old -> if (j == i) n else old }))
+        RuneCard(onRemove = { onChange(a.copy(skillRunes = a.skillRunes.filterIndexed { j, _ -> j != i })) }) {
+            Dropdown("Perícia ou saber", runeSkills, rune.skill, { it.ptName }, { set(rune.copy(skill = it)) }, Modifier.weight(1.4f))
+            Stepper("Bônus", rune.bonus, 1..3, { set(rune.copy(bonus = it)) }, Modifier.weight(1f), display = { "+$it" })
+        }
+    }
+    if (a.skillRunes.size < 4) {
+        NeoButton("+ Runa de perícia", { onChange(a.copy(skillRunes = a.skillRunes + SkillRune(CheckKind.STEALTH, 1))) }, ghost = true)
+    }
+    a.resistances.forEachIndexed { i, res ->
+        fun set(n: Resistance) = onChange(a.copy(resistances = a.resistances.mapIndexed { j, old -> if (j == i) n else old }))
+        RuneCard(onRemove = { onChange(a.copy(resistances = a.resistances.filterIndexed { j, _ -> j != i })) }) {
+            Dropdown("Resistência a", DamageType.entries, res.type, { it.ptName }, { set(res.copy(type = it)) }, Modifier.weight(1.4f))
+            Stepper("Valor", res.value, 1..30, { set(res.copy(value = it)) }, Modifier.weight(1f))
+        }
+    }
+    if (a.resistances.size < 5) {
+        val free = DamageType.entries.firstOrNull { t -> a.resistances.none { it.type == t } && !t.isPhysical } ?: DamageType.FIRE
+        NeoButton("+ Resistência", { onChange(a.copy(resistances = a.resistances + Resistance(free, 5))) }, ghost = true)
+    }
+    Text(
+        "Com este módulo em uma zona, a CA vem daqui e as runas e penalidades valem nas perícias e resistências dos outros módulos.",
+        color = c.muted, fontSize = 10.5.sp,
+    )
+}
+
+private val runeSkills = CheckKind.entries.filterNot { it.isSave }
+
+private fun resilientName(n: Int) = when (n) { 0 -> "Nenhuma"; 1 -> "Resiliente +1"; 2 -> "Maior +2"; else -> "Superior +3" }
+
+private fun armorSummary(a: ArmorSpec): String = buildList {
+    add(a.category.ptName)
+    add("CA +${a.itemBonus + a.potency}")
+    add("DES máx +${a.dexCap}")
+    if (a.checkPenalty > 0) add("−${a.checkPenalty} perícias")
+    if (a.speedPenalty > 0) add("−${a.speedPenalty} pés")
+    a.strength?.let { add("FOR ${signed(it)}") }
+}.joinToString(" · ")
+
+@Composable
+private fun RuneCard(onRemove: () -> Unit, content: @Composable RowScope.() -> Unit) {
+    NeoSurface(Modifier.fillMaxWidth().padding(end = 3.dp, bottom = 3.dp), fill = D20.colors.surface, shadowOffset = 3.dp) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Bottom, content = content)
+            NeoButton("Remover", onRemove, ghost = true)
+        }
     }
 }
 

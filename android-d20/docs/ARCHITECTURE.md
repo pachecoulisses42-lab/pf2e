@@ -22,6 +22,12 @@ o deck "Arquitetura Modular para RPGs Mobile") para o código.
 - **Danos extras em magias** (`pf2e/ExtraDamage.kt`): fonte (Feitiçaria Perigosa, Zona elemental, Fraqueza do alvo…),
   tipo de bônus (Circunstância, Estado, Mágico, Item, Sem tipo), dados/valor fixo e tipo de dano. Do mesmo tipo só vale o
   maior (`ExtraDamageStack`); "Sem tipo" soma. Fraqueza entra depois de dobrar/reduzir à metade e só se houver dano.
+- **Armadura** (`pf2e/Armor.kt` + `ArmorSpec` em `pf2e/Model.kt`): catálogo das armaduras básicas do Player Core ou
+  "Criar do zero"; runas de potência (CA), resiliência (resistências), de perícia/saber (bônus de item) e resistências
+  a dano. Com o módulo "Vida, escudo & defesa" numa zona, a CA vem dele e `PlayRunner` passa a armadura para
+  `Pf2eEngine.check` (runas + penalidade de armadura em perícias de FOR/DES, anulada pela Força exigida).
+- **CD de classe** (`Dashboard.classDc()`): 10 + atributo-chave + proficiência de classe (Ficha). Magias com
+  proficiência "Da classe" (`SpellSpec.fromClass`) usam essa proficiência na CD e no ataque mágico.
 - **Tela inicial** (`ui/HomeScreen.kt`, destino inicial): Novo personagem, Carregar personagem, Ajustes e "Continuar com" o último aberto.
 - **Navegação**: menu "⋮" no topo (`NavMenu` em `ui/Neo.kt`) com Início / Personagens / Painel / Condições / Ajustes.
 - **Salvar & Travar**: `lockAndSave()` valida com `DashboardValidator`, persiste (Room) e vai para Play.

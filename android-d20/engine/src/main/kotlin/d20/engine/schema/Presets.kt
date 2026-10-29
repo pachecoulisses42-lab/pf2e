@@ -2,7 +2,7 @@ package d20.engine.schema
 
 import d20.engine.core.DieType
 import d20.engine.pf2e.Ability
-import d20.engine.pf2e.ArmorSpec
+import d20.engine.pf2e.ArmorCatalog
 import d20.engine.pf2e.CheckKind
 import d20.engine.pf2e.CheckSpec
 import d20.engine.pf2e.DamageType
@@ -18,6 +18,8 @@ object Presets {
         Ability.STR to str, Ability.DEX to dex, Ability.CON to con,
         Ability.INT to int, Ability.WIS to wis, Ability.CHA to cha,
     )
+
+    private fun armor(name: String) = ArmorCatalog.basics.first { it.name == name }
 
     private fun skill(id: String, kind: CheckKind, rank: Rank) = SkillStation(id, CheckSpec(kind, rank))
 
@@ -55,7 +57,7 @@ object Presets {
                     skill("st-05", CheckKind.FORTITUDE, Rank.EXPERT), skill("st-06", CheckKind.PERCEPTION, Rank.TRAINED),
                 ),
             ),
-            zone3 = ZoneConfig(GridLayout.GRID_1X2, listOf(ResourceStation("st-07", 20, ArmorSpec(Rank.TRAINED, 2, 1)), ConditionsStation("st-08"))),
+            zone3 = ZoneConfig(GridLayout.GRID_1X2, listOf(ResourceStation("st-07", 20, armor("Cota de malha")), ConditionsStation("st-08"))),
         ),
     )
 
@@ -77,7 +79,7 @@ object Presets {
                     skill("st-05", CheckKind.ACROBATICS, Rank.TRAINED), skill("st-06", CheckKind.PERCEPTION, Rank.EXPERT),
                 ),
             ),
-            zone3 = ZoneConfig(GridLayout.GRID_1X2, listOf(ResourceStation("st-07", 16, ArmorSpec(Rank.TRAINED, 1, 4)), ConditionsStation("st-08"))),
+            zone3 = ZoneConfig(GridLayout.GRID_1X2, listOf(ResourceStation("st-07", 16, armor("Armadura de couro")), ConditionsStation("st-08"))),
         ),
     )
 
@@ -88,8 +90,8 @@ object Presets {
             zone1 = ZoneConfig(
                 GridLayout.GRID_1X2,
                 listOf(
-                    SpellStation("st-01", SpellSpec("Raio Gélido", SpellMode.ATTACK, Ability.INT, Rank.TRAINED, 2, DieType.D4, DamageType.COLD)),
-                    SpellStation("st-02", SpellSpec("Mãos Flamejantes", SpellMode.SAVE, Ability.INT, Rank.TRAINED, 2, DieType.D6, DamageType.FIRE, CheckKind.REFLEX)),
+                    SpellStation("st-01", SpellSpec("Raio Gélido", SpellMode.ATTACK, Ability.INT, Rank.TRAINED, 2, DieType.D4, DamageType.COLD, fromClass = true)),
+                    SpellStation("st-02", SpellSpec("Mãos Flamejantes", SpellMode.SAVE, Ability.INT, Rank.TRAINED, 2, DieType.D6, DamageType.FIRE, CheckKind.REFLEX, fromClass = true)),
                 ),
             ),
             zone2 = ZoneConfig(
@@ -99,7 +101,7 @@ object Presets {
                     skill("st-05", CheckKind.OCCULTISM, Rank.TRAINED), skill("st-06", CheckKind.PERCEPTION, Rank.TRAINED),
                 ),
             ),
-            zone3 = ZoneConfig(GridLayout.GRID_1X2, listOf(ResourceStation("st-07", 12, ArmorSpec(Rank.UNTRAINED, 0, 5)), ConditionsStation("st-08"))),
+            zone3 = ZoneConfig(GridLayout.GRID_1X2, listOf(ResourceStation("st-07", 12, armor("Roupas de explorador")), ConditionsStation("st-08"))),
         ),
     )
 
@@ -110,7 +112,7 @@ object Presets {
             zone1 = ZoneConfig(
                 GridLayout.GRID_1X2,
                 listOf(
-                    SpellStation("st-01", SpellSpec("Lança Divina", SpellMode.ATTACK, Ability.WIS, Rank.TRAINED, 2, DieType.D4, DamageType.FIRE)),
+                    SpellStation("st-01", SpellSpec("Lança Divina", SpellMode.ATTACK, Ability.WIS, Rank.TRAINED, 2, DieType.D4, DamageType.FIRE, fromClass = true)),
                     ActionStation("st-02", WeaponSpec("Maça", Ability.STR, Rank.TRAINED, 1, DieType.D6, DamageType.BLUDGEONING)),
                 ),
             ),
@@ -121,7 +123,7 @@ object Presets {
                     skill("st-05", CheckKind.WILL, Rank.EXPERT), skill("st-06", CheckKind.DIPLOMACY, Rank.TRAINED),
                 ),
             ),
-            zone3 = ZoneConfig(GridLayout.GRID_1X2, listOf(ResourceStation("st-07", 18, ArmorSpec(Rank.TRAINED, 1, 2)), ConditionsStation("st-08"))),
+            zone3 = ZoneConfig(GridLayout.GRID_1X2, listOf(ResourceStation("st-07", 18, armor("Gibão de peles")), ConditionsStation("st-08"))),
         ),
     )
 }

@@ -2,7 +2,7 @@ package d20.engine.schema
 
 import d20.engine.core.DieType
 import d20.engine.pf2e.Ability
-import d20.engine.pf2e.ArmorSpec
+import d20.engine.pf2e.ArmorCatalog
 import d20.engine.pf2e.CheckKind
 import d20.engine.pf2e.CheckSpec
 import d20.engine.pf2e.ConsumableGrade
@@ -76,6 +76,9 @@ object DashboardEditor {
     fun setSaveRank(d: Dashboard, kind: d20.engine.pf2e.CheckKind, rank: Rank) =
         d.copy(character = d.character.copy(saves = d.character.saves + (kind to rank)))
 
+    fun setClassRank(d: Dashboard, rank: Rank) = d.copy(character = d.character.copy(classRank = rank))
+    fun setKeyAbility(d: Dashboard, ability: Ability?) = d.copy(character = d.character.copy(keyAbility = ability))
+
     fun setAbility(d: Dashboard, ability: Ability, mod: Int) =
         d.copy(character = d.character.copy(abilityMods = d.character.abilityMods + (ability to mod.coerceIn(-5, 10))))
 
@@ -89,10 +92,10 @@ object DashboardEditor {
 
     private fun newStation(id: String, type: StationType): Station = when (type) {
         StationType.ACTION -> ActionStation(id, WeaponSpec("Nova arma", Ability.STR, Rank.TRAINED, 1, DieType.D8, DamageType.SLASHING))
-        StationType.SPELL -> SpellStation(id, SpellSpec("Nova magia", SpellMode.ATTACK, Ability.INT, Rank.TRAINED, 2, DieType.D6, DamageType.FIRE))
+        StationType.SPELL -> SpellStation(id, SpellSpec("Nova magia", SpellMode.ATTACK, Ability.INT, Rank.TRAINED, 2, DieType.D6, DamageType.FIRE, fromClass = true))
         StationType.SKILL -> SkillStation(id, CheckSpec(CheckKind.ATHLETICS, Rank.TRAINED))
         StationType.CONSUMABLE -> ConsumableStation(id, ConsumableSpec("", ConsumableKind.HEALING_POTION, ConsumableGrade.LESSER))
-        StationType.RESOURCE -> ResourceStation(id, 10, ArmorSpec(Rank.UNTRAINED, 0, 5))
+        StationType.RESOURCE -> ResourceStation(id, 10, ArmorCatalog.basics.first())
         StationType.CONDITIONS -> ConditionsStation(id)
     }
 }

@@ -27,6 +27,7 @@ import d20.engine.schema.ResourceStation
 import d20.engine.schema.SkillStation
 import d20.engine.schema.SpellStation
 import d20.engine.schema.Station
+import d20.engine.schema.resourceStation
 
 /** Visual tone of a result (guide §6.1): green success, red failure, gold critical. */
 enum class Tone { SUCCESS, FAILURE, CRITICAL, NEUTRAL }
@@ -137,7 +138,7 @@ class PlayRunner(private val engine: Pf2eEngine) {
         }
         is SkillStation -> check(
             station.title, if (station.check.kind.isSave) "Resistência" else "Teste",
-            engine.check(d.character, station.check, ctx.targetDc, ctx.conditions),
+            engine.check(d.character, station.check, ctx.targetDc, ctx.conditions, d.resourceStation()?.armor),
         ).let { it.copy(notices = effectNotices(station.effects, it.degree)) }
         is ConsumableStation -> consumable(station, d, ctx)
         is ResourceStation -> throw IllegalArgumentException("Estações de recurso não rolam dados")

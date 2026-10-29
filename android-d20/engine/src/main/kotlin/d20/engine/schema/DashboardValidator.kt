@@ -88,7 +88,18 @@ object DashboardValidator {
     private fun resource(key: String, r: ResourceStation) = buildList {
         if (r.maxHp !in 1..999) add("$key: PV máximo deve ser 1..999")
         val a: ArmorSpec = r.armor
-        if (a.itemBonus !in 0..4) add("$key: bônus de item da armadura deve ser +0..+4")
-        if (a.dexCap !in 0..5) add("$key: limite de Destreza deve ser 0..5")
+        if (a.name.isNotEmpty() && !Text.isValid(a.name)) add("$key: nome da armadura inválido")
+        if (a.itemBonus !in 0..6) add("$key: bônus de CA da armadura deve ser +0..+6")
+        if (a.dexCap !in 0..6) add("$key: limite de Destreza deve ser 0..6")
+        if (a.checkPenalty !in 0..5) add("$key: penalidade de armadura deve ser 0..−5")
+        if (a.speedPenalty !in 0..20) add("$key: penalidade de deslocamento deve ser 0..20 pés")
+        if (a.strength != null && a.strength !in -1..6) add("$key: Força exigida deve ser −1..+6")
+        if (a.potency !in 0..3) add("$key: runa de potência deve ser +0..+3")
+        if (a.resilient !in 0..3) add("$key: runa de resiliência deve ser +0..+3")
+        if (a.skillRunes.size > 4) add("$key: no máximo 4 runas de perícia")
+        if (a.skillRunes.any { it.bonus !in 1..3 }) add("$key: runa de perícia deve dar +1..+3")
+        if (a.resistances.size > 5) add("$key: no máximo 5 resistências")
+        if (a.resistances.any { it.value !in 1..30 }) add("$key: resistência deve ser 1..30")
+        if (a.resistances.map { it.type }.distinct().size != a.resistances.size) add("$key: resistência repetida")
     }
 }
