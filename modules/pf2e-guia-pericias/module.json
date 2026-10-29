@@ -1,0 +1,14 @@
+{
+    "id": "pf2e-guia-pericias",
+    "title": "PF2e: Guia de Perícias (PT-BR)",
+    "description": "Digite /pericias no chat para abrir uma janela com explicações em português de como usar as perícias do seu personagem.",
+    "version": "1.0.0",
+    "authors": [{ "name": "pachecoulisses42-lab" }],
+    "compatibility": { "minimum": "13", "verified": "14" },
+    "relationships": {
+        "systems": [{ "id": "pf2e", "type": "system", "compatibility": {} }]
+    },
+    "esmodules": ["scripts/main.js"],
+    "styles": ["styles/guia.css"],
+    "languages": []
+}

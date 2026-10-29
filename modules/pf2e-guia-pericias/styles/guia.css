@@ -1,0 +1,112 @@
+.pf2e-guia-pericias .window-content {
+    padding: 0.5rem;
+    overflow-y: auto;
+}
+.pf2e-guia-pericias .guia-barra {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: inherit;
+}
+.pf2e-guia-pericias .guia-barra input[type="search"] {
+    flex: 1;
+}
+.pf2e-guia-pericias .guia-barra label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
+.pf2e-guia-pericias .guia-pericia {
+    border: 1px solid var(--color-border, #7a7971);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.6rem;
+}
+.pf2e-guia-pericias .guia-pericia header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.pf2e-guia-pericias .guia-pericia h2 {
+    flex: 1;
+    margin: 0;
+    border: none;
+    font-size: 1.25em;
+}
+.pf2e-guia-pericias .rank {
+    font-size: 0.8em;
+    padding: 0.1rem 0.45rem;
+    border-radius: 3px;
+    color: #fff;
+    background: #555;
+}
+.pf2e-guia-pericias .rank-1 { background: #171f69; }
+.pf2e-guia-pericias .rank-2 { background: #3c005e; }
+.pf2e-guia-pericias .rank-3 { background: #664400; }
+.pf2e-guia-pericias .rank-4 { background: #5e0000; }
+.pf2e-guia-pericias button.mod {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 3rem;
+    font-weight: bold;
+}
+.pf2e-guia-pericias .resumo {
+    font-style: italic;
+    margin: 0.35rem 0;
+}
+.pf2e-guia-pericias details summary {
+    cursor: pointer;
+    font-weight: bold;
+}
+.pf2e-guia-pericias ul.acoes {
+    list-style: none;
+    padding: 0;
+    margin: 0.4rem 0 0;
+}
+.pf2e-guia-pericias ul.acoes > li {
+    border-top: 1px dashed var(--color-border, #999);
+    padding: 0.35rem 0;
+}
+.pf2e-guia-pericias ul.acoes > li.bloqueada {
+    opacity: 0.55;
+}
+.pf2e-guia-pericias .acao-topo {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.pf2e-guia-pericias .acao-topo strong {
+    flex: 1;
+}
+.pf2e-guia-pericias .acao-topo button {
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 1.8rem;
+    line-height: 1;
+}
+.pf2e-guia-pericias .custo {
+    font-size: 0.85em;
+    white-space: nowrap;
+}
+.pf2e-guia-pericias .tag {
+    font-size: 0.75em;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    padding: 0 0.3rem;
+}
+.pf2e-guia-pericias ul.acoes p {
+    margin: 0.2rem 0 0;
+}
+.pf2e-guia-pericias .aviso {
+    color: #a00;
+    font-size: 0.85em;
+}
+.pf2e-guia-pericias .guia-vazio {
+    text-align: center;
+    opacity: 0.7;
+}
