@@ -1,0 +1,152 @@
+{
+    "schemaVersion": 1,
+    "ruleSystem": "pf2e-remaster",
+    "characterId": "char-8832",
+    "name": "Valeros",
+    "characterClass": "FIGHTER",
+    "character": {
+        "level": 1,
+        "abilityMods": {
+            "STR": 4,
+            "DEX": 2,
+            "CON": 2,
+            "INT": 0,
+            "WIS": 1,
+            "CHA": 0
+        },
+        "saves": {},
+        "classRank": "TRAINED"
+    },
+    "zones": {
+        "zone1": {
+            "layout": "GRID_1X2",
+            "stations": [
+                {
+                    "type": "ACTION",
+                    "id": "st-01",
+                    "weapon": {
+                        "name": "Espada Longa",
+                        "attackAbility": "STR",
+                        "rank": "EXPERT",
+                        "diceCount": 1,
+                        "die": "D8",
+                        "damageType": "SLASHING",
+                        "potency": 0,
+                        "striking": "NONE",
+                        "elemental": [],
+                        "greaterSpecialization": false,
+                        "agile": false,
+                        "traits": []
+                    },
+                    "title": "Espada Longa",
+                    "diceFormula": "1d20+9",
+                    "secondaryDiceFormula": "1d8+6"
+                },
+                {
+                    "type": "ACTION",
+                    "id": "st-02",
+                    "weapon": {
+                        "name": "Arco Longo",
+                        "attackAbility": "DEX",
+                        "rank": "EXPERT",
+                        "diceCount": 1,
+                        "die": "D8",
+                        "damageType": "PIERCING",
+                        "potency": 0,
+                        "striking": "NONE",
+                        "elemental": [],
+                        "greaterSpecialization": false,
+                        "agile": false,
+                        "traits": []
+                    },
+                    "title": "Arco Longo",
+                    "diceFormula": "1d20+7",
+                    "secondaryDiceFormula": "1d8+2"
+                }
+            ]
+        },
+        "zone2": {
+            "layout": "GRID_2X2",
+            "stations": [
+                {
+                    "type": "SKILL",
+                    "id": "st-03",
+                    "check": {
+                        "kind": "ATHLETICS",
+                        "rank": "TRAINED",
+                        "itemBonus": 0
+                    },
+                    "effects": [],
+                    "title": "Atletismo",
+                    "diceFormula": "1d20+7"
+                },
+                {
+                    "type": "SKILL",
+                    "id": "st-04",
+                    "check": {
+                        "kind": "INTIMIDATION",
+                        "rank": "TRAINED",
+                        "itemBonus": 0
+                    },
+                    "effects": [],
+                    "title": "Intimidação",
+                    "diceFormula": "1d20+3"
+                },
+                {
+                    "type": "SKILL",
+                    "id": "st-05",
+                    "check": {
+                        "kind": "FORTITUDE",
+                        "rank": "EXPERT",
+                        "itemBonus": 0
+                    },
+                    "effects": [],
+                    "title": "Fortitude",
+                    "diceFormula": "1d20+7"
+                },
+                {
+                    "type": "SKILL",
+                    "id": "st-06",
+                    "check": {
+                        "kind": "PERCEPTION",
+                        "rank": "TRAINED",
+                        "itemBonus": 0
+                    },
+                    "effects": [],
+                    "title": "Percepção",
+                    "diceFormula": "1d20+4"
+                }
+            ]
+        },
+        "zone3": {
+            "layout": "GRID_1X2",
+            "stations": [
+                {
+                    "type": "RESOURCE",
+                    "id": "st-07",
+                    "maxHp": 20,
+                    "armor": {
+                        "rank": "TRAINED",
+                        "itemBonus": 4,
+                        "dexCap": 1,
+                        "name": "Cota de malha",
+                        "category": "MEDIUM",
+                        "checkPenalty": 2,
+                        "speedPenalty": 5,
+                        "strength": 3,
+                        "potency": 0,
+                        "resilient": 0,
+                        "skillRunes": [],
+                        "resistances": []
+                    },
+                    "title": "Vida & Defesa"
+                },
+                {
+                    "type": "CONDITIONS",
+                    "id": "st-08",
+                    "title": "Condições"
+                }
+            ]
+        }
+    }
+}
