@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Prancheta de Fases</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@400;600;700&family=Cormorant+Garamond:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sf-0:#efe6cc;--sf-1:#f6efda;--sf-2:#fbf6e7;--tx-1:#2a2414;--tx-2:#4d4430;--tx-3:#6b6048;--bd-1:#b9a878;--bd-2:#d8cba3;
+  --ac:#3f5220;--ac-tx:#fffbe9;--ac-suave:#e3e7cc;--ok:#3d6b2a;--alerta:#9a3c1c;--alerta-sf:#f6e0d2;--anel:#b07a18;
+  --f-manutencao:#7a5a2c;--f-mercantil:#8a6d14;--f-atividade:#3f5220;--f-evento:#6b3a5a;
+  --f-title:'Cormorant Garamond',Palatino,Georgia,serif;--f-body:'Alegreya',Palatino,Georgia,serif;
+  --tap:44px;--trilho-h:52px;--acao-h:68px;--nav-h:60px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --sf-0:#1b1a14;--sf-1:#24221a;--sf-2:#2c2a20;--tx-1:#f0e8d0;--tx-2:#d4c9aa;--tx-3:#b3a886;--bd-1:#6f6447;--bd-2:#4a432f;
+  --ac:#b8c97a;--ac-tx:#1b1a14;--ac-suave:#39402a;--ok:#9fcf85;--alerta:#f0a080;--alerta-sf:#4a2a1c;--anel:#e6b450;
+  --f-manutencao:#d1a464;--f-mercantil:#e0c25a;--f-atividade:#a9c26a;--f-evento:#d39ac0;}}
+:root[data-theme="dark"]{
+  --sf-0:#1b1a14;--sf-1:#24221a;--sf-2:#2c2a20;--tx-1:#f0e8d0;--tx-2:#d4c9aa;--tx-3:#b3a886;--bd-1:#6f6447;--bd-2:#4a432f;
+  --ac:#b8c97a;--ac-tx:#1b1a14;--ac-suave:#39402a;--ok:#9fcf85;--alerta:#f0a080;--alerta-sf:#4a2a1c;--anel:#e6b450;
+  --f-manutencao:#d1a464;--f-mercantil:#e0c25a;--f-atividade:#a9c26a;--f-evento:#d39ac0;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--sf-0);color:var(--tx-1);font:17px/1.45 var(--f-body)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible{outline:3px solid var(--anel);outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* Painel do Reino (o topo do app) */
+.painel{position:sticky;top:0;z-index:20;background:var(--sf-1);border-bottom:1px solid var(--bd-1)}
+.painel-l1{display:flex;gap:10px;align-items:center;padding:6px 16px;font-size:14px;color:var(--tx-2);overflow-x:auto;white-space:nowrap}
+.painel-l1 b{color:var(--tx-1)}
+.painel-l1 .tema{margin-left:auto;min-height:32px;border:1px solid var(--bd-1);background:var(--sf-2);border-radius:8px;padding:0 10px}
+
+/* M2 — Trilho */
+.trilho{display:flex;align-items:center;gap:12px;width:100%;min-height:var(--trilho-h);padding:6px 16px;border:0;border-top:1px solid var(--bd-2);background:var(--sf-2);text-align:left}
+.trilho-txt{display:flex;flex-direction:column;line-height:1.15;min-width:0;flex:0 1 auto}
+.trilho-txt b{font-size:15px;white-space:nowrap}
+.trilho-txt small{font-size:13px;color:var(--tx-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.segs{display:flex;gap:6px;flex:1;min-width:120px}
+.seg-fase{display:flex;gap:2px;flex:var(--n)}
+.seg{flex:1;height:10px;border-radius:3px;background:var(--bd-2);border:1px solid transparent}
+.seg.feito{background:var(--cor)}
+.seg.pulado{background:repeating-linear-gradient(45deg,var(--cor) 0 3px,transparent 3px 6px);opacity:.7}
+.seg.atual{background:var(--sf-2);border:2px solid var(--anel);height:14px;margin-top:-2px}
+.pend{flex:none;min-width:36px;height:28px;padding:0 8px;border-radius:999px;background:var(--alerta-sf);color:var(--alerta);font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center}
+.pend[hidden]{display:none}
+
+/* layout */
+.prn{container-type:inline-size;padding:16px 16px calc(var(--acao-h) + var(--nav-h) + 24px)}
+.grade{display:grid;grid-template-columns:1fr;gap:16px;max-width:1400px;margin:0 auto}
+.col-mapa,.col-reino{display:none}
+@container (min-width:600px){ .cartao{max-width:680px;margin:0 auto;width:100%} }
+@container (min-width:1024px){
+  .grade{grid-template-columns:260px minmax(0,1fr) 300px;align-items:start}
+  .col-mapa,.col-reino{display:block;position:sticky;top:calc(var(--topo,100px) + 12px);max-height:calc(100dvh - var(--topo,100px) - 24px);overflow:auto}
+  .cartao{max-width:720px}
+  .bt-mapa{display:none}
+}
+
+/* M3 — Cartão Agora */
+.cartao{background:var(--sf-2);border:2px solid var(--bd-1);border-radius:14px;padding:16px}
+.cab small{display:block;font-size:13px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--tx-3)}
+.cab h2{margin:2px 0 0;font:700 26px/1.15 var(--f-title)}
+.cab .quem{margin:4px 0 0;color:var(--tx-2)}
+.estagios{display:flex;gap:4px;margin:14px 0;padding:0;list-style:none;counter-reset:e}
+.estagios li{flex:1;text-align:center;font-size:13px;font-weight:700;color:var(--tx-3);padding-top:8px;border-top:4px solid var(--bd-2)}
+.estagios li.feito{color:var(--ok);border-color:var(--ok)}
+.estagios li.atual{color:var(--tx-1);border-color:var(--anel)}
+.bloco{border:1px solid var(--bd-2);border-radius:10px;padding:12px;margin:10px 0;background:var(--sf-1)}
+.bloco h3{margin:0 0 6px;font-size:14px;letter-spacing:.4px;text-transform:uppercase;color:var(--tx-3)}
+.calc{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:20px}
+.calc b{font-size:32px}
+.grau{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:700}
+.g-cs,.g-s{background:var(--ac-suave);color:var(--ok)}
+.g-f,.g-fc{background:var(--alerta-sf);color:var(--alerta)}
+.efeito{display:flex;align-items:center;gap:10px;min-height:var(--tap);padding:4px 0;border-top:1px dashed var(--bd-2)}
+.efeito:first-of-type{border-top:0}
+.efeito span{flex:1}
+.efeito.ok span{color:var(--ok)}
+.btn{min-height:var(--tap);padding:0 14px;border-radius:10px;border:1.5px solid var(--bd-1);background:var(--sf-2);font-weight:600}
+.btn-mini{min-height:36px;min-width:var(--tap);padding:0 10px}
+.btn-pri{background:var(--ac);color:var(--ac-tx);border-color:var(--ac);font-weight:700}
+.excecao{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.excecao p{margin:0;flex:1;min-width:180px}
+.recesso{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+.recesso label{display:flex;flex-direction:column;font-size:13px;color:var(--tx-2)}
+.recesso select{min-height:var(--tap);font:16px var(--f-body);border-radius:8px;border:1px solid var(--bd-1);background:var(--sf-2);color:var(--tx-1)}
+.ajuda{margin:8px 0 0;font-size:14px;color:var(--tx-2)}
+.ajuda summary{cursor:pointer;min-height:32px}
+
+/* barra de ação no polegar */
+.acao{position:fixed;left:0;right:0;bottom:var(--nav-h);z-index:25;display:flex;gap:8px;align-items:center;padding:10px 16px;background:var(--sf-1);border-top:1px solid var(--bd-1);box-shadow:0 -4px 14px rgba(0,0,0,.08)}
+.acao .btn-pri{flex:1;min-height:48px;font-size:17px}
+@container (min-width:1024px){ }
+@media (min-width:1024px){ .acao{position:sticky;bottom:12px;margin-top:16px;border:1px solid var(--bd-1);border-radius:12px;box-shadow:none} }
+.menu{position:absolute;right:16px;bottom:calc(100% + 6px);background:var(--sf-2);border:1px solid var(--bd-1);border-radius:10px;padding:6px;display:flex;flex-direction:column;min-width:220px;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.menu[hidden]{display:none}
+.menu button{min-height:var(--tap);text-align:left;border:0;background:none;padding:0 12px;border-radius:8px}
+.menu button:hover{background:var(--sf-1)}
+
+/* barra de abas do app (contexto) */
+.nav{position:fixed;left:0;right:0;bottom:0;height:var(--nav-h);z-index:26;display:flex;background:#2c3618;color:#f3ecd6}
+.nav span{flex:1;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;opacity:.7}
+.nav span.on{opacity:1;background:rgba(255,255,255,.12)}
+@media (min-width:1024px){ .nav{display:none} .acao{bottom:auto} .prn{padding-bottom:24px} }
+
+/* M4 — Mapa */
+.mapa h2{font:700 20px var(--f-title);margin:0}
+.modo{display:flex;margin:10px 0;border:1.5px solid var(--bd-1);border-radius:10px;overflow:hidden}
+.modo button{flex:1;min-height:40px;border:0;background:var(--sf-2);font-weight:700}
+.modo button[aria-pressed="true"]{background:var(--ac);color:var(--ac-tx)}
+.fase{border-top:1px solid var(--bd-2)}
+.fase>button{display:flex;width:100%;align-items:center;gap:8px;min-height:var(--tap);border:0;background:none;padding:0 4px;font-weight:700;text-align:left}
+.fase>button .bola{width:10px;height:10px;border-radius:50%;background:var(--cor)}
+.fase>button small{margin-left:auto;color:var(--tx-3);font-weight:600}
+.passos{list-style:none;margin:0 0 8px;padding:0}
+.passos li{display:flex;gap:4px;align-items:stretch}
+.ir{flex:1;display:flex;align-items:center;gap:8px;min-height:var(--tap);border:0;background:none;border-radius:8px;padding:2px 8px;text-align:left}
+.ir:hover{background:var(--sf-1)}
+.ir[aria-current]{background:var(--ac-suave);box-shadow:inset 3px 0 0 var(--anel)}
+.ir .est{width:22px;text-align:center;flex:none}
+.ir .nome{flex:1}
+.ir .quem{display:block;font-size:13px;color:var(--tx-3)}
+.ir.sub{padding-left:38px;font-size:15px}
+.edit{display:flex;gap:2px}
+.edit button{min-width:36px;min-height:36px;align-self:center;border:1px solid var(--bd-2);background:var(--sf-2);border-radius:8px}
+.lim{margin:0 0 4px 38px;font-size:13px;color:var(--tx-3)}
+.nova{margin:0 0 6px 38px}
+
+/* folha (celular) */
+.folha-fundo{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.35)}
+.folha{position:fixed;left:0;right:0;bottom:0;z-index:41;max-height:82dvh;overflow:auto;background:var(--sf-2);border-radius:16px 16px 0 0;padding:8px 16px 24px;box-shadow:0 -8px 30px rgba(0,0,0,.25)}
+.folha .puxador{width:44px;height:5px;border-radius:3px;background:var(--bd-1);margin:4px auto 10px}
+.folha-cab{display:flex;align-items:center;justify-content:space-between}
+.folha[hidden],.folha-fundo[hidden]{display:none}
+
+/* coluna Reino agora */
+.reino h2{font:700 20px var(--f-title);margin:0 0 8px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.stat{background:var(--sf-2);border:1px solid var(--bd-2);border-radius:8px;padding:6px 10px}
+.stat small{display:block;font-size:12px;color:var(--tx-3);text-transform:uppercase;letter-spacing:.3px}
+.stat b{font-size:20px}
+.stat.mudou{border-color:var(--anel);box-shadow:0 0 0 2px color-mix(in srgb,var(--anel) 30%,transparent)}
+.reg{list-style:none;margin:0;padding:0;font-size:14px}
+.reg li{display:flex;gap:6px;align-items:center;padding:4px 0;border-top:1px dashed var(--bd-2)}
+.reg li span{flex:1}
+.reg li.desf span{text-decoration:line-through;color:var(--tx-3)}
+.vazio{color:var(--tx-3);font-size:14px}
+.fim ul{margin:6px 0 0;padding-left:20px}
+textarea{width:100%;min-height:80px;font:16px var(--f-body);border-radius:8px;border:1px solid var(--bd-1);background:var(--sf-2);color:var(--tx-1);padding:8px}
+.nota-prot{max-width:1400px;margin:0 auto 12px;font-size:14px;color:var(--tx-3)}
+</style>
+</head>
+<body>
+<header class="painel" id="painel">
+  <div class="painel-l1"><b>Folha de Patra</b> · Desordem <b id="pDes">3</b> · PR <b id="pPR">12</b> · Fama <b id="pFama">2</b>
+    <button type="button" class="tema" id="btTema" aria-label="Alternar tema">◐ Tema</button></div>
+  <button type="button" class="trilho" id="trilho" aria-haspopup="dialog" aria-controls="folha">
+    <span class="trilho-txt"><b id="trTxt">Passo 1 de 15</b><small id="trSub">Manutenção 1/4</small></span>
+    <span class="segs" id="segs" aria-hidden="true"></span>
+    <span class="pend" id="trPend" hidden></span>
+  </button>
+</header>
+
+<main class="prn" id="prn">
+  <p class="nota-prot">Protótipo da proposta de redesenho: dados fictícios, nada é gravado. Mude a largura da janela para ver celular, tablet e PC.</p>
+  <div class="grade">
+    <aside class="col-mapa" aria-label="Mapa do turno"><div class="mapa" id="mapaCol"></div></aside>
+    <div>
+      <section class="cartao" id="cartao" aria-live="polite"></section>
+      <div class="acao" id="acao">
+        <button type="button" class="btn" id="btVoltar" aria-label="Passo anterior">‹</button>
+        <button type="button" class="btn btn-pri" id="btPri"></button>
+        <button type="button" class="btn bt-mapa" id="btMapa" aria-label="Abrir o mapa do turno">☰</button>
+        <button type="button" class="btn" id="btMais" aria-haspopup="menu" aria-expanded="false" aria-label="Mais opções">⋯</button>
+        <div class="menu" id="menu" role="menu" hidden>
+          <button type="button" role="menuitem" data-m="pular">Pular este passo</button>
+          <button type="button" role="menuitem" data-m="nota">📝 Nota da atividade</button>
+          <button type="button" role="menuitem" data-m="guia">ⓘ Regra no Guia</button>
+        </div>
+      </div>
+    </div>
+    <aside class="col-reino" aria-label="Reino agora"><div class="reino" id="reinoCol"></div></aside>
+  </div>
+</main>
+
+<nav class="nav" aria-hidden="true"><span>Build</span><span>O Reino</span><span>NPCs</span><span class="on">Gestão</span><span>Mais</span></nav>
+
+<div class="folha-fundo" id="folhaFundo" hidden></div>
+<div class="folha" id="folha" role="dialog" aria-modal="true" aria-label="Mapa do turno" hidden>
+  <div class="puxador"></div>
+  <div class="folha-cab"><span></span><button type="button" class="btn btn-mini" id="btFechar">Fechar</button></div>
+  <div class="mapa" id="mapaFolha"></div>
+</div>
+
+<script>
+var FASES = [
+  { id: 'manutencao', nome: 'Manutenção' }, { id: 'mercantil', nome: 'Mercantil' },
+  { id: 'atividade', nome: 'Atividade' }, { id: 'evento', nome: 'Evento' }];
+var LIDERES = ['Governante: Linda', 'Conselheiro: Linze (PdM)', 'General: Ekudayo (PdM)', 'Emissário: Talon', 'Magista: Zirbella', 'Tesoureiro: Jubilosco (PdM)', 'Vice-rei: Hashirama', 'Protetor: Amiri (PdM)'];
+
+// Efeito: {t: texto, campo, d: delta}. Linha de teste: {nome, quem, pericia, mod, cd, graus:{cs:[],s:[],f:[],fc:[]}}. Linha de cartão: {efeitos:[]}.
+function teste(nome, quem, pericia, mod, cd, graus) { return { tipo: 'teste', nome: nome, quem: quem, pericia: pericia, mod: mod, cd: cd, graus: graus }; }
+function cartao(nome, efeitos, extra) { return Object.assign({ tipo: 'cartao', nome: nome, efeitos: efeitos }, extra || {}); }
+var E = function (t, campo, d) { return { t: t, campo: campo, d: d }; };
+
+var PASSOS = [
+  { fase: 'manutencao', nome: 'Designar Funções de Liderança', linhas: [cartao('Recesso e o que chegou', [E('+1 Fama (início do turno)', 'fama', 1)], { recesso: true })] },
+  { fase: 'manutencao', nome: 'Ajustar Desordem', linhas: [cartao('Ajustar Desordem', [E('+1 Desordem (Ruína: Corrupção 4)', 'des', 1)])] },
+  { fase: 'manutencao', nome: 'Coletar Recursos', linhas: [cartao('Coletar Recursos', [E('+8 PR (Dado de Recurso 4d4 → 8)', 'pr', 8), E('+2 Madeira', 'mad', 2)])] },
+  { fase: 'manutencao', nome: 'Pagar o Consumo', linhas: [cartao('Pagar o Consumo', [E('−3 Comida (Consumo 3)', 'com', -3)])] },
+  { fase: 'mercantil', nome: 'Coletar Impostos', linhas: [teste('Coletar Impostos', 'Tesoureiro: Jubilosco (PdM)', 'Comércio', 7, 18,
+    { cs: [E('+2 PR', 'pr', 2), E('−1 Desordem', 'des', -1)], s: [E('+1 PR', 'pr', 1)], f: [], fc: [E('+1 Desordem', 'des', 1)] })] },
+  { fase: 'mercantil', nome: 'Aprovar Gastos', linhas: [] },
+  { fase: 'mercantil', nome: 'Utilizar Materiais', linhas: [] },
+  { fase: 'mercantil', nome: 'Administrar Acordos Comerciais', linhas: [] },
+  { fase: 'atividade', nome: 'Atividades de Liderança', plano: true, linhas: [
+    teste('Atenção Focada', 'Governante: Linda', 'Política', 9, 20, { cs: [E('Auxílio +2 (Política)', '', 0)], s: [E('Auxílio +2 (Política)', '', 0)], f: [], fc: [] }),
+    teste('Solução Sobrenatural', 'Magista: Zirbella', 'Magia', 8, 18, { cs: [E('+1 Fama', 'fama', 1)], s: [E('Rerrolar um teste de Magia', '', 0)], f: [], fc: [E('+1 Desordem', 'des', 1)] }),
+    teste('Celebrar o Feriado', 'Emissário: Talon', 'Artes', 6, 18, { cs: [E('−1 Desordem', 'des', -1), E('+1 Fama', 'fama', 1)], s: [E('−1 Desordem', 'des', -1)], f: [E('−4 PR', 'pr', -4)], fc: [E('+1 Desordem', 'des', 1), E('−4 PR', 'pr', -4)] })] },
+  { fase: 'atividade', nome: 'Atividades de Região', plano: true, linhas: [
+    teste('Reivindicar Hexágono', 'Vice-rei: Hashirama', 'Exploração', 7, 18, { cs: [E('+1 Tamanho; +1 vaga de Região', 'tam', 1)], s: [E('+1 Tamanho', 'tam', 1)], f: [], fc: [E('+1 Desordem', 'des', 1)] }),
+    teste('Construir Estrada', 'Vice-rei: Hashirama', 'Engenharia', 6, 18, { cs: [E('Estrada em 2 hexágonos', '', 0)], s: [E('Estrada no hexágono', '', 0)], f: [], fc: [E('+1 Desordem', 'des', 1)] })] },
+  { fase: 'atividade', nome: 'Atividades Cívicas', plano: true, linhas: [
+    teste('Construir Estrutura', 'Vila de Tatzlford', 'Engenharia', 7, 18, { cs: [E('Estrutura pronta, metade do custo', '', 0)], s: [E('Estrutura pronta', '', 0)], f: [], fc: [E('+1 Desordem', 'des', 1)] })] },
+  { fase: 'evento', nome: 'Teste para um Evento Aleatório', linhas: [teste('Teste de Evento', 'Teste simples', '—', 0, 16, { cs: [E('Um evento acontece', '', 0)], s: [E('Um evento acontece', '', 0)], f: [], fc: [] })] },
+  { fase: 'evento', nome: 'Resolver o Evento', linhas: [cartao('Resolver o Evento', [E('Abrir o evento na aba Eventos', '', 0)])] },
+  { fase: 'evento', nome: 'Pontos de Experiência', linhas: [cartao('Pontos de Experiência', [E('+40 XP (Reivindicar Hexágono)', 'xp', 40)])] },
+  { fase: 'evento', nome: 'Subir de Nível', linhas: [cartao('Subir de Nível', [])] }
+];
+
+var S = { cur: 0, linha: 0, modo: 'jogar', estado: {}, testes: {}, aplic: {}, reg: [], reino: { des: 3, pr: 12, fama: 2, com: 10, mad: 4, tam: 14, xp: 0 }, mudou: {}, recessoAberto: false, fim: false };
+PASSOS.forEach(function (p, i) { S.estado[i] = 'aberto'; });
+
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function cor(f) { return 'var(--f-' + f + ')'; }
+function sinal(n) { return (n >= 0 ? '+' : '') + n; }
+function chave(i, j) { return i + ':' + j; }
+function grauNome(g) { return { cs: 'Sucesso crítico', s: 'Sucesso', f: 'Falha', fc: 'Falha crítica' }[g]; }
+
+// M1 — progresso derivado do estado (nada é gravado aqui)
+function efeitosDe(i, j) {
+  var l = PASSOS[i].linhas[j];
+  if (l.tipo === 'cartao') return l.efeitos.filter(function (e) { return e.campo; });
+  var t = S.testes[chave(i, j)];
+  return t ? l.graus[t.grau].filter(function (e) { return e.campo; }) : [];
+}
+function linhaPendente(i, j) {
+  var l = PASSOS[i].linhas[j];
+  if (l.tipo === 'teste' && !S.testes[chave(i, j)]) return 'rolar';
+  var ef = efeitosDe(i, j);
+  return ef.some(function (e, k) { return !S.aplic[chave(i, j) + ':' + k]; }) ? 'aplicar' : '';
+}
+function progresso() {
+  var concl = 0, pend = 0, fases = FASES.map(function (f) { return { id: f.id, nome: f.nome, total: 0, concl: 0, passos: [] }; });
+  PASSOS.forEach(function (p, i) {
+    var f = fases.filter(function (x) { return x.id === p.fase; })[0];
+    var est = S.estado[i];
+    var feito = est === 'feito' || est === 'pulado';
+    if (feito) concl++;
+    f.total++; if (feito) f.concl++;
+    p.linhas.forEach(function (l, j) { if (S.testes[chave(i, j)] && linhaPendente(i, j) === 'aplicar') pend++; });
+    f.passos.push({ i: i, est: i === S.cur && !S.fim ? 'atual' : est });
+  });
+  return { total: PASSOS.length, concl: concl, pend: pend, fases: fases };
+}
+
+// M2 — trilho
+function desenharTrilho() {
+  var pg = progresso();
+  var p = PASSOS[S.cur];
+  var fase = pg.fases.filter(function (f) { return f.id === p.fase; })[0];
+  var iFase = fase.passos.map(function (x) { return x.i; }).indexOf(S.cur) + 1;
+  $('trTxt').textContent = S.fim ? 'Fim do turno 7' : 'Passo ' + (S.cur + 1) + ' de ' + pg.total + ' · faltam ' + (pg.total - pg.concl);
+  $('trSub').textContent = S.fim ? pg.concl + ' de ' + pg.total + ' passos concluídos' : fase.nome + ' ' + iFase + '/' + fase.total + ' · ' + p.nome;
+  $('segs').innerHTML = pg.fases.map(function (f) {
+    return '<span class="seg-fase" style="--n:' + f.total + ';--cor:' + cor(f.id) + '">' + f.passos.map(function (x) { return '<span class="seg ' + x.est + '"></span>'; }).join('') + '</span>';
+  }).join('');
+  $('trPend').hidden = !pg.pend;
+  $('trPend').textContent = '⚠ ' + pg.pend;
+  $('trilho').setAttribute('aria-label', $('trTxt').textContent + '. ' + $('trSub').textContent + (pg.pend ? '. ' + pg.pend + ' efeitos por aplicar' : '') + '. Abrir o mapa do turno.');
+  document.documentElement.style.setProperty('--topo', $('painel').offsetHeight + 'px');
+}
+
+// M3 — cartão em estágios
+function estagio(i, j) {
+  var l = PASSOS[i].linhas[j];
+  if (!l) return 'vazio';
+  if (l.tipo === 'teste' && !S.testes[chave(i, j)]) return 'rolar';
+  return linhaPendente(i, j) === 'aplicar' ? 'aplicar' : 'pronto';
+}
+function efeitosHtml(i, j, lista) {
+  if (!lista.length) return '<p class="vazio">Nenhum efeito neste grau.</p>';
+  return lista.map(function (e, k) {
+    var c = chave(i, j) + ':' + k;
+    if (!e.campo) return '<div class="efeito"><span>• ' + esc(e.t) + ' <small class="vazio">(lembrete, nada a aplicar)</small></span></div>';
+    var feito = S.aplic[c];
+    return '<div class="efeito' + (feito ? ' ok' : '') + '"><span>' + (feito ? '✓ ' : '') + esc(e.t) + '</span>' +
+      (feito ? '<button type="button" class="btn btn-mini" data-a="desfazer" data-c="' + c + '" aria-label="Desfazer: ' + esc(e.t) + '">↶</button>'
+             : '<button type="button" class="btn btn-mini" data-a="aplicar1" data-c="' + c + '">Aplicar</button>') + '</div>';
+  }).join('');
+}
+function desenharCartao() {
+  var h = '';
+  if (S.fim) { $('cartao').innerHTML = fimHtml(); acao('Encerrar o turno 7', 'encerrar'); return; }
+  var i = S.cur, p = PASSOS[i], j = Math.min(S.linha, Math.max(0, p.linhas.length - 1)), l = p.linhas[j];
+  var fase = FASES.filter(function (f) { return f.id === p.fase; })[0];
+  var nFase = PASSOS.filter(function (x) { return x.fase === p.fase; }).length;
+  var iFase = PASSOS.filter(function (x, k) { return x.fase === p.fase && k <= i; }).length;
+  h += '<header class="cab"><small style="color:' + cor(p.fase) + '">' + fase.nome + ' · etapa ' + iFase + ' de ' + nFase +
+    (p.linhas.length > 1 ? ' · atividade ' + (j + 1) + ' de ' + p.linhas.length : '') + (S.estado[i] === 'pulado' ? ' · pulado' : '') + '</small>' +
+    '<h2>' + esc(l ? l.nome : p.nome) + '</h2>' + (l && l.quem ? '<p class="quem">' + esc(l.quem) + (l.pericia && l.pericia !== '—' ? ' · ' + esc(l.pericia) : '') + '</p>' : '') + '</header>';
+  var est = estagio(i, j);
+  if (l && l.tipo === 'teste') {
+    var ordem = ['rolar', 'aplicar', 'pronto'];
+    var k = ordem.indexOf(est);
+    h += '<ol class="estagios" aria-label="Estágio"><li class="' + (k > 0 ? 'feito' : 'atual') + '">1 · Rolar</li><li class="' + (k > 1 ? 'feito' : k === 1 ? 'atual' : '') + '">2 · Aplicar</li><li class="' + (k === 2 ? 'atual' : '') + '">3 · Pronto</li></ol>';
+  }
+  if (!l) {
+    h += '<div class="bloco"><p>' + (p.plano ? 'Nenhuma atividade planejada aqui.' : 'Nada a fazer neste passo neste turno.') + '</p>' +
+      (p.plano ? '<button type="button" class="btn" data-a="planejar">Planejar atividades</button>' : '') + '</div>';
+    acao('Próximo passo →', 'proximo');
+  } else if (l.recesso) {
+    // M6 — exceção primeiro
+    h += '<div class="bloco"><h3>Chegou neste turno</h3>' + efeitosHtml(i, j, l.efeitos) + '</div>';
+    h += '<div class="bloco"><h3>Recesso dos líderes</h3><div class="excecao"><p>✓ Todos os 8 líderes passaram o recesso.</p>' +
+      '<button type="button" class="btn" data-a="recesso" aria-expanded="' + S.recessoAberto + '">' + (S.recessoAberto ? 'Fechar' : 'Alguém não passou?') + '</button></div>' +
+      (S.recessoAberto ? '<div class="recesso">' + LIDERES.map(function (n) { return '<label>' + esc(n) + '<select><option>Sim, passou</option><option>Não: cede 1 atividade</option><option>Não: penalidade de vaga</option></select></label>'; }).join('') + '</div>' : '') +
+      '<details class="ajuda"><summary>ⓘ Regra do recesso</summary>Quem não passou a semana de recesso cede 1 atividade de Liderança ou aplica a penalidade da função vaga até o início do próximo turno; o PdM que não passou aplica a penalidade.</details></div>';
+    acaoAplicarOuSeguir(i, j);
+  } else if (l.tipo === 'cartao') {
+    h += '<div class="bloco"><h3>Efeitos</h3>' + (l.efeitos.length ? efeitosHtml(i, j, l.efeitos) : '<p class="vazio">O reino não sobe de nível neste turno (XP 0/1000).</p>') + '</div>';
+    acaoAplicarOuSeguir(i, j);
+  } else {
+    var t = S.testes[chave(i, j)];
+    h += '<div class="bloco"><h3>' + (t ? 'Resultado' : 'Teste') + '</h3><p class="calc">' +
+      (t ? '<b>' + t.total + '</b> (d20 ' + t.d20 + ' ' + sinal(l.mod) + ') contra CD ' + l.cd + ' <span class="grau g-' + t.grau + '">' + grauNome(t.grau) + '</span>'
+         : '<b>' + sinal(l.mod) + '</b> contra CD ' + l.cd) + '</p>' +
+      (t ? '' : '<details class="ajuda"><summary>Detalhes do cálculo</summary>Nível 5 + Treinado 2 + atributo + bônus de estruturas; Ruína e Desordem já descontadas.</details>') + '</div>';
+    if (t) {
+      h += '<div class="bloco"><h3>Efeitos do grau</h3>' + efeitosHtml(i, j, l.graus[t.grau]) + '</div>';
+      acaoAplicarOuSeguir(i, j);
+    } else {
+      var g = ['cs', 's', 'f', 'fc'].map(function (x) { return '<b>' + grauNome(x) + ':</b> ' + (l.graus[x].map(function (e) { return esc(e.t); }).join('; ') || '—'); }).join('<br>');
+      h += '<details class="ajuda"><summary>O que acontece em cada grau</summary>' + g + '</details>';
+      acao('🎲 Rolar ' + sinal(l.mod) + ' contra CD ' + l.cd, 'rolar');
+    }
+  }
+  $('cartao').innerHTML = h;
+}
+function acaoAplicarOuSeguir(i, j) {
+  var faltam = efeitosDe(i, j).filter(function (e, k) { return !S.aplic[chave(i, j) + ':' + k]; }).length;
+  if (faltam) acao('Aplicar efeitos (' + faltam + ')', 'aplicarTodos');
+  else acao(j < PASSOS[i].linhas.length - 1 ? 'Próxima atividade →' : (i === PASSOS.length - 1 ? 'Fechar o turno →' : 'Próximo passo →'), 'proximo');
+}
+function acao(txt, a) { $('btPri').textContent = txt; $('btPri').dataset.a = a; }
+
+// M7 — fim do turno
+function fimHtml() {
+  var pend = [];
+  PASSOS.forEach(function (p, i) { p.linhas.forEach(function (l, j) { var x = linhaPendente(i, j); if (x && S.estado[i] !== 'pulado') pend.push({ i: i, j: j, t: (x === 'rolar' ? 'Não rolado: ' : 'Efeitos por aplicar: ') + l.nome }); }); });
+  var mud = S.reg.filter(function (r) { return !r.desf; });
+  return '<header class="cab"><small>Fechamento</small><h2>Fim do turno 7</h2></header>' +
+    '<div class="bloco fim"><h3>Pendências (' + pend.length + ')</h3>' + (pend.length ? '<ul>' + pend.map(function (x) { return '<li><button type="button" class="btn btn-mini" data-a="ir" data-i="' + x.i + '" data-j="' + x.j + '">' + esc(x.t) + '</button></li>'; }).join('') + '</ul>' : '<p class="vazio">Nada pendente.</p>') + '</div>' +
+    '<div class="bloco fim"><h3>O que mudou na Ficha</h3>' + (mud.length ? '<ul>' + mud.map(function (r) { return '<li>' + esc(r.t) + '</li>'; }).join('') + '</ul>' : '<p class="vazio">Nada aplicado.</p>') + '</div>' +
+    '<div class="bloco"><h3>Considerações do turno</h3><textarea aria-label="Considerações do turno" placeholder="Pendente, em andamento, planos para o próximo turno…"></textarea></div>';
+}
+
+// M4/M5 — mapa
+function mapaHtml() {
+  var pg = progresso();
+  var h = '<h2>Mapa do turno 7</h2><div class="modo" role="group" aria-label="Modo"><button type="button" data-a="modo" data-m="jogar" aria-pressed="' + (S.modo === 'jogar') + '">Jogar</button>' +
+    '<button type="button" data-a="modo" data-m="planejar" aria-pressed="' + (S.modo === 'planejar') + '">Planejar</button></div>';
+  pg.fases.forEach(function (f) {
+    var aberta = S.modo === 'planejar' || PASSOS[S.cur].fase === f.id || window.matchMedia('(min-width:1024px)').matches;
+    h += '<section class="fase" style="--cor:' + cor(f.id) + '"><button type="button" data-a="fase" data-f="' + f.id + '" aria-expanded="' + aberta + '"><span class="bola"></span>' + f.nome + '<small>' + (f.concl === f.total ? '✓ ' : '') + f.concl + '/' + f.total + '</small></button>';
+    if (aberta) {
+      h += '<ol class="passos">';
+      f.passos.forEach(function (x) {
+        var p = PASSOS[x.i], est = S.estado[x.i];
+        var ic = est === 'feito' ? '✓' : est === 'pulado' ? '↷' : x.i === S.cur ? '▶' : '○';
+        var multi = p.plano;
+        h += '<li><button type="button" class="ir" data-a="ir" data-i="' + x.i + '" data-j="0"' + (x.i === S.cur && (!multi || !p.linhas.length) && !S.fim ? ' aria-current="step"' : '') + '><span class="est" aria-hidden="true">' + ic + '</span><span class="nome">' + esc(p.nome) + (est === 'pulado' ? ' <small class="vazio">(pulado)</small>' : '') + '</span></button>' +
+          (S.modo === 'planejar' ? '<span class="edit"><button type="button" data-a="pular" data-i="' + x.i + '" aria-label="' + (est === 'pulado' ? 'Não pular ' : 'Pular ') + esc(p.nome) + '">' + (est === 'pulado' ? '↺' : '↷') + '</button></span>' : '') + '</li>';
+        if (multi) {
+          if (S.modo === 'planejar') h += '<li><p class="lim">' + (p.nome.indexOf('Lideran') >= 0 ? 'Linda 1/3 · Zirbella 1/3 · Talon 1/3' : p.nome.indexOf('Região') >= 0 ? 'Região: ' + p.linhas.length + '/3' : 'Cívicas: 1 por assentamento') + '</p></li>';
+          p.linhas.forEach(function (l, j) {
+            var t = S.testes[chave(x.i, j)], pen = linhaPendente(x.i, j);
+            var icl = t ? (pen ? '⚠' : '✓') : '○';
+            h += '<li><button type="button" class="ir sub" data-a="ir" data-i="' + x.i + '" data-j="' + j + '"' + (x.i === S.cur && S.linha === j && !S.fim ? ' aria-current="step"' : '') + '><span class="est" aria-hidden="true">' + icl + '</span><span class="nome">' + esc(l.nome) + '<span class="quem">' + esc(l.quem) + (t ? ' · <span class="grau g-' + t.grau + '">' + t.grau.toUpperCase() + '</span>' : '') + '</span></span></button>' +
+              (S.modo === 'planejar' && !t ? '<span class="edit"><button type="button" data-a="mover" data-i="' + x.i + '" data-j="' + j + '" data-d="-1" aria-label="Subir ' + esc(l.nome) + '"' + (j === 0 ? ' disabled' : '') + '>▲</button><button type="button" data-a="tirar" data-i="' + x.i + '" data-j="' + j + '" aria-label="Tirar ' + esc(l.nome) + '">✕</button></span>' : '') + '</li>';
+          });
+          if (S.modo === 'planejar') h += '<li><button type="button" class="btn btn-mini nova" data-a="nova" data-i="' + x.i + '">+ Atividade</button></li>';
+        }
+      });
+      h += '</ol>';
+    }
+    h += '</section>';
+  });
+  h += '<section class="fase"><ol class="passos"><li><button type="button" class="ir" data-a="fim"' + (S.fim ? ' aria-current="step"' : '') + '><span class="est">⚑</span><span class="nome">Fim do turno</span></button></li></ol></section>';
+  return h;
+}
+
+// coluna Reino agora
+function reinoHtml() {
+  var r = S.reino, m = S.mudou;
+  function st(k, n) { return '<div class="stat' + (m[k] ? ' mudou' : '') + '"><small>' + n + '</small><b>' + r[k] + '</b></div>'; }
+  var reg = S.reg.slice().reverse();
+  return '<h2>Reino agora</h2><div class="stats">' + st('des', 'Desordem') + st('pr', 'PR') + st('fama', 'Fama') + st('tam', 'Tamanho') + st('com', 'Comida') + st('mad', 'Madeira') + '</div>' +
+    '<h2>Registro do turno</h2>' + (reg.length ? '<ul class="reg">' + reg.map(function (x) { return '<li class="' + (x.desf ? 'desf' : '') + '"><span>' + esc(x.t) + '</span>' + (x.desf ? '' : '<button type="button" class="btn btn-mini" data-a="desfazer" data-c="' + x.c + '" aria-label="Desfazer: ' + esc(x.t) + '">↶</button>') + '</li>'; }).join('') + '</ul>' : '<p class="vazio">Nada aplicado ainda. Nada muda sozinho: cada efeito vem de um toque, com ↶.</p>');
+}
+
+function desenhar() {
+  desenharTrilho(); desenharCartao();
+  $('mapaCol').innerHTML = mapaHtml(); if (!$('folha').hidden) $('mapaFolha').innerHTML = mapaHtml();
+  $('reinoCol').innerHTML = reinoHtml();
+  $('pDes').textContent = S.reino.des; $('pPR').textContent = S.reino.pr; $('pFama').textContent = S.reino.fama;
+  $('btVoltar').disabled = S.cur === 0 && S.linha === 0 && !S.fim;
+}
+
+// ações (o motor real: pnAplicar / puDesfazer; aqui, simulação)
+function aplicar(c) {
+  if (S.aplic[c]) return;
+  var p = c.split(':'), i = +p[0], j = +p[1], k = +p[2];
+  var e = efeitosDe(i, j)[k];
+  S.reino[e.campo] += e.d; S.aplic[c] = true; S.mudou = {}; S.mudou[e.campo] = true;
+  S.reg.push({ c: c, t: e.t + ' — ' + PASSOS[i].linhas[j].nome, campo: e.campo, d: e.d });
+}
+function desfazer(c) {
+  var r = S.reg.filter(function (x) { return x.c === c && !x.desf; })[0];
+  if (!r) return;
+  S.reino[r.campo] -= r.d; r.desf = true; delete S.aplic[c]; S.mudou = {}; S.mudou[r.campo] = true;
+}
+function marcarFeito(i) { if (S.estado[i] !== 'pulado') S.estado[i] = 'feito'; }
+function proximo() {
+  var p = PASSOS[S.cur];
+  if (S.linha < p.linhas.length - 1) { S.linha++; return; }
+  if (!p.linhas.some(function (l, j) { return linhaPendente(S.cur, j); })) marcarFeito(S.cur);
+  for (var k = S.cur + 1; k < PASSOS.length; k++) if (S.estado[k] === 'aberto') { S.cur = k; S.linha = 0; return; }
+  S.fim = true;
+}
+function voltar() {
+  if (S.fim) { S.fim = false; return; }
+  if (S.linha > 0) { S.linha--; return; }
+  if (S.cur > 0) { S.cur--; S.linha = Math.max(0, PASSOS[S.cur].linhas.length - 1); }
+}
+function rolar() {
+  var l = PASSOS[S.cur].linhas[S.linha], d20 = 1 + Math.floor(Math.random() * 20), tot = d20 + l.mod;
+  var n = tot >= l.cd + 10 ? 3 : tot >= l.cd ? 2 : tot <= l.cd - 10 ? 0 : 1;
+  if (d20 === 20) n = Math.min(3, n + 1); if (d20 === 1) n = Math.max(0, n - 1);
+  S.testes[chave(S.cur, S.linha)] = { d20: d20, total: tot, grau: ['fc', 'f', 's', 'cs'][n] };
+}
+function abrirFolha(sim) {
+  $('folha').hidden = !sim; $('folhaFundo').hidden = !sim;
+  if (sim) { $('mapaFolha').innerHTML = mapaHtml(); $('btFechar').focus(); } else $('trilho').focus();
+}
+var ultimo = { k: '', t: 0 };
+document.addEventListener('click', function (ev) {
+  var b = ev.target.closest('[data-a]');
+  if (!b) { if (!ev.target.closest('#btMais')) $('menu').hidden = true; return; }
+  var a = b.dataset.a, k = a + (b.dataset.c || b.dataset.i || ''), agora = Date.now();
+  if (k === ultimo.k && agora - ultimo.t < 400) return; // toque duplo guardado
+  ultimo = { k: k, t: agora };
+  var naFolha = !!b.closest('#folha');
+  if (a === 'rolar') rolar();
+  else if (a === 'aplicar1') aplicar(b.dataset.c);
+  else if (a === 'aplicarTodos') efeitosDe(S.cur, S.linha).forEach(function (e, n) { aplicar(chave(S.cur, S.linha) + ':' + n); });
+  else if (a === 'desfazer') desfazer(b.dataset.c);
+  else if (a === 'proximo') proximo();
+  else if (a === 'recesso') S.recessoAberto = !S.recessoAberto;
+  else if (a === 'ir') { S.fim = false; S.cur = +b.dataset.i; S.linha = +b.dataset.j; if (naFolha) abrirFolha(false); }
+  else if (a === 'fim') { S.fim = true; if (naFolha) abrirFolha(false); }
+  else if (a === 'modo') S.modo = b.dataset.m;
+  else if (a === 'planejar') { S.modo = 'planejar'; if (!window.matchMedia('(min-width:1024px)').matches) abrirFolha(true); }
+  else if (a === 'pular') { var i = +b.dataset.i; S.estado[i] = S.estado[i] === 'pulado' ? 'aberto' : 'pulado'; }
+  else if (a === 'tirar') PASSOS[+b.dataset.i].linhas.splice(+b.dataset.j, 1);
+  else if (a === 'mover') { var ls = PASSOS[+b.dataset.i].linhas, j = +b.dataset.j; ls.splice(j - 1, 0, ls.splice(j, 1)[0]); }
+  else if (a === 'nova') PASSOS[+b.dataset.i].linhas.push(teste('Melhorar o Estilo de Vida', 'Tesoureiro: Jubilosco (PdM)', 'Política', 6, 18, { cs: [E('+1 Fama', 'fama', 1)], s: [], f: [], fc: [E('+1 Desordem', 'des', 1)] }));
+  else if (a === 'encerrar') { alert('No app: o fim de turno em dois tempos (já existente) começa aqui.'); return; }
+  else if (a === 'fase') return;
+  desenhar();
+  if (['proximo', 'ir', 'rolar'].indexOf(a) >= 0 && !naFolha) $('cartao').scrollIntoView({ block: 'nearest' });
+});
+$('btVoltar').onclick = function () { voltar(); desenhar(); };
+$('btMapa').onclick = function () { abrirFolha(true); };
+$('trilho').onclick = function () { if (window.matchMedia('(min-width:1024px)').matches) $('mapaCol').scrollIntoView({ block: 'nearest' }); else abrirFolha(true); };
+$('btFechar').onclick = function () { abrirFolha(false); };
+$('folhaFundo').onclick = function () { abrirFolha(false); };
+$('btMais').onclick = function () { var m = $('menu'); m.hidden = !m.hidden; this.setAttribute('aria-expanded', !m.hidden); };
+$('menu').onclick = function (ev) {
+  var m = ev.target.dataset.m; this.hidden = true;
+  if (m === 'pular') { S.estado[S.cur] = 'pulado'; proximo(); desenhar(); }
+  else alert(m === 'nota' ? 'Abre a nota da atividade (já existe no app).' : 'Abre a folha de ajuda com o texto do Guia (Lnnn).');
+};
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('folha').hidden) abrirFolha(false); });
+$('btTema').onclick = function () { var r = document.documentElement; r.dataset.theme = r.dataset.theme === 'dark' ? 'light' : 'dark'; };
+window.addEventListener('resize', desenharTrilho);
+desenhar();
+</script>
+</body>
+</html>
