@@ -167,8 +167,8 @@ Com o pacote `km-fonte-v62_1.tar.gz` restaurado (`git clone km61.bundle km61 && 
 3. Em `prancheta-desenho.js`, trocar a pílula "Fase agora" pelo trilho, que lê `pgProgresso`. O toque no trilho abre a lista atual: o Mapa de verdade chega em M4.
 4. Medir de novo com o script de Playwright desta proposta (altura, botões, progresso visível) e comparar com a tabela da seção 0.
 
-### Decisões para o Ulisses
-- D-a. A ordem de entrega acima, com Exércitos indo para v62.3.
-- D-b. O modo Planejar fica guardado por aparelho (`localStorage`, recomendado) ou no reino?
-- D-c. As Considerações do Turno passam para o cartão Fim do turno (recomendado) ou ficam também abaixo da Prancheta?
-- D-d. No PC, a terceira coluna "Reino agora" mostra o Registro do turno inteiro ou só as últimas 5 linhas, com "ver tudo"?
+### Decisões do Ulisses (31/10/2026), registradas como R32–R35
+- **Ordem**: a Prancheta nova entra antes dos Exércitos. Cada onda sai como versão própria: **v62.2** progresso e trilho (M1, M2, entregue), **v62.3** cartão em estágios e exceção primeiro (M3, M6), **v62.4** mapa, Planejar × Jogar e três colunas (M4, M5, M8), **v62.5** Fim do turno (M7). Os Exércitos vêm depois.
+- **Modo Planejar**: guardado por aparelho (localStorage).
+- **Considerações do Turno**: vão para o cartão "Fim do turno".
+- **Registro na coluna do PC**: as 5 últimas linhas, com "ver tudo".
