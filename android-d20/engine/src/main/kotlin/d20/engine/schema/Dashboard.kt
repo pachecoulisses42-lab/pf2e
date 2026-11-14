@@ -81,6 +81,29 @@ data class ConditionsStation(override val id: String, override val color: CardCo
     override val title: String get() = "Condições"
 }
 
+/** Kind of an ability module: imported talents, class features and spells without dice. */
+@Serializable
+enum class AbilityCategory(val ptName: String) {
+    CLASS_FEAT("Talento de classe"), ANCESTRY_FEAT("Talento de ancestralidade"), SKILL_FEAT("Talento de perícia"),
+    GENERAL_FEAT("Talento geral"), ARCHETYPE_FEAT("Talento de arquétipo"), CLASS_FEATURE("Característica de classe"),
+    SPELL("Magia"), FOCUS_SPELL("Magia de foco"), OTHER("Outra"),
+}
+
+/** A talent, class feature or spell without dice: tapping it lists the conditions it imposes or removes. */
+@Serializable
+@SerialName("ABILITY")
+data class AbilityStation(
+    override val id: String,
+    /** Free text: the ability's name. */
+    val name: String,
+    val category: AbilityCategory,
+    val level: Int = 0,
+    val effects: List<ConditionEffect> = emptyList(),
+    override val color: CardColor? = null,
+) : Station {
+    override val title: String get() = name
+}
+
 /** HP and AC tracker. Current HP is play-state and lives outside the locked dashboard. */
 @Serializable
 @SerialName("RESOURCE")
@@ -119,6 +142,8 @@ data class Dashboard(
     val characterClass: PfClass,
     val character: Pf2eCharacter,
     val zones: Zones,
+    /** Modules kept for this character but not on the panel (e.g. everything imported from Pathbuilder). */
+    val library: List<Station> = emptyList(),
 ) {
     companion object {
         const val SCHEMA_VERSION = 1

@@ -16,6 +16,7 @@ fun Station.effectiveColor(): CardColor = color ?: when (this) {
     is ConsumableStation -> CardColor.CORAL
     is ResourceStation -> CardColor.VIOLETA
     is ConditionsStation -> CardColor.ROSA
+    is AbilityStation -> CardColor.ROSA
 }
 
 /** Single Hit Point pool: the first resource station's maximum. */

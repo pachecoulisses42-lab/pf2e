@@ -29,17 +29,30 @@ object DashboardValidator {
             }
             for (s in zone.stations) {
                 if (s.id.isBlank() || !ids.add(s.id)) errors += "$key: id de estação vazio ou duplicado (${s.id})"
-                errors += when (s) {
-                    is ActionStation -> weapon(key, s.weapon)
-                    is SpellStation -> spell(key, s.spell)
-                    is SkillStation -> check(key, s.check) + effects(key, s.effects)
-                    is ConsumableStation -> consumable(key, s.consumable)
-                    is ConditionsStation -> emptyList()
-                    is ResourceStation -> resource(key, s)
-                }
+                errors += station(key, s)
             }
         }
+        val libIds = mutableSetOf<String>()
+        d.library.forEachIndexed { i, s ->
+            val key = "biblioteca[$i]"
+            if (s.id.isBlank() || !libIds.add(s.id)) errors += "$key: id de módulo vazio ou duplicado (${s.id})"
+            errors += station(key, s)
+        }
         return errors
+    }
+
+    private fun station(key: String, s: Station): List<String> = when (s) {
+        is ActionStation -> weapon(key, s.weapon)
+        is SpellStation -> spell(key, s.spell)
+        is SkillStation -> check(key, s.check) + effects(key, s.effects)
+        is ConsumableStation -> consumable(key, s.consumable)
+        is ConditionsStation -> emptyList()
+        is ResourceStation -> resource(key, s)
+        is AbilityStation -> buildList {
+            if (!Text.isValid(s.name)) add("$key: nome da habilidade inválido")
+            if (s.level !in 0..20) add("$key: nível da habilidade deve ser 0..20")
+            addAll(effects(key, s.effects))
+        }
     }
 
     private fun weapon(key: String, w: WeaponSpec) = buildList {

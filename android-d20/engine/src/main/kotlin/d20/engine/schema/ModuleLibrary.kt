@@ -33,6 +33,7 @@ fun Station.type(): StationType = when (this) {
     is ConsumableStation -> StationType.CONSUMABLE
     is ResourceStation -> StationType.RESOURCE
     is ConditionsStation -> StationType.CONDITIONS
+    is AbilityStation -> StationType.ABILITY
 }
 
 /** The same module under another id (templates and saved modules are copied, never shared). */
@@ -43,6 +44,7 @@ fun Station.withId(id: String): Station = when (this) {
     is ConsumableStation -> copy(id = id)
     is ResourceStation -> copy(id = id)
     is ConditionsStation -> copy(id = id)
+    is AbilityStation -> copy(id = id)
 }
 
 /**

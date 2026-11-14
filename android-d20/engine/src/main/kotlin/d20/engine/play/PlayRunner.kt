@@ -19,6 +19,7 @@ import d20.engine.pf2e.MapStep
 import d20.engine.pf2e.Pf2eEngine
 import d20.engine.pf2e.SpellMode
 import d20.engine.pf2e.SpellSaveResult
+import d20.engine.schema.AbilityStation
 import d20.engine.schema.ActionStation
 import d20.engine.schema.ConditionsStation
 import d20.engine.schema.ConsumableStation
@@ -143,6 +144,11 @@ class PlayRunner(private val engine: Pf2eEngine) {
         is ConsumableStation -> consumable(station, d, ctx)
         is ResourceStation -> throw IllegalArgumentException("Estações de recurso não rolam dados")
         is ConditionsStation -> throw IllegalArgumentException("O módulo de condições não rola dados")
+        is AbilityStation -> RollOutcome(
+            title = station.name, subtitle = "${station.category.ptName} · nível ${station.level}",
+            natural = null, total = null, breakdown = emptyList(), dc = null, degree = null, tone = Tone.NEUTRAL,
+            damage = null, notices = effectNotices(station.effects, null),
+        )
     }
 
     private fun attack(title: String, subtitle: String, r: AttackResult): RollOutcome = RollOutcome(

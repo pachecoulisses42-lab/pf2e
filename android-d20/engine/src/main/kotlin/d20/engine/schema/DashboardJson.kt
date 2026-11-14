@@ -68,7 +68,7 @@ object DashboardJson {
                 put("diceFormula", JsonPrimitive(main))
                 second?.let { put("secondaryDiceFormula", JsonPrimitive(it)) }
             }
-            is ResourceStation, is ConditionsStation -> Unit
+            is ResourceStation, is ConditionsStation, is AbilityStation -> Unit
         }
     }
 }

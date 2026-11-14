@@ -30,7 +30,7 @@ enum class ZoneKey(val ptName: String) {
 
 enum class StationType(val ptName: String) {
     ACTION("Ataque com arma"), SPELL("Magia"), SKILL("Perícia / Resistência"), CONSUMABLE("Poção ou bomba"),
-    RESOURCE("Vida, escudo & defesa"), CONDITIONS("Condições"),
+    RESOURCE("Vida, escudo & defesa"), CONDITIONS("Condições"), ABILITY("Habilidade / talento"),
 }
 
 /** Pure, immutable edit operations behind the Setup-mode builder (the UI only calls these). */
@@ -97,5 +97,6 @@ object DashboardEditor {
         StationType.CONSUMABLE -> ConsumableStation(id, ConsumableSpec("", ConsumableKind.HEALING_POTION, ConsumableGrade.LESSER))
         StationType.RESOURCE -> ResourceStation(id, 10, ArmorCatalog.basics.first())
         StationType.CONDITIONS -> ConditionsStation(id)
+        StationType.ABILITY -> AbilityStation(id, "Nova habilidade", AbilityCategory.CLASS_FEAT)
     }
 }
