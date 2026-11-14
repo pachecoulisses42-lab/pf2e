@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.d20companion.AppContainer
+import com.d20companion.vm.ImportViewModel
 import com.d20companion.vm.ListViewModel
 import com.d20companion.vm.SheetViewModel
 
@@ -38,6 +39,7 @@ fun D20App(container: AppContainer) {
             toPanel = { toSheet(false) },
             toConditions = { toSheet(true) },
             toSettings = { controller.navigate("settings") { launchSingleTop = true } },
+            toImport = { controller.navigate("import") { launchSingleTop = true } },
         )
         val open: (String) -> Unit = { id -> prefs.lastCharacterId = id; controller.navigate("sheet/$id?conditions=false") }
         NavHost(navController = controller, startDestination = "home") {
@@ -63,6 +65,13 @@ fun D20App(container: AppContainer) {
                 val vm: SheetViewModel = viewModel(key = id, factory = SheetViewModel.factory(id, container))
                 val state by vm.state.collectAsStateWithLifecycle()
                 SheetScreen(vm, state, soundOn, nav, openConditions)
+            }
+            composable("import") {
+                val vm: ImportViewModel = viewModel(factory = ImportViewModel.factory(container))
+                val state by vm.state.collectAsStateWithLifecycle()
+                ImportScreen(vm, state, nav, onCreated = { id ->
+                    controller.navigate("sheet/$id?conditions=false") { popUpTo("home") }
+                })
             }
             composable("settings") {
                 SettingsScreen(

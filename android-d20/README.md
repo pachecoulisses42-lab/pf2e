@@ -38,7 +38,11 @@ caracteres, sem caracteres de controle). Todo o resto é seleção: dropdowns, s
 ## Limitações conhecidas (v0.1)
 - Som é um bipe curto sintetizado (`ToneGenerator`), não um efeito de dados gravado.
 - Sem ícone de launcher próprio; textos em português fixos no código (sem `strings.xml`).
-- Sem importação de JSON (só exportação, via Storage Access Framework).
+- Importa personagens do Pathbuilder 2e (PDF do JSON, `.json` ou texto colado); o JSON do próprio app ainda só é exportado.
 - Sem contadores de recurso além de PV/CA (espaços de magia, pontos de foco), sem dano de precisão (ataque
   furtivo), sem cura.
 - Runas elementais aplicam só o +1d6 do tipo; efeitos de crítico das runas não são calculados.
+
+## Licenças de terceiros
+- Fonte Poppins: SIL Open Font License 1.1 (`app/src/main/assets/licenses/Poppins-OFL.txt`).
+- PDFBox-Android (`com.tom-roush:pdfbox-android`), usado para ler o PDF exportado do Pathbuilder no aparelho: Apache License 2.0.

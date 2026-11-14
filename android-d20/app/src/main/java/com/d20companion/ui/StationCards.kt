@@ -30,6 +30,7 @@ import d20.engine.pf2e.Formulas
 import d20.engine.pf2e.Pf2eEngine
 import d20.engine.pf2e.SpellMode
 import d20.engine.play.PlayRunner
+import d20.engine.schema.AbilityStation
 import d20.engine.schema.ActionStation
 import d20.engine.schema.ConditionsStation
 import d20.engine.schema.ConsumableStation
@@ -118,6 +119,10 @@ fun StationCard(
                     CardFace("Condições", "$count", if (names.isEmpty()) "Nenhuma ativa" else names.joinToString(" · "), on, compact, setup)
                 }
                 is ResourceStation -> ResourceFace(station, dashboard, play, setup, actions, on)
+                is AbilityStation -> CardFace(
+                    station.title, if (station.level > 0) "${station.level}" else "★",
+                    station.category.ptName + if (station.effects.isEmpty()) "" else " · ${station.effects.size} efeito(s)", on, compact, setup,
+                ) { TagRow(station.effects.take(2).map { it.condition.ptName }, on) }
             }
             if (setup) {
                 Text("✎", color = on.copy(alpha = 0.8f), fontSize = 14.sp, modifier = Modifier.align(Alignment.TopEnd))

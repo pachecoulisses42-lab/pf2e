@@ -61,6 +61,7 @@ fun HomeScreen(
             when (characters.size) { 0 -> "Nenhum personagem salvo ainda."; 1 -> "1 personagem salvo."; else -> "${characters.size} personagens salvos." },
             "▤", CardColor.VERDE, nav.toList,
         )
+        HomeCard("Importar do Pathbuilder", "PDF ou JSON exportado; cada habilidade vira um módulo.", "⇩", CardColor.VIOLETA, nav.toImport)
         HomeCard("Ajustes", "Tema claro ou escuro, som ao rolar.", "⚙", CardColor.AZUL, nav.toSettings)
         if (lastCharacter != null) {
             NeoButton(

@@ -62,6 +62,8 @@ import d20.engine.pf2e.SpellSpec
 import d20.engine.pf2e.StrikingRune
 import d20.engine.pf2e.WeaponSpec
 import d20.engine.pf2e.WeaponTrait
+import d20.engine.schema.AbilityCategory
+import d20.engine.schema.AbilityStation
 import d20.engine.schema.ActionStation
 import d20.engine.schema.CardColor
 import d20.engine.schema.ConditionsStation
@@ -142,6 +144,15 @@ fun StationEditorSheet(
             }
             is ConsumableStation -> ConsumableForm(s.consumable) { draft = s.copy(consumable = it) }
             is ResourceStation -> ResourceForm(s) { draft = it }
+            is AbilityStation -> {
+                NameField("Nome da habilidade (texto livre)", s.name) { draft = s.copy(name = it) }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Dropdown("Tipo", AbilityCategory.entries, s.category, { it.ptName }, { draft = s.copy(category = it) }, Modifier.weight(1.4f))
+                    Stepper("Nível", s.level, 0..20, { draft = s.copy(level = it) }, Modifier.weight(1f))
+                }
+                SectionTitle("Condições que esta habilidade impõe ou remove")
+                EffectsEditor(s.effects, defaultTrigger = EffectTrigger.ALWAYS) { draft = s.copy(effects = it) }
+            }
             is ConditionsStation -> Text(
                 "Este módulo abre o painel de condições: condições ativas, dano persistente, venenos e a passagem de turno.",
                 color = c.muted, fontSize = 12.sp, fontWeight = FontWeight.Medium,
@@ -169,6 +180,7 @@ private fun titleFor(s: Station) = when (s) {
     is ConsumableStation -> "Poção ou bomba"
     is ResourceStation -> "Vida, escudo & defesa"
     is ConditionsStation -> "Condições"
+    is AbilityStation -> "Habilidade / talento"
 }
 
 private fun withColor(s: Station, color: CardColor?): Station = when (s) {
@@ -178,6 +190,7 @@ private fun withColor(s: Station, color: CardColor?): Station = when (s) {
     is ConsumableStation -> s.copy(color = color)
     is ResourceStation -> s.copy(color = color)
     is ConditionsStation -> s.copy(color = color)
+    is AbilityStation -> s.copy(color = color)
 }
 
 /** Free-text names get a final clean-up (and fall back to a default if emptied). */
@@ -186,6 +199,7 @@ private fun sanitized(s: Station): Station = when (s) {
     is SpellStation -> s.copy(spell = s.spell.copy(name = SchemaText.sanitize(s.spell.name).ifBlank { "Magia" }))
     is SkillStation -> s.copy(check = s.check.copy(customName = s.check.customName?.let(SchemaText::sanitize)?.ifBlank { null }))
     is ConsumableStation -> s.copy(consumable = s.consumable.copy(name = SchemaText.sanitize(s.consumable.name)))
+    is AbilityStation -> s.copy(name = SchemaText.sanitize(s.name).ifBlank { "Habilidade" })
     is ResourceStation, is ConditionsStation -> s
 }
 
@@ -266,7 +280,7 @@ private fun SpellForm(s: SpellSpec, onChange: (SpellSpec) -> Unit) {
         )
     }
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Stepper("Dados de dano", s.diceCount, 1..12, { onChange(s.copy(diceCount = it)) }, Modifier.weight(1f))
+        Stepper("Dados de dano", s.diceCount, 1..20, { onChange(s.copy(diceCount = it)) }, Modifier.weight(1f))
         Dropdown("Tipo de dado", DieType.entries, s.die, { it.label }, { onChange(s.copy(die = it)) }, Modifier.weight(1f))
     }
     Dropdown("Tipo de dano", DamageType.entries, s.damageType, { it.ptName }, { onChange(s.copy(damageType = it)) })

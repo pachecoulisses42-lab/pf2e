@@ -28,6 +28,11 @@ o deck "Arquitetura Modular para RPGs Mobile") para o código.
   `Pf2eEngine.check` (runas + penalidade de armadura em perícias de FOR/DES, anulada pela Força exigida).
 - **CD de classe** (`Dashboard.classDc()`): 10 + atributo-chave + proficiência de classe (Ficha). Magias com
   proficiência "Da classe" (`SpellSpec.fromClass`) usam essa proficiência na CD e no ataque mágico.
+- **Importar do Pathbuilder** (`engine/.../pathbuilder/`): `PathbuilderText.extractJson` tira as linhas que não são
+  JSON (o cabeçalho que o navegador põe em cada página do PDF), `PathbuilderParser` lê o build e `PathbuilderImport`
+  cria um módulo por arma, perícia, saber, magia (`SpellCatalog` para as de dano; as demais viram `AbilityStation`),
+  poção/bomba e talento, todos em `Dashboard.library`, com um painel inicial já montado. No app, `ImportReader` lê o
+  PDF no próprio aparelho com PDFBox-Android (Apache-2.0) e `ImportScreen` mostra a revisão por grupo.
 - **Tela inicial** (`ui/HomeScreen.kt`, destino inicial): Novo personagem, Carregar personagem, Ajustes e "Continuar com" o último aberto.
 - **Navegação**: menu "⋮" no topo (`NavMenu` em `ui/Neo.kt`) com Início / Personagens / Painel / Condições / Ajustes.
 - **Salvar & Travar**: `lockAndSave()` valida com `DashboardValidator`, persiste (Room) e vai para Play.

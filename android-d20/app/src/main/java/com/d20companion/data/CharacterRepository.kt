@@ -46,6 +46,12 @@ class CharacterRepository(private val dao: CharacterDao) {
         return id
     }
 
+    /** Saves an already built character (e.g. imported from Pathbuilder) and returns its id. */
+    suspend fun createFrom(dashboard: Dashboard): String {
+        save(dashboard, PlayRules.initialFor(dashboard))
+        return dashboard.characterId
+    }
+
     suspend fun load(id: String): LoadedCharacter? {
         val row = dao.find(id) ?: return null
         val dashboard = DashboardJson.decode(row.dashboardJson).getOrThrow()

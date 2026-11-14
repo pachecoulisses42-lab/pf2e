@@ -64,7 +64,7 @@ fun ListScreen(vm: ListViewModel, characters: List<CharacterSummary>, nav: NavAc
                     Text("Pathfinder 2e Remaster", color = c.muted, fontSize = 11.5.sp, fontWeight = FontWeight.Medium)
                 }
                 NeoButton("+ Novo", { creating = true })
-                NavMenu(listOf(MenuEntry("Início", nav.toHome), MenuEntry("Painel", nav.toPanel), MenuEntry("Condições", nav.toConditions), MenuEntry("Ajustes", nav.toSettings)))
+                NavMenu(listOf(MenuEntry("Início", nav.toHome), MenuEntry("Importar do Pathbuilder", nav.toImport), MenuEntry("Painel", nav.toPanel), MenuEntry("Condições", nav.toConditions), MenuEntry("Ajustes", nav.toSettings)))
             }
             if (characters.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import d20.engine.pf2e.SpellMode
+import d20.engine.schema.AbilityStation
 import d20.engine.schema.ActionStation
 import d20.engine.schema.ConditionsStation
 import d20.engine.schema.ConsumableStation
@@ -45,11 +46,12 @@ class AddModuleActions(
 )
 
 /**
- * Step 1 picks the kind of module; step 2 offers "Criar do zero", the user's saved modules and the basic ones.
+ * Step 1 picks the kind of module; step 2 offers "Criar do zero", this character's imported modules, the user's saved
+ * modules and the basic ones.
  * Picking any of them copies it into the zone and opens the editor, so the original is never changed.
  */
 @Composable
-fun AddModuleSheet(zone: ZoneKey, saved: List<Station>, actions: AddModuleActions) {
+fun AddModuleSheet(zone: ZoneKey, saved: List<Station>, imported: List<Station>, actions: AddModuleActions) {
     var type by remember { mutableStateOf<StationType?>(null) }
     val chosen = type
     NeoSheet(
@@ -61,7 +63,7 @@ fun AddModuleSheet(zone: ZoneKey, saved: List<Station>, actions: AddModuleAction
     ) {
         if (chosen == null) {
             StationType.entries.forEach { t ->
-                val options = ModuleLibrary.forType(t).size + saved.count { it.type() == t }
+                val options = ModuleLibrary.forType(t).size + saved.count { it.type() == t } + imported.count { it.type() == t }
                 NeoSurface(
                     Modifier.fillMaxWidth().padding(end = 3.dp, bottom = 3.dp), shadowOffset = 3.dp,
                     onClick = { if (options == 0) actions.onBlank(t) else type = t },
@@ -74,6 +76,11 @@ fun AddModuleSheet(zone: ZoneKey, saved: List<Station>, actions: AddModuleAction
             }
         } else {
             NeoButton("＋ Criar do zero", { actions.onBlank(chosen) }, modifier = Modifier.fillMaxWidth())
+            val fromCharacter = imported.filter { it.type() == chosen }
+            if (fromCharacter.isNotEmpty()) {
+                SectionTitle("Importados deste personagem")
+                fromCharacter.forEach { s -> ModuleRow(s, onClick = { actions.onPick(s) }) }
+            }
             val mine = saved.filter { it.type() == chosen }
             if (mine.isNotEmpty()) {
                 SectionTitle("Meus módulos")
@@ -127,4 +134,5 @@ private fun summary(s: Station): String = when (s) {
         s.consumable.effects.joinToString("") { " · ${it.describe()}" }
     is ResourceStation -> "PV ${s.maxHp}" + (s.shield?.let { " · ${it.ptName}" } ?: "")
     is ConditionsStation -> "Condições, venenos e turnos"
+    is AbilityStation -> s.category.ptName + (if (s.level > 0) " · nível ${s.level}" else "") + s.effects.joinToString("") { " · ${it.describe()}" }
 }

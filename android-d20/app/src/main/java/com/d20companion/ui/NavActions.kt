@@ -7,4 +7,5 @@ class NavActions(
     val toPanel: () -> Unit,
     val toConditions: () -> Unit,
     val toSettings: () -> Unit,
+    val toImport: () -> Unit,
 )

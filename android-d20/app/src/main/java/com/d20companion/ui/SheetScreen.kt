@@ -129,7 +129,7 @@ fun SheetScreen(vm: SheetViewModel, state: SheetState, soundOn: Boolean, nav: Na
         }
         addingTo?.let { key ->
             AddModuleSheet(
-                zone = key, saved = saved,
+                zone = key, saved = saved, imported = d.library,
                 actions = AddModuleActions(
                     onBlank = { type -> editing = vm.addBlank(key, type); addingTo = null },
                     onPick = { module -> editing = vm.addModule(key, module); addingTo = null },

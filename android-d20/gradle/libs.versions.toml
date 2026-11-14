@@ -9,6 +9,7 @@ lifecycle = "2.8.7"
 navigation = "2.8.3"
 serialization = "1.7.3"
 junit = "4.13.2"
+pdfbox = "2.0.27.0"
 
 [libraries]
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
@@ -26,6 +27,8 @@ androidx-navigation-compose = { module = "androidx.navigation:navigation-compose
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+
+pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfbox" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
