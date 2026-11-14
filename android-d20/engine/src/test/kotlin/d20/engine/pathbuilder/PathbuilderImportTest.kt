@@ -99,7 +99,7 @@ class PathbuilderImportTest {
         assertNull(skills["Atletismo"]) // destreinado não entra
         val feats = lib<AbilityStation>().associateBy { it.name }
         assertEquals(AbilityCategory.CLASS_FEAT, feats.getValue("Reach Spell").category)
-        assertEquals(AbilityCategory.SKILL_FEAT, feats.getValue("Assurance").category)
+        assertEquals(AbilityCategory.SKILL_FEAT, feats.getValue("Assurance (Arcana)").category)
         assertEquals(AbilityCategory.CLASS_FEATURE, feats.getValue("Arcane Bond").category)
     }
 
@@ -139,5 +139,13 @@ class PathbuilderImportTest {
         assertTrue(kept.library.none { it is AbilityStation && it.category == AbilityCategory.CLASS_FEAT })
         assertTrue(kept.library.any { it is SpellStation })
         assertEquals(d.zones, kept.zones)
+    }
+
+    @Test
+    fun `feats with different choices stay separate modules`() {
+        val twice = pb.copy(feats = pb.feats + PbFeat("Assurance", "Athletics", "Skill Feat", 4))
+        val names = PathbuilderImport.build(twice, "c").dashboard.library.filterIsInstance<AbilityStation>().map { it.name }
+        assertTrue("Assurance (Arcana)" in names, names.toString())
+        assertTrue("Assurance (Athletics)" in names, names.toString())
     }
 }

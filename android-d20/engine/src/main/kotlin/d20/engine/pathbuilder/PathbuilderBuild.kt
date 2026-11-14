@@ -9,7 +9,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.intOrNull
 
-data class PbFeat(val name: String, val type: String, val level: Int)
+/** [choice] is what the feat was taken for (Assurance → "Arcana"), blank when none. */
+data class PbFeat(val name: String, val choice: String, val type: String, val level: Int)
 
 data class PbWeapon(
     val name: String, val prof: String, val die: String, val pot: Int, val striking: String,
@@ -73,7 +74,7 @@ object PathbuilderParser {
             profs = b.obj("proficiencies").mapValues { (_, v) -> (v as? JsonPrimitive)?.intOrNull ?: 0 },
             itemBonuses = b.obj("mods").mapNotNull { (k, v) -> (v as? JsonObject)?.int("Item Bonus", 0)?.takeIf { it != 0 }?.let { k to it } }.toMap(),
             lores = b.arr("lores").mapNotNull { it as? JsonArray }.map { it.strAt(0) to it.intAt(1) },
-            feats = b.arr("feats").mapNotNull { it as? JsonArray }.map { PbFeat(it.strAt(0), it.strAt(2), it.intAt(3)) },
+            feats = b.arr("feats").mapNotNull { it as? JsonArray }.map { PbFeat(it.strAt(0), it.strAt(1), it.strAt(2), it.intAt(3)) },
             specials = b.arr("specials").map { it.text() },
             weapons = b.arr("weapons").mapNotNull { it as? JsonObject }.map { w ->
                 PbWeapon(w.str("name"), w.str("prof"), w.str("die"), w.int("pot"), w.str("str"), w.str("damageType"), w.int("attack"), w.arr("runes").map { it.text() })

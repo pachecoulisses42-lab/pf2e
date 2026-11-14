@@ -41,7 +41,8 @@ class PathbuilderTextTest {
     fun `reads feats, casters and item bonuses`() {
         val b = fromPdf
         assertEquals(4, b.feats.size)
-        assertEquals(PbFeat("Reach Spell", "Class Feat", 1), b.feats[1])
+        assertEquals(PbFeat("Reach Spell", "", "Class Feat", 1), b.feats[1])
+        assertEquals("Arcana", b.feats[2].choice)
         assertEquals(listOf("Electric Arc", "Detect Magic"), b.casters[0].spells.first { it.first == 0 }.second)
         assertEquals("int", b.casters[0].ability)
         assertEquals(1, b.itemBonuses["Diplomacy"])
@@ -53,5 +54,62 @@ class PathbuilderTextTest {
         assertEquals(PbArmor("Wooden Shield", "shield", 0, "", true, emptyList()), b.armor[1])
         assertEquals("Healing Potion (Lesser)" to 2, b.equipment[1])
         assertEquals(7, b.weapons.single().attack)
+    }
+
+    @Test
+    fun `keeps working with the browser's date, page number and URL lines`() {
+        val printed = fixture("ezren-pdf.txt").replace(
+            "\u000CEstilos de formatação",
+            "\u000C14/11/2026, 21:48 pathbuilder2e.com/json.php\nEstilos de formatação\n1/6\nfile:///C:/Users/x/json.html",
+        )
+        assertEquals(fromPdf, PathbuilderParser.parse(PathbuilderText.extractJson(printed)))
+    }
+
+    @Test
+    fun `recovers raw JSON that the browser wrapped across lines`() {
+        val raw = kotlinx.serialization.json.Json.parseToJsonElement(PathbuilderText.extractJson(fixture("ezren-pdf.txt"))).toString()
+        val wrapped = raw.chunked(90).chunked(20).joinToString("\n") { page ->
+            "14/11/2026, 21:48 json.php\n" + page.joinToString("\n") + "\nhttps://pathbuilder2e.com/json.php?id=1 1/3\u000C"
+        }
+        assertEquals(fromPdf, PathbuilderParser.parse(PathbuilderText.extractJson(wrapped)))
+    }
+
+    @Test
+    fun `keeps compact array lines that end a value with a bracket`() {
+        // Pathbuilder's viewer prints feats and lores as `[ "Name", null, "Type", 1, "Slot", "standardChoice", null],`.
+        val text = """
+            Estilos de formatação
+            {
+              "build": {
+                "name": "Ezren", "class": "Wizard", "level": 5,
+                "feats": [
+                  [
+                    "Reach Spell",
+                    null, "Class Feat",
+                    1, "Wizard Feat 1",
+                    "standardChoice",
+                    null],
+            Estilos de formatação
+                  [
+                    "Toughness",
+                    null, "General Feat",
+                    3, "General Feat 3",
+                    "standardChoice",
+                    null]
+                ],
+                "lores": [
+                  [
+                    "Academia",
+                    6],
+                  [
+                    "Genie",
+                    2]
+                ]
+              }
+            }
+        """.trimIndent()
+        val b = PathbuilderParser.parse(PathbuilderText.extractJson(text))
+        assertEquals(listOf("Reach Spell", "Toughness"), b.feats.map { it.name })
+        assertEquals(listOf("Academia" to 6, "Genie" to 2), b.lores)
     }
 }

@@ -253,8 +253,9 @@ object PathbuilderImport {
         fun feats() {
             val seen = mutableSetOf<String>()
             pb.feats.forEach { f ->
-                if (seen.add(f.name.lowercase())) {
-                    add(ImportGroup.FEATS, AbilityStation("tmp", name(f.name, "Talento"), category(f.type), f.level.coerceIn(0, 20)))
+                val full = if (f.choice.isBlank()) f.name else "${f.name} (${f.choice})"
+                if (seen.add(full.lowercase())) {
+                    add(ImportGroup.FEATS, AbilityStation("tmp", name(full, "Talento"), category(f.type), f.level.coerceIn(0, 20)))
                 }
             }
             pb.specials.forEach { s ->
