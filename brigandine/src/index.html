@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Brigandine — Motor Tático PF2e</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Cinzel:wght@600;800;900&family=Figtree:wght@400..800&family=Patrick+Hand&display=swap">
+<style>
+/*@css*/
+</style>
+</head>
+<body class="theme-parchment mode-setup">
+
+<!--@icons-->
+
+<!-- ============================ CABEÇALHO ============================ -->
+<header class="app-header">
+  <div class="brand">
+    <button class="btn btn-ghost btn-icon panel-toggle" onclick="togglePanel('left')" aria-label="Painel esquerdo"><svg class="icon"><use href="#i-panel"/></svg></button>
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2.5l11.5 6.7v13.6L16 29.5 4.5 22.8V9.2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 9l5.5 3.2v6.4L16 21.8l-5.5-3.2v-6.4z" fill="currentColor"/></svg>
+    <div class="brand-title">
+      <h1>Brigandine</h1>
+      <span id="headerStatusText">Montagem do tabuleiro</span>
+    </div>
+  </div>
+
+  <div class="mode-switch" role="tablist" aria-label="Modo">
+    <button id="btnModeSetup" class="mode-btn active-setup" role="tab" onclick="setAppMode('setup')">
+      <svg class="icon"><use href="#i-wrench"/></svg><span>Montagem</span>
+    </button>
+    <button id="btnModeCombat" class="mode-btn" role="tab" onclick="setAppMode('combat')">
+      <svg class="icon"><use href="#i-swords"/></svg><span>Combate</span>
+    </button>
+  </div>
+
+  <div class="header-actions">
+    <button id="sceneHeaderBtn" class="btn scene-chip" onclick="openScenesDialog()" title="Cenas de combate">
+      <svg class="icon"><use href="#i-hex"/></svg><span class="label-long">Cenas ·</span><span id="sceneHeaderLabel" class="scene-chip-name">Sem cena</span><span class="dirty-dot" aria-hidden="true"></span>
+    </button>
+    <details class="menu" id="fileMenu">
+      <summary class="btn" aria-label="Arquivo"><svg class="icon"><use href="#i-folder"/></svg><span class="label-long">Arquivo</span><svg class="icon label-long"><use href="#i-chevron"/></svg></summary>
+      <div class="menu-pop">
+        <button class="menu-item" onclick="saveStateToLocal(); closeMenus()"><svg class="icon"><use href="#i-save"/></svg>Salvar no navegador</button>
+        <button class="menu-item" onclick="loadStateFromLocal(); closeMenus()"><svg class="icon"><use href="#i-folder"/></svg>Carregar do navegador</button>
+        <button class="menu-item" onclick="exportJSON(); closeMenus()"><svg class="icon"><use href="#i-download"/></svg>Exportar JSON</button>
+        <button class="menu-item" onclick="toggleTheme(); closeMenus()"><svg class="icon"><use href="#i-scroll"/></svg><span id="themeMenuLabel">Tema: Pergaminho</span></button>
+        <label class="menu-item"><svg class="icon"><use href="#i-upload"/></svg>Importar JSON<input type="file" accept=".json" class="sr-only" onchange="importJSON(event); closeMenus()"></label>
+      </div>
+    </details>
+  </div>
+</header>
+
+<!-- ============================ CENAS ============================ -->
+<dialog id="scenesDialog" class="scenes-dialog" aria-labelledby="scenesTitle">
+  <div class="scenes-head">
+    <h2 id="scenesTitle">Cenas de combate</h2>
+    <button class="btn btn-ghost btn-icon" onclick="closeScenesDialog()" aria-label="Fechar"><svg class="icon"><use href="#i-x"/></svg></button>
+  </div>
+  <p class="hint">Monte encontros com antecedência e abra cada um na hora certa. <strong>Iniciar combate</strong> usa uma cópia: a cena preparada não muda. Salvar durante o combate guarda o progresso para <strong>Continuar</strong> depois.</p>
+  <div class="scenes-toolbar">
+    <button id="scenesSaveBtn" class="btn btn-primary" onclick="saveActiveScene()"><svg class="icon"><use href="#i-save"/></svg>Salvar</button>
+    <button class="btn" onclick="createSceneFromBoard(false)"><svg class="icon"><use href="#i-copy"/></svg>Nova a partir do tabuleiro</button>
+    <button class="btn" onclick="createSceneFromBoard(true)"><svg class="icon"><use href="#i-plus"/></svg>Nova em branco</button>
+  </div>
+  <nav id="campaignBar" class="campaign-bar" aria-label="Campanhas"></nav>
+  <div id="campaignHeader" class="campaign-header hidden"></div>
+  <div class="scenes-toolbar">
+    <input id="scenesSearch" type="text" placeholder="Buscar cena por nome ou anotação" aria-label="Buscar cena" oninput="setSceneQuery(this.value)">
+    <button class="btn btn-ghost" onclick="exportAllScenes()"><svg class="icon"><use href="#i-download"/></svg>Exportar todas</button>
+    <label class="btn btn-ghost"><svg class="icon"><use href="#i-upload"/></svg>Importar<input type="file" accept=".json,application/json" class="sr-only" onchange="importScenesFile(event)"></label>
+  </div>
+  <div id="scenesList" class="scenes-list"></div>
+  <p id="scenesStorageInfo" class="hint"></p>
+</dialog>
+
+<dialog id="choiceDialog" class="choice-dialog">
+  <p id="choiceMessage"></p>
+  <div id="choiceButtons" class="choice-buttons"></div>
+</dialog>
+
+<div class="workspace">
+
+  <!-- ======================== BARRA LATERAL ESQUERDA ======================== -->
+  <aside class="sidebar-left" id="sidebarLeft">
+
+    <!-- MONTAGEM -->
+    <div id="setupLeftPanel">
+      <details class="acc" name="setup-acc" data-menu="board">
+        <summary>
+          <svg class="icon"><use href="#i-hex"/></svg>Tabuleiro
+          <span id="gridSummaryBadge" class="summary-meta">HEX 14×10 (1,5m)</span>
+          <svg class="icon chev"><use href="#i-chevron"/></svg>
+        </summary>
+        <div class="acc-body">
+          <div class="seg">
+            <button id="btnGridHex" class="seg-btn active" onclick="setGridType('hex')"><svg class="icon"><use href="#i-hex"/></svg>Hexagonal</button>
+            <button id="btnGridSquare" class="seg-btn" onclick="setGridType('square')"><svg class="icon"><use href="#i-grid"/></svg>Quadriculado</button>
+          </div>
+
+          <div class="field">
+            <div class="field-label"><span>Colunas</span><strong id="lblCols" class="num">14 células</strong></div>
+            <div class="stepper">
+              <button class="btn btn-sm btn-icon" onclick="adjustGridSize(-1, 0)" aria-label="Menos uma coluna">−</button>
+              <input type="range" id="sliderCols" min="5" max="36" value="14" oninput="setGridSize(this.value, null)">
+              <button class="btn btn-sm btn-icon" onclick="adjustGridSize(1, 0)" aria-label="Mais uma coluna">+</button>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Linhas</span><strong id="lblRows" class="num">10 células</strong></div>
+            <div class="stepper">
+              <button class="btn btn-sm btn-icon" onclick="adjustGridSize(0, -1)" aria-label="Menos uma linha">−</button>
+              <input type="range" id="sliderRows" min="5" max="36" value="10" oninput="setGridSize(null, this.value)">
+              <button class="btn btn-sm btn-icon" onclick="adjustGridSize(0, 1)" aria-label="Mais uma linha">+</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label"><span>Tamanho da célula</span><strong id="lblCellScale">1,5 metros</strong></div>
+            <div class="seg seg-4">
+              <button class="seg-btn cell-scale-btn active" data-scale="1.5" onclick="setCellScale(1.5)">1,5m</button>
+              <button class="seg-btn cell-scale-btn" data-scale="3" onclick="setCellScale(3)">3m</button>
+              <button class="seg-btn cell-scale-btn" data-scale="9" onclick="setCellScale(9)">9m</button>
+              <button class="seg-btn cell-scale-btn" data-scale="18" onclick="setCellScale(18)">18m</button>
+            </div>
+          </div>
+
+          <details class="more">
+            <summary>Ajuste rápido<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <div class="grid-4">
+                <button class="btn btn-sm" onclick="adjustGridSize(-5, 0)">Col −5</button>
+                <button class="btn btn-sm" onclick="adjustGridSize(5, 0)">Col +5</button>
+                <button class="btn btn-sm" onclick="adjustGridSize(0, -5)">Lin −5</button>
+                <button class="btn btn-sm" onclick="adjustGridSize(0, 5)">Lin +5</button>
+              </div>
+              <div class="field">
+                <div class="field-label"><span>Arraste para dimensionar</span></div>
+                <div id="xyTouchpad" class="xy-touchpad">
+                  <div id="xyTouchpadFill" class="xy-touchpad-fill"></div>
+                  <div id="xyTouchpadLabel" class="xy-touchpad-label">14 × 10</div>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <div class="field">
+            <div class="field-label"><span>Clima e ambiente</span><button class="btn btn-sm btn-ghost" onclick="clearAllEffects()">Limpar tudo</button></div>
+            <div id="effectPalette" class="env-palette"></div>
+            <p class="hint">Escolha um efeito e pinte no tabuleiro. Escuridão some onde houver luz (tochas, lanternas, braseiros, fogueiras).</p>
+          </div>
+              <div class="field">
+                <div class="field-label"><span>Forma</span></div>
+                <div id="effectShapeControls" class="shape-controls"></div>
+              </div>
+
+          <details class="more transp" data-layer="effects">
+            <summary><svg class="icon"><use href="#i-eye"/></svg>Transparência<span class="summary-meta num" id="transpVal_effects">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <div class="field">
+                <div class="field-label"><span>Névoa, escuridão, chuva, nevasca e fumaça</span></div>
+                <input type="range" id="transp_effects" min="0" max="90" step="5" oninput="setLayerTransparency('effects', this.value)" aria-label="Transparência: Névoa, escuridão, chuva, nevasca e fumaça">
+                <div class="range-ends"><span>Opaco</span><span>90 %</span></div>
+              </div>
+            </div>
+          </details>
+        </div>
+      </details>
+
+      <details class="acc" name="setup-acc" data-menu="map">
+        <summary><svg class="icon"><use href="#i-image"/></svg>Mapa de fundo<svg class="icon chev" style="margin-left:auto"><use href="#i-chevron"/></svg></summary>
+        <div class="acc-body">
+          <div class="grid-2">
+            <label class="btn"><svg class="icon"><use href="#i-image"/></svg>Enviar imagem<input type="file" accept="image/*" onchange="handleMapUpload(event)"></label>
+            <button class="btn btn-ghost" onclick="clearBackgroundMap()"><svg class="icon"><use href="#i-x"/></svg>Limpar</button>
+          </div>
+          <div class="field">
+            <div class="field-label"><span>Cenários prontos</span></div>
+            <div class="chip-row">
+              <button class="chip" onclick="setProceduralMap('parchment')">Pergaminho</button>
+              <button class="chip" onclick="setProceduralMap('river')">Rio</button>
+              <button class="chip" onclick="setProceduralMap('dungeon')">Masmorra</button>
+              <button class="chip" onclick="setProceduralMap('throne')">Salão</button>
+              <button class="chip" onclick="setProceduralMap('abyss')">Abismo</button>
+            </div>
+          </div>
+
+          <details class="more transp" data-layer="map">
+            <summary><svg class="icon"><use href="#i-eye"/></svg>Transparência<span class="summary-meta num" id="transpVal_map">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <div class="field">
+                <div class="field-label"><span>Mapa de fundo</span></div>
+                <input type="range" id="transp_map" min="0" max="90" step="5" oninput="setLayerTransparency('map', this.value)" aria-label="Transparência: Mapa de fundo">
+                <div class="range-ends"><span>Opaco</span><span>90 %</span></div>
+              </div>
+            </div>
+          </details>
+        </div>
+      </details>
+
+      <details class="acc" name="setup-acc" data-menu="tools" open>
+        <summary><svg class="icon"><use href="#i-wrench"/></svg>Caixa de ferramentas<svg class="icon chev" style="margin-left:auto"><use href="#i-chevron"/></svg></summary>
+        <div class="acc-body">
+          <div class="tool-tabs" role="tablist" aria-label="Ferramentas">
+            <button id="toolTab_piece" class="tool-tab active" onclick="setSetupTool('piece')"><svg class="icon"><use href="#i-pawn"/></svg>Personagens</button>
+            <button id="toolTab_terrain" class="tool-tab" onclick="setSetupTool('terrain')"><svg class="icon"><use href="#i-mountain"/></svg>Terreno</button>
+            <button id="toolTab_object" class="tool-tab" onclick="setSetupTool('object')"><svg class="icon"><use href="#i-grid"/></svg>Objetos</button>
+            <button id="toolTab_animal" class="tool-tab" onclick="setSetupTool('animal')"><svg class="icon"><use href="#i-target"/></svg>Animais</button>
+            <button id="toolTab_hazard" class="tool-tab" onclick="setSetupTool('hazard')"><svg class="icon"><use href="#i-bolt"/></svg>Perigos</button>
+          </div>
+
+          <div id="toolPanel_piece" class="tool-panel">
+          <div class="field">
+            <div class="field-label"><span>Estilo dos tokens</span></div>
+            <div class="seg">
+              <button id="styleChibi" class="seg-btn active" onclick="chooseTokenStyle('chibi')">Token</button>
+              <button id="styleTopo" class="seg-btn" onclick="chooseTokenStyle('topo')">Vista de cima</button>
+            </div>
+          </div>
+
+          <div class="gallery-filter">
+            <input id="galleryFilterText" type="text" placeholder="Filtrar peças (nome ou classe)" aria-label="Filtrar peças" oninput="renderPieceGallery()">
+            <select id="galleryFilterFaction" aria-label="Facção" onchange="renderPieceGallery()"><option value="">Todas</option><option value="hero">Heróis</option><option value="villain">Vilões</option></select>
+          </div>
+          <details id="gallery3dSection" class="gallery-section" open>
+            <summary><svg class="icon"><use href="#i-sparkles"/></svg>Tokens 3D (animados)<svg class="icon chev" style="margin-left:auto"><use href="#i-chevron"/></svg></summary>
+            <div id="piece3dGalleryContainer" class="piece-gallery"></div>
+          </details>
+          <div class="gallery-section-label">Peças</div>
+          <div id="pieceGalleryContainer" class="piece-gallery"></div>
+
+          <details id="newPieceDetails" class="more" ontoggle="if (this.open) syncNewPieceForm()">
+            <summary><svg class="icon"><use href="#i-plus"/></svg>Criar peça do zero<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <div class="grid-2">
+                <input id="npName" type="text" placeholder="Nome (ex.: Goblin Xamã)" oninput="syncNewPieceForm()">
+                <input id="npClass" type="text" placeholder="Classe (opcional)" oninput="syncNewPieceForm()">
+              </div>
+              <div class="grid-2">
+                <select id="npFaction" onchange="syncNewPieceForm()"><option value="hero">Herói</option><option value="villain">Vilão</option></select>
+                <select id="npLevel" aria-label="Nível"></select>
+              </div>
+              <div class="np-token">
+                <div id="npTokenPreview" class="np-token-preview"></div>
+                <div>
+                  <div class="field-label"><span>Token</span></div>
+                  <p id="npTokenHint" class="hint">Sugerido pelo nome</p>
+                  <button type="button" class="btn btn-sm btn-ghost" onclick="resetNewPieceToken()">Sugerir de novo</button>
+                </div>
+              </div>
+              <div id="npTokenPicker" class="token-picker"></div>
+              <button class="btn btn-primary btn-block" onclick="createPieceFromScratch()"><svg class="icon"><use href="#i-plus"/></svg>Criar e adicionar à galeria</button>
+            </div>
+          </details>
+
+          <details class="more">
+            <summary><svg class="icon"><use href="#i-upload"/></svg>Importar peças (JSON)<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <p class="hint">Lista de peças de outro módulo ou ferramenta. Sem token? O app escolhe um pelo nome, classe e facção — e você troca depois na aba Base. Formato em <code>docs/FORMATO-PECAS.md</code>.</p>
+              <label class="btn btn-block"><svg class="icon"><use href="#i-upload"/></svg>Escolher arquivo .json<input type="file" accept=".json,application/json" class="sr-only" onchange="importPiecesFile(event)"></label>
+            </div>
+          </details>
+
+          <details class="more">
+            <summary><svg class="icon"><use href="#i-image"/></svg>Importar imagens como modelos<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <p class="hint">Escolha várias imagens de uma vez (seu pacote de tokens). Cada uma vira um modelo na galeria, com o nome do arquivo.</p>
+              <div class="grid-2">
+                <select id="bulkFaction"><option value="hero">Herói</option><option value="villain">Vilão</option></select>
+                <label class="btn"><svg class="icon"><use href="#i-upload"/></svg>Escolher imagens<input type="file" accept="image/*,.svg" multiple onchange="importImagesAsTemplates(event)"></label>
+              </div>
+            </div>
+          </details>
+
+          <div class="row">
+            <button class="btn btn-primary" style="flex:1" onclick="populateDemoBattle()"><svg class="icon"><use href="#i-bolt"/></svg>Montar batalha de exemplo</button>
+            <button class="btn btn-danger btn-icon" onclick="clearAllUnits()" aria-label="Remover todas as peças" title="Remover todas as peças"><svg class="icon"><use href="#i-trash"/></svg></button>
+          </div>
+
+          </div>
+
+          <div id="toolPanel_terrain" class="tool-panel hidden">
+            <div id="terrainPalette" class="env-palette"></div>
+            <p class="hint">Lama, neve e água custam o dobro para andar; abismo e parede não deixam passar; parede também bloqueia a luz.</p>
+              <div class="field">
+                <div class="field-label"><span>Forma</span></div>
+                <div id="terrainShapeControls" class="shape-controls"></div>
+              </div>
+          </div>
+
+          <div id="toolPanel_object" class="tool-panel hidden">
+            <div id="objectPalette" class="env-palette"></div>
+            <p class="hint">Clique numa casa para pôr o objeto. Pedra, barril, baú, árvore, braseiro e muro bloqueiam a passagem; cadeira e mesa custam o dobro. Tochas, braseiro, lampião e cristal iluminam e afastam a escuridão.</p>
+          </div>
+
+          <div id="toolPanel_animal" class="tool-panel hidden">
+            <div id="animalGalleryContainer" class="piece-gallery"></div>
+            <p class="hint">Escolha o animal e clique numa casa livre. Ficha, armas e token se editam no inspetor.</p>
+          </div>
+
+          <div id="toolPanel_hazard" class="tool-panel hidden">
+            <div id="hazardPalette" class="env-palette"></div>
+            <p class="hint">No combate, a peça que termina o movimento num perigo sofre o dano dele. A fogueira também ilumina.</p>
+          </div>
+
+          <details class="more transp" data-layer="terrain">
+            <summary><svg class="icon"><use href="#i-eye"/></svg>Transparência<span class="summary-meta num" id="transpVal_terrain">—</span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+            <div class="more-body">
+              <div class="field">
+                <div class="field-label"><span>Terreno e perigos</span></div>
+                <input type="range" id="transp_terrain" min="0" max="90" step="5" oninput="setLayerTransparency('terrain', this.value)" aria-label="Transparência: Terreno e perigos">
+                <div class="range-ends"><span>Opaco</span><span>90 %</span></div>
+              </div>
+            </div>
+          </details>
+        </div>
+      </details>
+    </div>
+
+    <!-- COMBATE -->
+    <div id="combatLeftPanel" class="hidden">
+      <div class="panel-section">
+        <div class="round-head">
+          <div><div class="round-label">Rodada</div><div id="roundCounterBadge" class="round-num num">1</div></div>
+          <div class="row">
+            <button class="btn btn-sm btn-icon" onclick="rollAllInitiatives()" title="Rolar iniciativa" aria-label="Rolar iniciativa"><svg class="icon"><use href="#i-dice"/></svg></button>
+            <button class="btn btn-sm btn-icon" onclick="resetCombatRound()" title="Voltar à rodada 1" aria-label="Voltar à rodada 1"><svg class="icon"><use href="#i-undo"/></svg></button>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="nextTurn()"><svg class="icon fill"><use href="#i-play"/></svg>Encerrar turno</button>
+        <div id="initiativeList" class="init-list"></div>
+      </div>
+
+      <div class="panel-section">
+        <details class="more">
+          <summary><svg class="icon"><use href="#i-eye"/></svg>Legenda do tabuleiro<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+          <div class="more-body hint">
+            <div class="row"><span class="swatch" style="background:rgba(248,113,113,.38);box-shadow:inset 0 0 0 1px #ef4444"></span><span><strong>Vermelho</strong> — alcance e alvos válidos</span></div>
+            <div class="row"><span class="swatch" style="background:rgba(21,128,61,.5);box-shadow:inset 0 0 0 1px #16a34a"></span><span><strong>Verde escuro</strong> — 1º movimento (◆)</span></div>
+            <div class="row"><span class="swatch" style="background:rgba(34,197,94,.25);box-shadow:inset 0 0 0 1px #4ade80"></span><span><strong>Verde</strong> — 2º movimento (◆◆)</span></div>
+            <div class="row"><span class="swatch" style="background:rgba(134,239,172,.1);box-shadow:inset 0 0 0 1px #86efac"></span><span><strong>Verde claro</strong> — 3º movimento (◆◆◆)</span></div>
+          </div>
+        </details>
+        <button class="btn btn-danger btn-block" onclick="endCombatSession()"><svg class="icon"><use href="#i-stop"/></svg>Encerrar combate</button>
+      </div>
+
+      <div class="panel-section">
+        <details id="combatLogPanel" class="more log-section" open ontoggle="if (typeof savePrefs === 'function') savePrefs({ combatLogOpen: this.open })">
+          <summary><svg class="icon"><use href="#i-list"/></svg>Registro de dados e ações<span class="summary-meta num" id="combatLogCount"></span><svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+          <div class="more-body">
+            <div class="log-tools"><button class="btn btn-sm btn-ghost" onclick="clearCombatLog()"><svg class="icon"><use href="#i-trash"/></svg>Limpar registro</button></div>
+            <div id="combatPanelLog" class="combat-log combat-log-panel" aria-live="polite"></div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============================ TABULEIRO ============================ -->
+  <main class="canvas-stage">
+    <div class="canvas-top-hud">
+      <div class="hud-pill">
+        <div class="hud-readout">
+          <span class="mode-dot"></span>
+          <b id="hudModeIndicator">Montagem</b>
+          <span class="hud-sep"></span>
+          <span id="hudHoverCell">Célula —</span>
+          <span class="hud-sep"></span>
+          <span id="hudDistanceMeasure">Distância —</span>
+        </div>
+      </div>
+      <div class="hud-pill">
+        <button class="btn btn-ghost btn-icon" id="btnHudPan" onclick="setHudTool('pan')" title="Mão: arrastar para mover a visão (Espaço segurado faz o mesmo)" aria-label="Mão: mover a visão" aria-pressed="false"><svg class="icon"><use href="#i-hand"/></svg></button>
+        <button class="btn btn-ghost btn-icon hud-setup-only" id="btnHudErase" onclick="setHudTool('erase')" title="Lixeira: clique numa peça, objeto, perigo ou terreno para apagar (Ctrl+Z desfaz)" aria-label="Lixeira: apagar do tabuleiro" aria-pressed="false"><svg class="icon"><use href="#i-trash"/></svg></button>
+        <button class="btn btn-ghost btn-icon hud-setup-only" id="btnHudEdit" onclick="setHudTool('edit')" title="Lápis: clique para editar; arraste para mover" aria-label="Lápis: editar no tabuleiro" aria-pressed="false"><svg class="icon"><use href="#i-pencil"/></svg></button>
+        <span class="hud-sep"></span>
+        <button class="btn btn-ghost btn-icon active" id="btnHudAnim" onclick="toggleAnimations()" title="Animações ligadas (clique no tabuleiro pula)" aria-label="Animações de ataques e magias" aria-pressed="true"><svg class="icon"><use href="#i-sparkles"/></svg></button>
+        <button class="btn btn-ghost btn-icon" id="btnToggleRuler" onclick="toggleRulerTool()" title="Régua" aria-label="Régua"><svg class="icon"><use href="#i-ruler"/></svg></button>
+        <button class="btn btn-ghost btn-icon hud-zoom" onclick="zoomBoard(1.15)" title="Aproximar" aria-label="Aproximar"><svg class="icon"><use href="#i-zoom-in"/></svg></button>
+        <button class="btn btn-ghost btn-icon hud-zoom" onclick="zoomBoard(0.87)" title="Afastar" aria-label="Afastar"><svg class="icon"><use href="#i-zoom-out"/></svg></button>
+        <button class="btn btn-ghost btn-icon" onclick="resetCamera()" title="Centralizar" aria-label="Centralizar"><svg class="icon"><use href="#i-target"/></svg></button>
+      </div>
+    </div>
+
+    <canvas id="battleCanvas"></canvas>
+    <div id="boardEditPop" class="board-pop hidden" role="dialog" aria-label="Editar no tabuleiro"></div>
+    <div id="unitTip" class="unit-tip hidden" role="tooltip"></div>
+
+    <div class="canvas-bottom-hud">
+      <div class="hint-pill" id="hudInstructionText">Clique em uma peça para editar sua ficha.</div>
+      <div class="log-dock" id="logDock">
+        <button class="log-bar" onclick="toggleLogDock()" aria-expanded="false" aria-controls="logPanel">
+          <svg class="icon"><use href="#i-list"/></svg>
+          <span class="log-peek" id="logPeek">Registro de ações e rolagens</span>
+          <svg class="icon chev"><use href="#i-chevron-up"/></svg>
+        </button>
+        <div class="log-panel" id="logPanel">
+          <div class="log-tools"><button class="btn btn-sm btn-ghost" onclick="clearCombatLog()"><svg class="icon"><use href="#i-trash"/></svg>Limpar registro</button></div>
+          <div id="combatLogBox" class="combat-log"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ======================== BARRA LATERAL DIREITA ======================== -->
+  <aside class="sidebar-right" id="sidebarRight">
+
+    <!-- Gaveta inferior (celular e tablet em pé): sempre visível, abre ao tocar -->
+    <div class="sheet-bar">
+      <button class="sheet-handle" id="sheetHandle" onclick="toggleSheet()" aria-expanded="false" aria-controls="sidebarRight">
+        <span class="sheet-grip" aria-hidden="true"></span>
+        <span class="sheet-label" id="sheetHandleLabel">Editar peça</span>
+        <svg class="icon chev"><use href="#i-chevron-up"/></svg>
+      </button>
+      <button class="btn btn-primary btn-sm sheet-endturn" onclick="nextTurn()"><svg class="icon fill"><use href="#i-play"/></svg>Encerrar turno</button>
+    </div>
+
+    <!-- COMBATE -->
+    <div id="combatRightPanel" class="hidden">
+      <div class="panel-section unit-card">
+        <div class="unit-id">
+          <div id="combatUnitSculpt" class="token-well"></div>
+          <div class="unit-id-main">
+            <div class="row-between"><strong id="combatUnitName" class="unit-name">—</strong><span id="combatUnitFactionBadge" class="badge badge-hero">HERÓI</span></div>
+            <div class="unit-sub">Nível <span id="combatUnitLevel" class="num">1</span> · <span id="combatUnitMoveText">Movimento: 9m</span></div>
+          </div>
+        </div>
+        <div class="vitals">
+          <div class="vitals-top">
+            <span class="vitals-hp num" id="combatUnitHpText">0 / 0 PV</span>
+            <span class="ac-shield" id="combatUnitACBox"><svg class="icon"><use href="#i-shield"/></svg>CA <span id="combatUnitAC" class="num">0</span></span>
+          </div>
+          <div class="hp-bar-outer"><div id="combatUnitHpBar" class="hp-bar-inner" style="width:100%"></div></div>
+        </div>
+        <div id="combatUnitDefenses" class="chip-row hidden"></div>
+        <div class="economy">
+          <div class="action-diamonds">
+            <div id="pipAction1" class="action-pip available" onclick="toggleActionPip(1)" title="Ação 1">1</div>
+            <div id="pipAction2" class="action-pip available" onclick="toggleActionPip(2)" title="Ação 2">2</div>
+            <div id="pipAction3" class="action-pip available" onclick="toggleActionPip(3)" title="Ação 3">3</div>
+          </div>
+          <div id="pipReaction" class="reaction-pip available" onclick="toggleReactionPip()" title="Reação"><svg class="icon"><use href="#i-undo"/></svg>Reação</div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="cmd-nav" role="tablist">
+          <button id="btnCmd1Attack" class="cmd" data-cmd="attack" onclick="selectCombatMainMenu('attack')"><svg class="icon"><use href="#i-swords"/></svg>Ação</button>
+          <button id="btnCmd2Move" class="cmd active" data-cmd="move" onclick="selectCombatMainMenu('move')"><svg class="icon"><use href="#i-move"/></svg>Mover</button>
+          <button id="btnCmd3Magic" class="cmd" data-cmd="magic" onclick="selectCombatMainMenu('magic')"><svg class="icon"><use href="#i-sparkles"/></svg>Magias</button>
+          <button id="btnCmd4Items" class="cmd" data-cmd="items" onclick="selectCombatMainMenu('items')"><svg class="icon"><use href="#i-flask"/></svg>Itens</button>
+          <button id="btnCmd5Sheet" class="cmd" data-cmd="sheet" onclick="selectCombatMainMenu('sheet')"><svg class="icon"><use href="#i-scroll"/></svg>Ficha</button>
+        </div>
+
+        <!-- Ação -->
+        <div id="subpanelAttack" class="subpanel hidden">
+          <div class="subpanel-head"><span class="section-title">Atacar</span><span id="lblCurrentMAP" class="badge badge-villain">MAP 0</span></div>
+          <p class="hint">Escolha a arma e clique em uma peça na área vermelha. Acerto e dano são rolados juntos.</p>
+          <div id="combatWeaponList" class="stack"></div>
+          <div class="defense-bar">
+            <div class="defense-text"><strong>Erguer escudo <span class="num">◆</span></strong><span id="lblShieldInfo">+2 CA até o início do seu próximo turno</span></div>
+            <button id="btnRaiseShield" class="btn btn-ward" onclick="raiseShield()"><svg class="icon"><use href="#i-shield"/></svg>Erguer</button>
+          </div>
+        </div>
+
+        <!-- Movimento -->
+        <div id="subpanelMove" class="subpanel">
+          <div class="subpanel-head"><span class="section-title">Mover</span><span id="lblSubMoveSpeed" class="badge badge-accent">9m / ação</span></div>
+          <p class="hint">Clique em uma célula verde para mover. As ações são descontadas automaticamente.</p>
+          <div class="row">
+            <div class="legend-chip tier-1-green">◆<small>1ª ação</small></div>
+            <div class="legend-chip tier-2-green">◆◆<small>2ª ação</small></div>
+            <div class="legend-chip tier-3-green">◆◆◆<small>3ª ação</small></div>
+          </div>
+          <div class="grid-2">
+            <button class="btn" onclick="spendSingleAction('Passo de 1,5m')">Passo de 1,5m ◆</button>
+            <button class="btn" onclick="useReactionAction()">Usar reação</button>
+          </div>
+        </div>
+
+        <!-- Magias -->
+        <div id="subpanelMagic" class="subpanel hidden">
+          <div class="subpanel-head"><span class="section-title">Magias</span></div>
+          <p class="hint">Escolha a magia e clique no alvo ou ponto na área vermelha.</p>
+          <div id="combatSpellList" class="stack"></div>
+        </div>
+
+        <!-- Itens -->
+        <div id="subpanelItems" class="subpanel hidden">
+          <div class="subpanel-head"><span class="section-title">Itens</span><span class="badge" style="background:var(--supply-soft);color:var(--supply)">◆◆</span></div>
+          <p class="hint">Escolha a poção ou pergaminho e clique no alvo, ou use em si mesmo. Tocha, lanterna e lampião acendem com ◆ e ficam acesos até você apagar.</p>
+          <div id="combatItemList" class="stack"></div>
+          <button id="btnQuickSelfItem" class="btn btn-block" onclick="useSelectedItemOnSelf()"><svg class="icon"><use href="#i-flask"/></svg>Usar em si mesmo</button>
+        </div>
+
+        <!-- Ficha -->
+        <div id="subpanelSheet" class="subpanel hidden">
+          <div class="subpanel-head"><span class="section-title">Ficha</span><span id="sheetHeaderBadge" class="badge badge-accent">Nível 1</span></div>
+          <div id="combatSheetContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MONTAGEM -->
+    <div id="setupRightPanel">
+      <div class="panel-section">
+        <div class="panel-head">
+          <span class="section-title">Peça selecionada</span>
+          <span id="inspFactionBadge" class="badge badge-hero">HERÓI</span>
+        </div>
+
+        <div id="inspectorEmpty" class="empty">
+          <svg class="icon"><use href="#i-pawn"/></svg>
+          <strong>Nenhuma peça selecionada</strong>
+          <span>Clique em uma peça no tabuleiro para editar ficha, armas, magias e itens.</span>
+        </div>
+
+        <div id="inspectorContent" class="hidden stack-3">
+          <div class="unit-id">
+            <div id="inspSculptPreview" class="token-well"></div>
+            <div class="unit-id-main">
+              <input type="text" id="inspNameInput" aria-label="Nome da peça" onchange="updateSelectedUnitField('name', this.value)" style="font-weight:700">
+              <div class="row">
+                <label class="btn btn-sm btn-ghost" title="Usar uma imagem SVG ou PNG como token"><svg class="icon"><use href="#i-image"/></svg>Token<input type="file" accept=".svg,image/*" onchange="handleCustomTokenUpload(event)"></label>
+                <button class="btn btn-sm btn-ghost" onclick="cloneSelectedUnit()"><svg class="icon"><use href="#i-copy"/></svg>Clonar</button>
+                <button class="btn btn-sm btn-danger btn-icon" onclick="deleteSelectedUnit()" aria-label="Excluir peça" title="Excluir peça"><svg class="icon"><use href="#i-trash"/></svg></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="tabs" role="tablist">
+            <button id="editTabSheetBtn" class="tab active" onclick="switchEditTab('sheet')"><svg class="icon"><use href="#i-scroll"/></svg>Ficha</button>
+            <button id="editTabBaseBtn" class="tab" onclick="switchEditTab('base')"><svg class="icon"><use href="#i-bars"/></svg>Base</button>
+            <button id="editTabWeaponsBtn" class="tab" onclick="switchEditTab('weapons')"><svg class="icon"><use href="#i-swords"/></svg>Armas</button>
+            <button id="editTabSpellsBtn" class="tab" onclick="switchEditTab('spells')"><svg class="icon"><use href="#i-sparkles"/></svg>Magias</button>
+            <button id="editTabItemsBtn" class="tab" onclick="switchEditTab('items')"><svg class="icon"><use href="#i-flask"/></svg>Itens</button>
+          </div>
+
+          <div id="editTabSheet"><div id="setupSheetContainer"></div></div>
+
+          <div id="editTabBase" class="hidden stack-3">
+            <div class="field">
+              <div class="field-label"><span>Imagem do token</span><strong id="tokenSourceLabel">Ilustração padrão</strong></div>
+              <div class="row">
+                <label class="btn" style="flex:1" title="PNG, JPG, WebP, GIF ou SVG de até 10 MB"><svg class="icon"><use href="#i-image"/></svg>Importar imagem<input type="file" accept="image/*,.svg" onchange="handleCustomTokenUpload(event)"></label>
+                <button id="btnRemoveToken" class="btn btn-ghost hidden" onclick="removeCustomToken()"><svg class="icon"><use href="#i-undo"/></svg>Usar padrão</button>
+              </div>
+              <label id="tokenFrameField" class="check hidden"><input type="checkbox" id="chkTokenFrame" onchange="setCustomTokenFrame(this.checked)"> Recortar em círculo com moldura (desmarque para PNG transparente)</label>
+              <p class="hint">Dica: arraste uma imagem direto sobre uma peça no tabuleiro.</p>
+            </div>
+
+            <div class="field">
+              <div class="field-label"><span>Ilustração</span></div>
+              <select id="inspTokenSelect" onchange="changeSelectedUnitToken(this.value)">
+                <option value="guerreiro">Guerreiro</option>
+                <option value="barbaro">Bárbaro</option>
+                <option value="bardo">Bardo</option>
+                <option value="clerigo">Clérigo</option>
+                <option value="feiticeiro">Feiticeiro</option>
+                <option value="mago">Mago</option>
+                <option value="paladino">Paladino</option>
+                <option value="ranger">Ranger</option>
+                <option value="rogue">Rogue</option>
+                <option value="goblin">Goblin</option>
+                <option value="lobo">Lobo atroz</option>
+                <option value="bandido">Bandido</option><option value="druida">Druida</option><option value="monge">Monge</option><option value="alquimista">Alquimista</option><option value="bruxa">Bruxa</option><option value="espadachim">Espadachim</option><option value="esqueleto">Esqueleto</option><option value="orc">Orc</option><option value="cultista">Cultista</option><option value="zumbi">Zumbi</option><option value="kobold">Kobold</option>
+              </select>
+              <details id="tokenPickerDetails" class="more" ontoggle="if (this.open) renderTokenPicker()">
+                <summary><svg class="icon"><use href="#i-image"/></svg>Galeria de tokens<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+                <div class="more-body"><div id="tokenPicker" class="token-picker"></div></div>
+              </details>
+            </div>
+
+            <div class="field">
+              <div class="field-label"><span>Pontos de vida</span><strong id="lblInspHP" class="num">0 / 0 PV · CA 0</strong></div>
+              <div class="grid-4">
+                <button class="btn btn-sm btn-danger" onclick="modifySelectedHP(-5)">−5</button>
+                <button class="btn btn-sm btn-danger" onclick="modifySelectedHP(-1)">−1</button>
+                <button class="btn btn-sm" style="background:var(--move-soft);color:var(--move)" onclick="modifySelectedHP(1)">+1</button>
+                <button class="btn btn-sm" style="background:var(--move-soft);color:var(--move)" onclick="modifySelectedHP(5)">+5</button>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <div class="field-label"><span>PV máximos</span></div>
+                <div class="stepper"><button class="btn btn-sm btn-icon" onclick="modifySelectedMaxHP(-5)">−</button><strong id="lblInspMaxHP" class="value num">0</strong><button class="btn btn-sm btn-icon" onclick="modifySelectedMaxHP(5)">+</button></div>
+              </div>
+              <div class="field">
+                <div class="field-label"><span>Bônus de armadura</span></div>
+                <div class="stepper"><button class="btn btn-sm btn-icon" onclick="modifySelectedAC(-1)">−</button><strong id="lblInspAC" class="value num">0</strong><button class="btn btn-sm btn-icon" onclick="modifySelectedAC(1)">+</button></div>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="field-label"><span>Visão</span><strong id="lblInspVision" class="num">—</strong></div>
+              <select id="inspVisionSelect" onchange="setSelectedVision(this.value)" aria-label="Visão da peça">
+                <option value="">Automática (pela ancestralidade)</option>
+                <option value="normal">Visão normal</option>
+                <option value="low-light">Visão na penumbra</option>
+                <option value="darkvision">Visão no escuro</option>
+              </select>
+              <p class="hint">Penumbra: quem não tem visão na penumbra/no escuro vê o alvo oculto (teste simples CD 5). Escuridão: sem visão no escuro, alvo escondido (CD 11), você fica cego e o terreno vira difícil.</p>
+            </div>
+
+            <div class="field">
+              <div class="field-label"><span>Bônus do escudo</span><strong id="lblInspShield" class="num">+2 CA</strong></div>
+              <div class="seg seg-4">
+                <button class="seg-btn shield-bonus-btn" data-b="0" onclick="setSelectedShieldBonus(0)">Nenhum</button>
+                <button class="seg-btn shield-bonus-btn" data-b="1" onclick="setSelectedShieldBonus(1)">+1</button>
+                <button class="seg-btn shield-bonus-btn" data-b="2" onclick="setSelectedShieldBonus(2)">+2</button>
+                <button class="seg-btn shield-bonus-btn" data-b="3" onclick="setSelectedShieldBonus(3)">+3</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="field-label"><span>Resistências e fraquezas</span></div>
+              <div id="defenseList" class="stack"></div>
+              <details class="more">
+                <summary>Adicionar defesa<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+                <div class="more-body">
+                  <div class="grid-2">
+                    <div class="field"><label>Tipo de defesa</label>
+                      <select id="defenseKind" onchange="syncInspectorUI()">
+                        <option value="resistances">Resistência</option>
+                        <option value="weaknesses">Fraqueza</option>
+                        <option value="immunities">Imunidade</option>
+                      </select>
+                    </div>
+                    <div class="field"><label>Contra o dano</label>
+                      <select id="defenseType">
+                        <option value="cortante">cortante</option><option value="perfurante">perfurante</option><option value="contundente">contundente</option>
+                        <option value="fogo">fogo</option><option value="gélido">gélido</option><option value="elétrico">elétrico</option><option value="ácido">ácido</option><option value="sônico">sônico</option>
+                        <option value="espiritual">espiritual</option><option value="vital">vital</option><option value="veneno">veneno</option><option value="mental">mental</option><option value="força">força</option>
+                        <option value="físico">todo físico</option><option value="energia">toda energia</option><option value="todos">todos</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="field" id="defenseValueField"><label>Valor</label><input type="number" id="defenseValue" min="1" value="5"></div>
+                  <button class="btn btn-block" onclick="addDefenseToSelectedUnit()"><svg class="icon"><use href="#i-plus"/></svg>Incluir defesa</button>
+                </div>
+              </details>
+            </div>
+
+            <div class="field">
+              <div class="field-label"><span>Movimento por ação</span><strong id="lblInspMove">9 metros</strong></div>
+              <div class="seg seg-4">
+                <button class="seg-btn unit-move-btn" data-m="3" onclick="setSelectedUnitMove(3)">3m</button>
+                <button class="seg-btn unit-move-btn" data-m="7.5" onclick="setSelectedUnitMove(7.5)">7,5m</button>
+                <button class="seg-btn unit-move-btn" data-m="9" onclick="setSelectedUnitMove(9)">9m</button>
+                <button class="seg-btn unit-move-btn" data-m="18" onclick="setSelectedUnitMove(18)">18m</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Armas -->
+          <div id="editTabWeapons" class="hidden stack-3">
+            <div class="row-between"><span class="section-title">Armas</span><button class="btn btn-sm btn-primary" onclick="createWeaponOnSelectedUnit()"><svg class="icon"><use href="#i-plus"/></svg>Nova arma</button></div>
+            <div id="editorWeaponList" class="stack"></div>
+            <details class="more">
+              <summary>Adicionar de um modelo<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+              <div class="more-body">
+                <select id="addWeaponPresetSelect">
+                  <option value="Espada Longa|9|1d8|4|1.5|cortante">Espada Longa (1d8 · adjacente)</option>
+                  <option value="Espada Sagrada|9|1d8|5|1.5|cortante">Espada Sagrada (1d8 · adjacente)</option>
+                  <option value="Machado Grande|9|1d12|6|1.5|cortante">Machado Grande (1d12 · adjacente)</option>
+                  <option value="Rapieira de Bardo|8|1d6|3|1.5|perfurante">Rapieira (1d6 · adjacente)</option>
+                  <option value="Adagas Gêmeas|9|1d6|4|1.5|perfurante">Adagas Gêmeas (1d6 · adjacente)</option>
+                  <option value="Maça Solar|7|1d6|3|1.5|contundente">Maça Solar (1d6 · adjacente)</option>
+                  <option value="Lança de Alcance|8|1d8|4|3|perfurante">Lança (1d8 · 3m)</option>
+                  <option value="Chicote Escorpião|7|1d4|3|3|cortante">Chicote (1d4 · 3m)</option>
+                  <option value="Azagaia de Arremesso|7|1d6|3|9|perfurante">Azagaia (1d6 · 9m)</option>
+                  <option value="Arco Longo|9|1d8|3|18|perfurante">Arco Longo (1d8 · 18m)</option>
+                </select>
+                <button class="btn btn-block" onclick="addWeaponToSelectedUnit()"><svg class="icon"><use href="#i-plus"/></svg>Incluir arma</button>
+              </div>
+            </details>
+          </div>
+
+          <!-- Magias -->
+          <div id="editTabSpells" class="hidden stack-3">
+            <div class="row-between"><span class="section-title">Magias</span><button class="btn btn-sm btn-primary" onclick="createSpellOnSelectedUnit()"><svg class="icon"><use href="#i-plus"/></svg>Nova magia</button></div>
+            <div id="editorSpellList" class="stack"></div>
+            <details class="more">
+              <summary>Adicionar de um modelo<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+              <div class="more-body">
+                <select id="addSpellPresetSelect">
+                  <option value="relampago">Relâmpago (linha 9m · 4d12 · ◆◆)</option>
+                  <option value="bola_de_fogo">Bola de Fogo (raio 9m · 6d6 · ◆◆)</option>
+                  <option value="acorde_dissonante">Acorde Dissonante (18m · 3d6+4 · ◆◆)</option>
+                  <option value="chama_cristalina">Chama Cristalina (18m · 4d6+4 · ◆◆)</option>
+                  <option value="julgamento_divino">Julgamento Radiante (9m · 3d8+4 · ◆◆)</option>
+                  <option value="toque_chocante">Toque Chocante (toque · 2d12 · ◆◆)</option>
+                  <option value="raio_arcano">Raio Arcano (18m · 3d6+4 · ◆◆)</option>
+                  <option value="misseis_magicos">Mísseis Mágicos (18m · 2d4+2 · ◆)</option>
+                </select>
+                <button class="btn btn-block" onclick="addSpellToSelectedUnit()"><svg class="icon"><use href="#i-plus"/></svg>Incluir magia</button>
+              </div>
+            </details>
+          </div>
+
+          <!-- Itens -->
+          <div id="editTabItems" class="hidden stack-3">
+            <span class="section-title">Itens</span>
+            <div id="editorItemList" class="stack"></div>
+            <details class="more">
+              <summary>Adicionar poção ou pergaminho<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+              <div class="more-body">
+                <select id="addItemPresetSelect">
+                  <option value="pocao_menor">Poção de Cura Menor (1d8+4 PV)</option>
+                  <option value="pocao_moderada">Poção de Cura Moderada (3d8+10 PV)</option>
+                  <option value="calice_bardo">Taça Dourada de Néctar (2d8+6 PV)</option>
+                  <option value="perg_relampago">Pergaminho de Relâmpago (4d12)</option>
+                  <option value="perg_bola_fogo">Pergaminho de Bola de Fogo (6d6)</option>
+                  <option value="perg_cura">Pergaminho de Cura Sagrada (2d8+8 PV)</option>
+                  <option value="tocha">Tocha (luz 6m ao redor)</option>
+                  <option value="lanterna">Lanterna Direcional (cone 18m)</option>
+                  <option value="lampiao">Lampião (luz 9m ao redor)</option>
+                </select>
+                <button class="btn btn-block" onclick="addItemToSelectedUnit()"><svg class="icon"><use href="#i-plus"/></svg>Incluir item</button>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <details class="more">
+          <summary><svg class="icon"><use href="#i-plus"/></svg>Salvar peça como modelo<svg class="icon chev"><use href="#i-chevron"/></svg></summary>
+          <div class="more-body">
+            <div class="grid-2">
+              <select id="newPieceSculpt">
+                <option value="guerreiro">Guerreiro</option><option value="barbaro">Bárbaro</option><option value="bardo">Bardo</option>
+                <option value="clerigo">Clérigo</option><option value="feiticeiro">Feiticeiro</option><option value="mago">Mago</option>
+                <option value="paladino">Paladino</option><option value="ranger">Ranger</option><option value="rogue">Rogue</option>
+                <option value="goblin">Goblin</option><option value="lobo">Lobo</option><option value="bandido">Bandido</option><option value="druida">Druida</option><option value="monge">Monge</option><option value="alquimista">Alquimista</option><option value="bruxa">Bruxa</option><option value="espadachim">Espadachim</option><option value="esqueleto">Esqueleto</option><option value="orc">Orc</option><option value="cultista">Cultista</option><option value="zumbi">Zumbi</option><option value="kobold">Kobold</option>
+              </select>
+              <select id="newPieceFaction"><option value="hero">Herói</option><option value="villain">Vilão</option></select>
+            </div>
+            <button class="btn btn-block" onclick="registerCustomTemplate()">Salvar na galeria</button>
+          </div>
+        </details>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+/*@js*/
+</script>
+</body>
+</html>

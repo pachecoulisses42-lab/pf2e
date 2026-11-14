@@ -1,0 +1,16 @@
+{
+  "name": "brigandine-pf2e-tactics",
+  "version": "5.0.0",
+  "description": "Motor tático Brigandine para Pathfinder 2e Remaster — app single-file + design system",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:local": "node scripts/build.mjs --local",
+    "test": "node --test tests/*.test.mjs",
+    "test:e2e": "node tests/e2e.smoke.mjs && node tests/e2e.scenes.mjs",
+    "test:e2e:mobile": "node tests/e2e.mobile.mjs",
+    "check": "npm run build && npm test"
+  },
+  "engines": { "node": ">=20" }
+}
