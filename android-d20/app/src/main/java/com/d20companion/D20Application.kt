@@ -8,6 +8,7 @@ import com.d20companion.data.ImportReader
 import com.d20companion.data.MIGRATION_1_2
 import com.d20companion.data.ModuleStore
 import com.d20companion.data.Prefs
+import com.d20companion.feedback.Feedback
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 
 /** Manual dependency container (no DI framework needed for one repository). */
@@ -30,5 +31,6 @@ class D20Application : Application() {
         container = AppContainer(this)
         // PDFBox needs its font and glyph resources before the first PDF import.
         PDFBoxResourceLoader.init(applicationContext)
+        Feedback.init(applicationContext)
     }
 }

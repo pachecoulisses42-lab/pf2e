@@ -32,11 +32,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.d20companion.feedback.Feedback
+import com.d20companion.feedback.sfx
 import d20.engine.core.Degree
 import d20.engine.play.DamageChoice
 import d20.engine.play.DamageSummary
 import d20.engine.play.RollOutcome
 import d20.engine.play.Tone
+import d20.engine.play.cue
 import d20.engine.play.degreeName
 import kotlinx.coroutines.delay
 
@@ -61,11 +64,11 @@ fun RollOverlay(
     outcome: RollOutcome,
     rollId: Int,
     stationFill: Color,
+    soundOn: Boolean,
     healApplied: Boolean,
     appliedNotices: Set<Int>,
     actions: OverlayActions,
 ) {
-    val c = D20.colors
     var animating by remember(rollId) { mutableStateOf(true) }
     var shown by remember(rollId) { mutableIntStateOf(20) }
     LaunchedEffect(rollId) {
@@ -77,6 +80,8 @@ fun RollOverlay(
             elapsed += FRAME_MS
         }
         animating = false
+        // The result sound lands with the revealed result, not with the tap.
+        if (soundOn) outcome.cue()?.let { Feedback.play(it.sfx()) }
     }
 
     Dialog(onDismissRequest = actions.onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {

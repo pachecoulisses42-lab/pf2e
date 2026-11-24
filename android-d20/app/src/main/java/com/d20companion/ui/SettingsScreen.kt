@@ -35,11 +35,11 @@ fun SettingsScreen(themeMode: Int, soundOn: Boolean, onTheme: (Int) -> Unit, onS
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(end = 5.dp)) {
                 listOf("Sistema", "Claro", "Escuro").forEachIndexed { i, label -> Pill(label, themeMode == i, { onTheme(i) }) }
             }
-            SwitchRow("Som ao rolar", soundOn, onSound)
+            SwitchRow("Sons (toque e resultado)", soundOn, onSound)
             NeoSurface(Modifier.fillMaxWidth().padding(end = 5.dp, bottom = 5.dp), fill = c.surface) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("D20 Companion · Pathfinder 2e Remaster", color = c.text, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    Text("Fonte Poppins (SIL OFL). Regras: Pathfinder 2e Remaster.", color = c.muted, fontSize = 11.sp)
+                    Text("Fonte Poppins (SIL OFL). Sons CC0 do Openverse/Freesound: Jummit, GabFitzgerald, ZenithInfinitiveStudios, pan14. Regras: Pathfinder 2e Remaster.", color = c.muted, fontSize = 11.sp)
                 }
             }
         }

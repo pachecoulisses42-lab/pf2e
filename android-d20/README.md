@@ -36,7 +36,7 @@ caracteres, sem caracteres de controle). Todo o resto é seleção: dropdowns, s
   `assembleDebug` pode apontar ajustes de build; nenhum teste de tela/aparelho foi feito.**
 
 ## Limitações conhecidas (v0.1)
-- Som é um bipe curto sintetizado (`ToneGenerator`), não um efeito de dados gravado.
+- Sons curtos e discretos (toque, acerto, crítico, erro, falha crítica) via `SoundPool`; desligáveis em Ajustes.
 - Sem ícone de launcher próprio; textos em português fixos no código (sem `strings.xml`).
 - Importa personagens do Pathbuilder 2e (PDF do JSON, `.json` ou texto colado); o JSON do próprio app ainda só é exportado.
 - Sem contadores de recurso além de PV/CA (espaços de magia, pontos de foco), sem dano de precisão (ataque
@@ -45,4 +45,5 @@ caracteres, sem caracteres de controle). Todo o resto é seleção: dropdowns, s
 
 ## Licenças de terceiros
 - Fonte Poppins: SIL Open Font License 1.1 (`app/src/main/assets/licenses/Poppins-OFL.txt`).
+- Sons (`app/src/main/res/raw/sfx_*.ogg`): CC0 1.0, do Openverse/Freesound; créditos em `app/src/main/assets/licenses/sounds.txt`.
 - PDFBox-Android (`com.tom-roush:pdfbox-android`), usado para ler o PDF exportado do Pathbuilder no aparelho: Apache License 2.0.

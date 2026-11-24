@@ -62,7 +62,7 @@ fun HomeScreen(
             "▤", CardColor.VERDE, nav.toList,
         )
         HomeCard("Importar do Pathbuilder", "PDF ou JSON exportado; cada habilidade vira um módulo.", "⇩", CardColor.VIOLETA, nav.toImport)
-        HomeCard("Ajustes", "Tema claro ou escuro, som ao rolar.", "⚙", CardColor.AZUL, nav.toSettings)
+        HomeCard("Ajustes", "Tema claro ou escuro e sons.", "⚙", CardColor.AZUL, nav.toSettings)
         if (lastCharacter != null) {
             NeoButton(
                 "Continuar com ${lastCharacter.name}", { onOpen(lastCharacter.id) }, ghost = true,

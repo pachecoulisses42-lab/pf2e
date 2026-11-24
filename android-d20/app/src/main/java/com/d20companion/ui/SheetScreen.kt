@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.d20companion.feedback.Feedback
+import com.d20companion.feedback.Sfx
 import com.d20companion.vm.Mode
 import com.d20companion.vm.SheetState
 import com.d20companion.vm.SheetViewModel
@@ -101,7 +102,7 @@ fun SheetScreen(vm: SheetViewModel, state: SheetState, soundOn: Boolean, nav: Na
     if (d != null) {
         state.outcome?.let { outcome ->
             RollOverlay(
-                outcome = outcome, rollId = state.rollId, stationFill = state.outcomeColor.fill(),
+                outcome = outcome, rollId = state.rollId, stationFill = state.outcomeColor.fill(), soundOn = soundOn,
                 healApplied = state.healApplied, appliedNotices = state.appliedNotices,
                 actions = OverlayActions(vm::chooseDamage, vm::resolveTargetSave, vm::applyHeal, vm::applyNotice, vm::dismissOutcome),
             )
@@ -171,12 +172,12 @@ private fun SheetBody(
                     StationCard(
                         station = station, dashboard = d, play = state.play, setup = setup, compact = zone.layout == GridLayout.GRID_2X2,
                         onTap = {
+                            if (soundOn) Feedback.play(Sfx.TAP)
                             when {
                                 setup -> onEdit(station)
                                 station is ConditionsStation -> vm.openConditions()
                                 station !is ResourceStation -> {
                                     Feedback.haptic(context)
-                                    if (soundOn) Feedback.sound()
                                     vm.roll(station)
                                 }
                             }
