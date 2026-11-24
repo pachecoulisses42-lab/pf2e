@@ -15,6 +15,10 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("sound", true)
         set(v) = sp.edit().putBoolean("sound", v).apply()
 
+    var vibrationOn: Boolean
+        get() = sp.getBoolean("vibration", true)
+        set(v) = sp.edit().putBoolean("vibration", v).apply()
+
     /** The user's saved modules (JSON array, see [d20.engine.schema.SavedModules]). */
     var savedModules: String?
         get() = sp.getString("modules", null)

@@ -26,7 +26,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -57,7 +56,6 @@ import d20.engine.schema.resourceStation
 
 @Composable
 fun SheetScreen(vm: SheetViewModel, state: SheetState, soundOn: Boolean, nav: NavActions, openConditions: Boolean) {
-    val context = LocalContext.current
     val c = D20.colors
     val snackbar = remember { SnackbarHostState() }
     val saved by vm.savedModules.collectAsState()
@@ -94,7 +92,7 @@ fun SheetScreen(vm: SheetViewModel, state: SheetState, soundOn: Boolean, nav: Na
                     MenuEntry("Personagens", nav.toList),
                     MenuEntry("Condições", vm::openConditions, badge),
                     MenuEntry("Ajustes", nav.toSettings),
-                ), onCharacter = { showCharacter = true }, onEdit = { editing = it }, onAdd = { addingTo = it }, context = context)
+                ), onCharacter = { showCharacter = true }, onEdit = { editing = it }, onAdd = { addingTo = it })
             }
         }
     }
@@ -147,7 +145,7 @@ fun SheetScreen(vm: SheetViewModel, state: SheetState, soundOn: Boolean, nav: Na
 @Composable
 private fun SheetBody(
     d: Dashboard, state: SheetState, vm: SheetViewModel, soundOn: Boolean, menu: List<MenuEntry>,
-    onCharacter: () -> Unit, onEdit: (Station) -> Unit, onAdd: (ZoneKey) -> Unit, context: android.content.Context,
+    onCharacter: () -> Unit, onEdit: (Station) -> Unit, onAdd: (ZoneKey) -> Unit,
 ) {
     val setup = state.mode == Mode.SETUP
     val expanded = remember { mutableStateMapOf<ZoneKey, Boolean>() }
@@ -172,14 +170,11 @@ private fun SheetBody(
                     StationCard(
                         station = station, dashboard = d, play = state.play, setup = setup, compact = zone.layout == GridLayout.GRID_2X2,
                         onTap = {
-                            if (soundOn) Feedback.play(Sfx.TAP)
+                            Feedback.play(Sfx.TAP, soundOn)
                             when {
                                 setup -> onEdit(station)
                                 station is ConditionsStation -> vm.openConditions()
-                                station !is ResourceStation -> {
-                                    Feedback.haptic(context)
-                                    vm.roll(station)
-                                }
+                                station !is ResourceStation -> vm.roll(station)
                             }
                         },
                         actions = actions, modifier = modifier,

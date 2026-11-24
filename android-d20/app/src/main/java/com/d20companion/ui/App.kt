@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.d20companion.AppContainer
+import com.d20companion.feedback.Feedback
 import com.d20companion.vm.ImportViewModel
 import com.d20companion.vm.ListViewModel
 import com.d20companion.vm.SheetViewModel
@@ -24,6 +25,8 @@ fun D20App(container: AppContainer) {
     val prefs = container.prefs
     var themeMode by remember { mutableIntStateOf(prefs.themeMode) }
     var soundOn by remember { mutableStateOf(prefs.soundOn) }
+    var vibrationOn by remember { mutableStateOf(prefs.vibrationOn) }
+    Feedback.vibrationOn = vibrationOn
     val dark = when (themeMode) { 1 -> false; 2 -> true; else -> isSystemInDarkTheme() }
 
     D20Theme(darkTheme = dark) {
@@ -78,6 +81,8 @@ fun D20App(container: AppContainer) {
                     themeMode, soundOn,
                     onTheme = { themeMode = it; prefs.themeMode = it },
                     onSound = { soundOn = it; prefs.soundOn = it },
+                    vibrationOn = vibrationOn,
+                    onVibration = { vibrationOn = it; prefs.vibrationOn = it },
                     nav = nav,
                 )
             }

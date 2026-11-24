@@ -36,7 +36,7 @@ caracteres, sem caracteres de controle). Todo o resto é seleção: dropdowns, s
   `assembleDebug` pode apontar ajustes de build; nenhum teste de tela/aparelho foi feito.**
 
 ## Limitações conhecidas (v0.1)
-- Sons curtos e discretos (toque, acerto, crítico, erro, falha crítica) via `SoundPool`; desligáveis em Ajustes.
+- Sons curtos e discretos (toque, acerto, crítico, erro, falha crítica) via `SoundPool`, cada um com uma vibração no mesmo ritmo; sons e vibração desligáveis em Ajustes.
 - Sem ícone de launcher próprio; textos em português fixos no código (sem `strings.xml`).
 - Importa personagens do Pathbuilder 2e (PDF do JSON, `.json` ou texto colado); o JSON do próprio app ainda só é exportado.
 - Sem contadores de recurso além de PV/CA (espaços de magia, pontos de foco), sem dano de precisão (ataque

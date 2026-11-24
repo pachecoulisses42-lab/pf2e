@@ -80,8 +80,8 @@ fun RollOverlay(
             elapsed += FRAME_MS
         }
         animating = false
-        // The result sound lands with the revealed result, not with the tap.
-        if (soundOn) outcome.cue()?.let { Feedback.play(it.sfx()) }
+        // The result sound and vibration land with the revealed result, not with the tap.
+        outcome.cue()?.let { Feedback.play(it.sfx(), soundOn) }
     }
 
     Dialog(onDismissRequest = actions.onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {

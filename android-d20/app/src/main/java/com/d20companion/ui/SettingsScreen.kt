@@ -18,7 +18,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun SettingsScreen(themeMode: Int, soundOn: Boolean, onTheme: (Int) -> Unit, onSound: (Boolean) -> Unit, nav: NavActions) {
+fun SettingsScreen(
+    themeMode: Int,
+    soundOn: Boolean,
+    onTheme: (Int) -> Unit,
+    onSound: (Boolean) -> Unit,
+    nav: NavActions,
+    vibrationOn: Boolean = true,
+    onVibration: (Boolean) -> Unit = {},
+) {
     val c = D20.colors
     Scaffold(
         containerColor = c.bg,
@@ -36,6 +44,7 @@ fun SettingsScreen(themeMode: Int, soundOn: Boolean, onTheme: (Int) -> Unit, onS
                 listOf("Sistema", "Claro", "Escuro").forEachIndexed { i, label -> Pill(label, themeMode == i, { onTheme(i) }) }
             }
             SwitchRow("Sons (toque e resultado)", soundOn, onSound)
+            SwitchRow("Vibração acompanhando os sons", vibrationOn, onVibration)
             NeoSurface(Modifier.fillMaxWidth().padding(end = 5.dp, bottom = 5.dp), fill = c.surface) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("D20 Companion · Pathfinder 2e Remaster", color = c.text, fontWeight = FontWeight.Bold, fontSize = 12.sp)
