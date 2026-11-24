@@ -1,0 +1,13 @@
+.gradle/
+build/
+*/build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+captures/
+*.apk
+*.aab
+
+# the repo-root .gitignore ignores docs/; this app documents itself there
+!docs/

@@ -1,0 +1,899 @@
+/**
+ * Teste de fumaça no navegador (Playwright).  npm run test:e2e
+ * Requer `playwright` resolvível e um Chromium (PLAYWRIGHT_BROWSERS_PATH ou CHROMIUM_PATH).
+ */
+import { createRequire } from 'node:module';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import assert from 'node:assert/strict';
+
+const require = createRequire(process.env.PLAYWRIGHT_REQUIRE_FROM || import.meta.url);
+const { chromium } = require('playwright');
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
+const page = await browser.newPage({ viewport: { width: 1440, height: 860 } });
+const errors = [];
+page.on('pageerror', (e) => errors.push(e.message));
+await page.goto('file://' + join(root, 'dist/brigandine_pf2e_tatico_v5.html'));
+await page.waitForFunction(() => typeof STATE !== 'undefined' && STATE.units.length > 0);
+
+let failed = 0;
+async function check(name, fn) {
+  try { await fn(); console.log('ok  ', name); } catch (e) { failed++; console.log('FAIL', name, '\n    ', e.message); }
+}
+
+await check('batalha de exemplo monta 15 peças e todos os 22 tokens renderizam', async () => {
+  const n = await page.evaluate(() => STATE.units.length);
+  assert.equal(n, 15);
+  const keys = await page.evaluate(() => Object.keys(SCULPT_SVGS).length);
+  assert.equal(keys, 22);
+});
+
+await check('Erguer Escudo: gasta 1 ação, sobe a CA e some no início do próximo turno', async () => {
+  const r = await page.evaluate(() => {
+    setAppMode('combat');
+    const u = STATE.units.find(x => x.id === STATE.combat.activeUnitId);
+    u.sheet.shieldBonus = 2; recalculateUnitFromSheet(u, false); // a peça sorteada pode não ter escudo
+    const before = { ac: u.ac, actions: u.actions };
+    selectCombatMainMenu('attack');
+    raiseShield();
+    const raised = { ac: u.ac, actions: u.actions, flag: u.shieldRaised, base: u.baseAc };
+    raiseShield(); // segunda vez não gasta ação
+    const again = u.actions;
+    // percorre os turnos até voltar à mesma peça
+    const total = STATE.units.filter(x => x.hp > 0).length;
+    for (let i = 0; i < total; i++) nextTurn();
+    const after = { ac: u.ac, flag: u.shieldRaised, actions: u.actions };
+    return { before, raised, again, after };
+  });
+  assert.equal(r.raised.ac, r.before.ac + 2);
+  assert.equal(r.raised.actions, r.before.actions - 1);
+  assert.equal(r.again, r.raised.actions);
+  assert.equal(r.after.flag, false);
+  assert.equal(r.after.ac, r.before.ac);
+  assert.equal(r.after.actions, 3);
+});
+
+await check('Erguer Escudo não funciona sem ações nem sem escudo', async () => {
+  const r = await page.evaluate(() => {
+    const u = STATE.units.find(x => x.id === STATE.combat.activeUnitId);
+    u.actions = 0; raiseShield();
+    const noActions = u.shieldRaised;
+    u.actions = 3; u.sheet.shieldBonus = 0; raiseShield();
+    return { noActions, noShield: u.shieldRaised, actions: u.actions };
+  });
+  assert.equal(r.noActions, false);
+  assert.equal(r.noShield, false);
+  assert.equal(r.actions, 3);
+});
+
+await check('ataque com runas soma dano elemental e dobra no crítico', async () => {
+  const r = await page.evaluate(() => {
+    const [att, tgt] = STATE.units;
+    att.actions = 3; att.strikesMade = 0; tgt.hp = tgt.maxHp = 500; tgt.ac = 1;
+    att.weapons[0] = normalizeWeapon({ name: 'Lâmina Rúnica', dmgDie: '1d4', dmgBonus: 0, dmgType: 'cortante', manual: true, atkBonus: 100,
+      extra: [{ name: 'Flamejante', die: '1d6', bonus: 0, type: 'fogo' }] });
+    const log = [];
+    const orig = Math.random; Math.random = () => 0.999;
+    const origLog = addLog; addLog = (m) => log.push(m);
+    executeWeaponAttackAndDamage(att, tgt, att.weapons[0]);
+    Math.random = orig; addLog = origLog;
+    return { lost: 500 - tgt.hp, log: log.join(' ') };
+  });
+  // d20=20 => crítico; base 4 + rune 6 = 10, dobrado = 20
+  assert.equal(r.lost, 20);
+  assert.match(r.log, /8 cortante \+ 12 fogo \(Flamejante\)/);
+});
+
+await check('editor de arma: dado inválido é recusado; runa e dano personalizado entram', async () => {
+  const r = await page.evaluate(() => {
+    setAppMode('setup');
+    STATE.selectedUnitId = STATE.units[0].id;
+    syncInspectorUI();
+    createWeaponOnSelectedUnit();
+    const u = selectedUnit(); const idx = u.weapons.length - 1;
+    updateWeaponField(idx, 'dmgDie', 'banana');
+    const kept = u.weapons[idx].dmgDie;
+    updateWeaponField(idx, 'dmgDie', '2d8');
+    document.getElementById(`xPreset-weapon-${idx}`).value = 'gelida';
+    addPresetExtraDamage('weapon', idx);
+    document.getElementById(`xName-weapon-${idx}`).value = 'Veneno de aranha';
+    document.getElementById(`xDie-weapon-${idx}`).value = '1d4';
+    document.getElementById(`xType-weapon-${idx}`).value = 'veneno';
+    addCustomExtraDamage('weapon', idx);
+    const w = u.weapons[idx];
+    return { kept, die: w.dmgDie, extra: w.extra.map(x => `${x.name}:${x.die}:${x.type}`), desc: describeDamage(w) };
+  });
+  assert.equal(r.kept, '1d6');
+  assert.equal(r.die, '2d8');
+  assert.deepEqual(r.extra, ['Gélida:1d6:gélido', 'Veneno de aranha:1d4:veneno']);
+  assert.equal(r.desc.includes('1d6 gélido') && r.desc.includes('1d4 veneno'), true);
+});
+
+await check('editor de magia: criar, editar área e lançar causa dano com dano adicional', async () => {
+  const r = await page.evaluate(() => {
+    const [caster, target] = STATE.units;
+    createSpellOnSelectedUnit();
+    const idx = caster.spells.length - 1;
+    updateSpellField(idx, 'name', 'Chuva de Brasas');
+    updateSpellField(idx, 'areaType', 'burst');
+    updateSpellField(idx, 'areaSize', '4.5');
+    updateSpellField(idx, 'manual', true);
+    updateSpellField(idx, 'atkBonus', '100');
+    updateSpellField(idx, 'dmgDie', '2d6');
+    document.getElementById(`xPreset-spell-${idx}`).value = 'chocante';
+    addPresetExtraDamage('spell', idx);
+    const sp = caster.spells[idx];
+    caster.actions = 3; caster.col = 0; caster.row = 0;
+    target.col = 1; target.row = 0; target.hp = target.maxHp = 500; target.ac = 1;
+    const orig = Math.random; Math.random = () => 0.5; // d20 = 11, dano: 2d6 -> 4+4? (floor(.5*6)+1=4)
+    const ok = executeSpellCastOnCell(caster, sp, { col: 1, row: 0 }, target, false);
+    Math.random = orig;
+    return { ok, name: sp.name, area: sp.areaType, size: sp.areaSize, lost: 500 - target.hp, actions: caster.actions };
+  });
+  assert.equal(r.ok, true);
+  assert.equal(r.name, 'Chuva de Brasas');
+  assert.equal(r.area, 'burst');
+  assert.equal(r.size, 4.5);
+  assert.equal(r.actions, 1);
+  assert.ok(r.lost >= 8 + 4, `dano ${r.lost} deveria incluir 2d6 + 1d6 elétrico`);
+});
+
+await check('resistência e fraqueza por tipo alteram o dano real do ataque e aparecem no registro', async () => {
+  const r = await page.evaluate(() => {
+    const [att, tgt] = STATE.units;
+    const run = () => {
+      att.actions = 3; att.strikesMade = 0; tgt.hp = tgt.maxHp = 500; tgt.ac = 1;
+      const logs = []; const origLog = addLog; addLog = (m) => logs.push(m);
+      const orig = Math.random; Math.random = () => 0.999; // d20=20 (crítico), dados no máximo
+      executeWeaponAttackAndDamage(att, tgt, att.weapons[0]);
+      Math.random = orig; addLog = origLog;
+      return { lost: 500 - tgt.hp, log: logs.join(' ') };
+    };
+    att.weapons[0] = normalizeWeapon({ name: 'Rúnica', dmgDie: '1d4', dmgBonus: 0, dmgType: 'cortante', manual: true, atkBonus: 100,
+      extra: [{ name: 'Flamejante', die: '1d6', bonus: 0, type: 'fogo' }] });
+    tgt.resistances = []; tgt.weaknesses = []; tgt.immunities = [];
+    const plain = run();                                   // (4 + 6) x2 = 20
+    tgt.resistances = [{ type: 'fogo', value: 5 }];
+    const resisted = run();                                // cortante 8 + (12 - 5) = 15
+    tgt.weaknesses = [{ type: 'cortante', value: 3 }];
+    const weak = run();                                    // (8 + 3) + 7 = 18
+    tgt.immunities = ['fogo'];
+    const immune = run();                                  // (8 + 3) + 0 = 11
+    return { plain: plain.lost, resisted: resisted.lost, weak: weak.lost, immune: immune.lost, log: immune.log };
+  });
+  assert.equal(r.plain, 20);
+  assert.equal(r.resisted, 15);
+  assert.equal(r.weak, 18);
+  assert.equal(r.immune, 11);
+  assert.match(r.log, /fogo: imune/);
+  assert.match(r.log, /cortante: fraqueza \+3/);
+});
+
+await check('magia em área aplica defesas por alvo e a interface adiciona/remove defesas', async () => {
+  const r = await page.evaluate(() => {
+    setAppMode('setup');
+    const u = STATE.units[1];
+    u.resistances = []; u.weaknesses = []; u.immunities = [];
+    STATE.selectedUnitId = u.id;
+    syncInspectorUI();
+    document.getElementById('defenseKind').value = 'resistances';
+    document.getElementById('defenseType').value = 'físico';
+    document.getElementById('defenseValue').value = '4';
+    addDefenseToSelectedUnit();
+    document.getElementById('defenseKind').value = 'immunities';
+    document.getElementById('defenseType').value = 'veneno';
+    addDefenseToSelectedUnit();
+    const added = { res: JSON.parse(JSON.stringify(u.resistances)), imm: [...u.immunities], rows: document.querySelectorAll('#defenseList .rune-row').length };
+    removeDefense('immunities', 0);
+    const after = { imm: [...u.immunities], rows: document.querySelectorAll('#defenseList .rune-row').length };
+
+    const [caster, , other] = STATE.units;
+    caster.col = 0; caster.row = 0; caster.actions = 3;
+    const sp = normalizeSpell({ name: 'Brasas', cost: 2, range: 18, areaType: 'burst', areaSize: 9, dmgDie: '1d6', dmgType: 'fogo', manual: true, atkBonus: 100 });
+    caster.spells.push(sp);
+    other.col = 2; other.row = 0; other.hp = other.maxHp = 500; other.ac = 1; other.immunities = ['fogo']; other.resistances = []; other.weaknesses = [];
+    const orig = Math.random; Math.random = () => 0.999;
+    executeSpellCastOnCell(caster, sp, { col: 2, row: 0 }, other, false);
+    Math.random = orig;
+    return { added, after, immuneLost: 500 - other.hp };
+  });
+  assert.deepEqual(r.added.res, [{ type: 'físico', value: 4 }]);
+  assert.deepEqual(r.added.imm, ['veneno']);
+  assert.equal(r.added.rows, 2);
+  assert.deepEqual(r.after.imm, []);
+  assert.equal(r.after.rows, 1);
+  assert.equal(r.immuneLost, 0, 'alvo imune a fogo não sofre dano da magia de fogo');
+});
+
+await check('tooltip do alvo mostra defesas e prévia do ataque com números corretos', async () => {
+  const pos = await page.evaluate(() => {
+    const att = STATE.units[0], gob = STATE.units[1];
+    gob.resistances = [{ type: 'físico', value: 3 }]; gob.weaknesses = [{ type: 'fogo', value: 5 }]; gob.immunities = ['veneno']; gob.hp = gob.maxHp = 40;
+    recalculateUnitFromSheet(gob, false); gob.sheet.armorItemBonus += 17 - gob.ac; recalculateUnitFromSheet(gob, false);
+    att.weapons[0] = normalizeWeapon({ name: 'Espada Flamejante', dmgDie: '1d8', dmgBonus: 4, dmgType: 'cortante', manual: true, atkBonus: 12,
+      extra: [{ name: 'Flamejante', die: '1d6', type: 'fogo' }] });
+    att.strikesMade = 0; att.hp = att.maxHp;
+    setAppMode('combat'); selectActiveTurnUnit(att.id); selectCombatMainMenu('attack');
+    const c = getCellPixelCenter(gob.col, gob.row);
+    const r = document.getElementById('battleCanvas').getBoundingClientRect();
+    return { x: r.left + c.x, y: r.top + c.y };
+  });
+  await page.mouse.move(pos.x - 30, pos.y);
+  await page.mouse.move(pos.x, pos.y);
+  const text = await page.evaluate(() => document.getElementById('unitTip').innerText);
+  assert.match(text, /res\. físico 3/);
+  assert.match(text, /fraq\. fogo 5/);
+  assert.match(text, /imune a veneno/);
+  assert.match(text, /Acerto\s+80%/);
+  assert.match(text, /Crítico\s+30%/);
+  assert.match(text, /Dano médio\s+15/);
+  await page.mouse.move(10, 10); // sai do tabuleiro
+  const hidden = await page.evaluate(() => document.getElementById('unitTip').classList.contains('hidden'));
+  assert.equal(hidden, true);
+});
+
+await check('importar imagem como token: reduz, recorta, alterna moldura e volta ao padrão', async () => {
+  // gera um PNG grande (1200x800) no próprio navegador
+  const b64 = await page.evaluate(() => {
+    const c = document.createElement('canvas'); c.width = 1200; c.height = 800;
+    const x = c.getContext('2d'); x.fillStyle = '#d33'; x.fillRect(0, 0, 1200, 800); x.fillStyle = '#fc0'; x.fillRect(400, 200, 400, 400);
+    return c.toDataURL('image/png').split(',')[1];
+  });
+  await page.evaluate(() => { setAppMode('setup'); STATE.selectedUnitId = STATE.units[2].id; syncInspectorUI(); switchEditTab('base'); });
+  await page.setInputFiles('#editTabBase input[type=file]', { name: 'arte.png', mimeType: 'image/png', buffer: Buffer.from(b64, 'base64') });
+  await page.waitForFunction(() => selectedUnit().customTokenDataUrl);
+  const r = await page.evaluate(async () => {
+    const u = selectedUnit();
+    const img = new Image(); img.src = u.customTokenDataUrl; await img.decode();
+    const preview = document.getElementById('inspSculptPreview').innerHTML;
+    const framed = preview.includes('clip-path') && preview.includes('<image');
+    const label = document.getElementById('tokenSourceLabel').textContent;
+    setCustomTokenFrame(false);
+    const unframed = !document.getElementById('inspSculptPreview').innerHTML.includes('clip-path');
+    const canvasImg = getUnitTokenImage(u.sculpt, u.customTokenDataUrl, customTokenOptions(u));
+    removeCustomToken();
+    return { w: img.naturalWidth, h: img.naturalHeight, framed, unframed, label, back: u.customTokenDataUrl, cachedKey: !!canvasImg,
+      btnHidden: document.getElementById('btnRemoveToken').classList.contains('hidden'), after: document.getElementById('tokenSourceLabel').textContent };
+  });
+  assert.equal(Math.max(r.w, r.h), 384, 'lado maior reduzido para 384');
+  assert.equal(r.w / r.h, 1.5, 'proporção preservada');
+  assert.equal(r.framed, true);
+  assert.equal(r.unframed, true);
+  assert.equal(r.label, 'Imagem personalizada');
+  assert.equal(r.back, null);
+  assert.equal(r.btnHidden, true);
+  assert.equal(r.after, 'Ilustração padrão');
+});
+
+await check('arquivo que não é imagem é recusado com aviso e sem alterar a peça', async () => {
+  await page.evaluate(() => { STATE.selectedUnitId = STATE.units[2].id; syncInspectorUI(); });
+  await page.setInputFiles('#editTabBase input[type=file]', { name: 'nota.txt', mimeType: 'text/plain', buffer: Buffer.from('oi') });
+  await page.waitForTimeout(200);
+  const r = await page.evaluate(() => ({ custom: selectedUnit().customTokenDataUrl, log: document.getElementById('logPeek').textContent }));
+  assert.equal(r.custom, null);
+  assert.match(r.log, /não é uma imagem/);
+});
+
+await check('exportar/importar mantém armas com runas', async () => {
+  const r = await page.evaluate(() => {
+    const u = STATE.units[0];
+    u.weapons[0] = normalizeWeapon({ name: 'X', dmgDie: '1d8', extra: [{ name: 'Sagrada', die: '1d4', type: 'espiritual' }] });
+    const payload = JSON.parse(JSON.stringify({ grid: STATE.grid, terrainMap: STATE.terrainMap, units: STATE.units, templates: UNIT_TEMPLATES, round: 1 }));
+    applyLoadedPayload(payload);
+    return STATE.units[0].weapons[0].extra[0].type;
+  });
+  assert.equal(r, 'espiritual');
+});
+
+await check('girar a peça pela alça no tabuleiro: arrastar, tocar, mover e salvar', async () => {
+  const handle = await page.evaluate(() => {
+    setAppMode('setup');
+    setGridType('square');
+    const u = STATE.units[0];
+    u.facing = 0;
+    STATE.selectedUnitId = u.id;
+    renderBoard();
+    const h = STATE.interaction.facingHandle;
+    const r = document.getElementById('battleCanvas').getBoundingClientRect();
+    return { id: u.id, x: r.left + h.x, y: r.top + h.y, cx: r.left + h.cx, cy: r.top + h.cy, unitId: h.unitId };
+  });
+  assert.equal(handle.unitId, handle.id, 'a alça aparece na peça selecionada');
+  assert.ok(handle.y > handle.cy, 'facing 0 = alça ao sul da peça');
+  // arrasta a alça para cima (norte) da peça
+  await page.mouse.move(handle.x, handle.y);
+  await page.mouse.down();
+  await page.mouse.move(handle.cx + 3, handle.cy - 40, { steps: 6 });
+  await page.mouse.move(handle.cx + 2, handle.cy - 60, { steps: 3 });
+  await page.mouse.up();
+  let facing = await page.evaluate((id) => STATE.units.find(u => u.id === id).facing, handle.id);
+  assert.equal(facing, 180, 'arrastar para o norte vira para 180°, já arredondado ao passo de 45°');
+  // um clique sem arrastar gira um passo no sentido horário
+  const h2 = await page.evaluate(() => { renderBoard(); const h = STATE.interaction.facingHandle; const r = document.getElementById('battleCanvas').getBoundingClientRect(); return { x: r.left + h.x, y: r.top + h.y }; });
+  await page.mouse.click(h2.x, h2.y);
+  facing = await page.evaluate((id) => STATE.units.find(u => u.id === id).facing, handle.id);
+  assert.equal(facing, 225);
+  // teclado: Q volta um passo
+  await page.keyboard.press('q');
+  facing = await page.evaluate((id) => STATE.units.find(u => u.id === id).facing, handle.id);
+  assert.equal(facing, 180);
+  // salvar/carregar mantém; valor inválido vira sul
+  const r = await page.evaluate((id) => {
+    const payload = JSON.parse(JSON.stringify({ grid: STATE.grid, terrainMap: STATE.terrainMap, units: STATE.units, templates: UNIT_TEMPLATES, round: 1 }));
+    payload.units[1].facing = 'xyz';
+    applyLoadedPayload(payload);
+    return { kept: STATE.units.find(u => u.id === id).facing, bad: STATE.units[1].facing };
+  }, handle.id);
+  assert.deepEqual(r, { kept: 180, bad: 0 });
+  // no combate, mover vira a peça para o destino
+  const moved = await page.evaluate(() => {
+    setAppMode('combat');
+    const u = STATE.units.find(x => x.hp > 0);
+    selectActiveTurnUnit(u.id); u.actions = 3; u.facing = 123;
+    selectCombatMainMenu('move');
+    const reach = computeReachableCells(u);
+    const key = Object.keys(reach).find(k => { const [c, rr] = k.split(',').map(Number); return reach[k].canAfford && !(c === u.col && rr === u.row) && !STATE.units.some(o => o.col === c && o.row === rr); });
+    const [c, rr] = key.split(',').map(Number);
+    const a = getCellPixelCenter(u.col, u.row), b = getCellPixelCenter(c, rr);
+    const expected = facingFromVector(b.x - a.x, b.y - a.y);
+    handleCombatBoardClick({ col: c, row: rr }, null);
+    return u.facing === expected ? 'ok' : `${u.facing} vs ${expected}`;
+    return u.facing;
+  });
+  assert.equal(moved, 'ok', 'mover vira a peça para o destino');
+  await page.evaluate(() => { setAppMode('setup'); setGridType('hex'); });
+});
+
+await check('tokens extras: galeria troca o token da peça, desenha no tabuleiro e sobrevive ao salvar', async () => {
+  const r = await page.evaluate(async () => {
+    setAppMode('setup');
+    const u = STATE.units[0];
+    STATE.selectedUnitId = u.id; syncInspectorUI();
+    const det = document.getElementById('tokenPickerDetails');
+    det.open = true; setTokenPickerTab('retrato'); renderTokenPicker();
+    const btn = Array.from(document.querySelectorAll('#tokenPicker .token-pick')).find(b => b.title === 'Samurai');
+    btn.click();
+    const afterClick = u.sculpt;
+    const active = document.querySelector('#tokenPicker .token-pick.active')?.title;
+    const selectVal = document.getElementById('inspTokenSelect').value;
+    // o par acompanha o estilo: chibi mostra o retrato (não gira), vista de cima mostra a figura de cima (gira)
+    chooseTokenStyle('chibi');
+    const rotRetrato = tokenArtRotates(u);
+    const chibiSrc = getUnitTokenImage(u.sculpt, null, customTokenOptions(u)).src.slice(0, 20);
+    chooseTokenStyle('topo');
+    const rotTopo = tokenArtRotates(u);
+    const topoIsRaw = getUnitTokenImage(u.sculpt, null, customTokenOptions(u)).src === EXTRA_TOKENS.ct_samurai.src;
+    chooseTokenStyle('chibi');
+    changeSelectedUnitToken('vt_lobo_alfa');
+    const img = getUnitTokenImage(u.sculpt, null, customTokenOptions(u));
+    await new Promise(res => (img.complete && img.naturalWidth) ? res() : (img.onload = res, img.onerror = res));
+    const payload = JSON.parse(JSON.stringify({ grid: STATE.grid, terrainMap: STATE.terrainMap, units: STATE.units, templates: UNIT_TEMPLATES, round: 1 }));
+    applyLoadedPayload(payload);
+    return { afterClick, active, selectVal, rotRetrato, rotTopo, topoIsRaw, chibiSvg: chibiSrc.startsWith('data:image/svg'), loaded: img.naturalWidth > 0, kept: STATE.units[0].sculpt,
+      groups: document.querySelectorAll('#inspTokenSelect optgroup').length, extras: Object.keys(EXTRA_TOKENS).length };
+  });
+  assert.deepEqual(r, { afterClick: 'cr_samurai', active: 'Samurai', selectVal: 'cr_samurai', rotRetrato: false, rotTopo: true, topoIsRaw: true, chibiSvg: true, loaded: true, kept: 'vt_lobo_alfa', groups: 6 /* 5 grupos pintados + Tokens 3D */, extras: 90 });
+  await page.evaluate(() => { changeSelectedUnitToken('guerreiro'); document.getElementById('tokenPickerDetails').open = false; });
+});
+
+await check('criar peça do zero: token sugerido pelo nome, troca manual e posiciona no tabuleiro', async () => {
+  const r = await page.evaluate(() => {
+    setAppMode('setup');
+    const det = document.getElementById('newPieceDetails'); det.open = true; syncNewPieceForm();
+    const name = document.getElementById('npName'); name.value = 'Goblin Xamã da Lua'; name.dispatchEvent(new Event('input'));
+    document.getElementById('npFaction').value = 'villain'; document.getElementById('npFaction').dispatchEvent(new Event('change'));
+    const suggested = newPieceDraft.sculpt;
+    const hint = document.getElementById('npTokenHint').textContent;
+    setTokenPickerTab('retrato', 'np');
+    Array.from(document.querySelectorAll('#npTokenPicker .token-pick')).find(b => b.title === 'Goblin Chefe').click();
+    const picked = newPieceDraft.sculpt;
+    document.getElementById('npLevel').value = '4';
+    const before = UNIT_TEMPLATES.length;
+    createPieceFromScratch();
+    const t = UNIT_TEMPLATES[UNIT_TEMPLATES.length - 1];
+    const n = STATE.units.length;
+    spawnUnitFromTemplate(STATE.selectedTemplateId, 0, 9);
+    const u = STATE.units[STATE.units.length - 1];
+    det.open = false;
+    return { suggested, hint, picked, added: UNIT_TEMPLATES.length - before, sculpt: t.sculpt, faction: t.faction, level: t.sheet.level, spawned: STATE.units.length - n, unitSculpt: u.sculpt, name: u.name };
+  });
+  assert.equal(r.suggested, 'vt_goblin_xama');
+  assert.match(r.hint, /Goblin Xamã · sugerido pelo nome/);
+  assert.equal(r.picked, 'vr_goblin_chefe');
+  assert.deepEqual([r.added, r.sculpt, r.faction, r.level, r.spawned, r.unitSculpt], [1, 'vr_goblin_chefe', 'villain', 4, 1, 'vr_goblin_chefe']);
+});
+
+await check('importar peças de outro módulo: escolhe token, respeita imagem e não apaga o tabuleiro', async () => {
+  const r = await page.evaluate(() => {
+    const units = STATE.units.length;
+    const res = importPieces({ pieces: [
+      { name: 'Amiri', className: 'Barbarian', level: 2, hp: 30, ac: 18 },
+      { name: 'Sentinela', token: 'Lobo de Guerra', faction: 'enemy' },
+      { name: 'Retrato próprio', img: 'data:image/png;base64,iVBORw0KGgo=' }
+    ] });
+    const last3 = UNIT_TEMPLATES.slice(-3).map(t => [t.sculpt, t.faction, !!t.customTokenDataUrl]);
+    document.getElementById('galleryFilterText').value = 'amiri'; renderPieceGallery();
+    const shown = Array.from(document.querySelectorAll('#pieceGalleryContainer .piece-card-name')).map(e => e.textContent);
+    document.getElementById('galleryFilterText').value = ''; renderPieceGallery();
+    // arquivo antigo com token que não existe mais
+    const payload = JSON.parse(JSON.stringify({ grid: STATE.grid, terrainMap: STATE.terrainMap, units: STATE.units, templates: UNIT_TEMPLATES, round: 1 }));
+    payload.units[0].sculpt = 'medalhao_que_sumiu'; payload.units[0].name = 'Zumbi Podre';
+    applyLoadedPayload(payload);
+    return { res, last3, shown, keptUnits: STATE.units.length === units, repaired: STATE.units[0].sculpt, api: typeof window.Brigandine.importPieces };
+  });
+  assert.deepEqual(r.res, { added: 3, suggested: 1 });
+  assert.deepEqual(r.last3, [['barbaro', 'hero', false], ['vt_lobo_guerra', 'villain', false], ['guerreiro', 'hero', true]]);
+  assert.deepEqual(r.shown, ['Amiri']);
+  assert.equal(r.keptUnits, true);
+  assert.equal(r.repaired, 'zumbi');
+  assert.equal(r.api, 'function');
+});
+
+/** Centro de uma célula em coordenadas da página. */
+async function cellPoint(col, row) {
+  return page.evaluate(([c, r]) => {
+    const p = getCellPixelCenter(c, r);
+    const b = document.getElementById('battleCanvas').getBoundingClientRect();
+    return { x: b.left + p.x, y: b.top + p.y };
+  }, [col, row]);
+}
+const openMenu = (menu) => page.evaluate((m) => {
+  const el = document.querySelector(`#setupLeftPanel details.acc[data-menu="${m}"]`);
+  if (!el.open) el.querySelector('summary').click();
+}, menu);
+
+await check('menus: um aberto por vez, só o aberto age no tabuleiro e fechar desfaz a escolha; Chibi virou Token', async () => {
+  await page.evaluate(() => { setAppMode('setup'); populateDemoBattle(); resetCamera(); });
+  await openMenu('tools');
+  await page.evaluate(() => { setSetupTool('piece'); STATE.selectedTemplateId = 't_goblin'; renderPieceGallery(); });
+  await openMenu('board');
+  const r = await page.evaluate(() => ({
+    open: Array.from(document.querySelectorAll('#setupLeftPanel details.acc')).filter(d => d.open).map(d => d.dataset.menu),
+    menu: STATE.openMenu, tpl: STATE.selectedTemplateId, units: STATE.units.length, label: document.getElementById('styleChibi').textContent.trim()
+  }));
+  assert.deepEqual(r.open, ['board']);
+  assert.equal(r.menu, 'board');
+  assert.equal(r.tpl, null, 'fechar a caixa de ferramentas desfaz a peça escolhida');
+  assert.equal(r.label, 'Token');
+  // com o Tabuleiro aberto e sem efeito escolhido, clicar numa casa vazia não cria peça
+  const pt = await cellPoint(6, 8);
+  await page.mouse.click(pt.x, pt.y);
+  assert.equal(await page.evaluate(() => STATE.units.length), r.units);
+});
+
+await check('terreno: textura pintada em quadrado arrastando, e lama custa o dobro para andar', async () => {
+  await openMenu('tools');
+  await page.evaluate(() => { setSetupTool('terrain'); selectTerrainBrush('lama'); setPaintShape('square'); });
+  const a = await cellPoint(5, 7), b = await cellPoint(7, 8);
+  await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(b.x, b.y, { steps: 5 }); await page.mouse.up();
+  const r = await page.evaluate(() => {
+    const keys = Object.entries(STATE.terrainMap).filter(([, t]) => t === 'lama').map(([k]) => k).sort();
+    return { keys, mult: cellMoveMultiplier('lama'), transp: STATE.layers.terrain };
+  });
+  assert.deepEqual(r.keys, ['5,7', '5,8', '6,7', '6,8', '7,7', '7,8']);
+  assert.equal(r.transp, 50, 'transparência padrão 50 %');
+  await page.evaluate(() => { selectTerrainBrush('normal'); setPaintShape('all'); });
+  const c = await cellPoint(0, 0);
+  await page.mouse.click(c.x, c.y);
+  assert.equal(await page.evaluate(() => Object.keys(STATE.terrainMap).length), 0, 'Apagar em Tudo limpa o terreno');
+  await page.evaluate(() => setPaintShape('cell'));
+});
+
+await check('objetos e perigos: pôr, trocar, remover; pedra bloqueia; transparência do menu', async () => {
+  await page.evaluate(() => { setSetupTool('object'); selectObjectBrush('pedra'); });
+  const p = await cellPoint(6, 9);
+  await page.mouse.click(p.x, p.y);
+  await page.evaluate(() => { setSetupTool('hazard'); selectObjectBrush('fogueira'); });
+  await page.mouse.click(p.x, p.y);
+  let objs = await page.evaluate(() => STATE.objects.map(o => o.type).sort());
+  assert.deepEqual(objs, ['fogueira', 'pedra'], 'objeto e perigo dividem a casa');
+  await page.evaluate(() => selectObjectBrush('erase'));
+  await page.mouse.click(p.x, p.y);
+  objs = await page.evaluate(() => STATE.objects.map(o => o.type));
+  assert.deepEqual(objs, ['pedra'], 'Remover na aba Perigos só tira o perigo');
+  await page.evaluate(() => { const t = document.getElementById('transp_terrain'); t.value = '80'; t.dispatchEvent(new Event('input')); });
+  assert.equal(await page.evaluate(() => STATE.layers.terrain), 80);
+  await page.evaluate(() => setLayerTransparency('terrain', 50));
+});
+
+await check('clima: escuridão em todo o tabuleiro, emanação presa à peça e transparência própria do Tabuleiro', async () => {
+  await openMenu('board');
+  await page.evaluate(() => { selectEffectBrush('escuridao'); setPaintShape('all'); });
+  const p = await cellPoint(10, 9);
+  await page.mouse.click(p.x, p.y);
+  const r = await page.evaluate(() => ({
+    dark: Object.keys(STATE.effects.escuridao).length, cells: STATE.grid.cols * STATE.grid.rows,
+    menuTools: document.querySelector('details.acc[data-menu="tools"]').open, brush: STATE.objectBrush
+  }));
+  assert.equal(r.dark, r.cells);
+  assert.equal(r.menuTools, false);
+  assert.equal(r.brush, null, 'objeto escolhido foi desfeito ao fechar a caixa de ferramentas');
+  const u = await page.evaluate(() => { const x = STATE.units.find(v => v.faction === 'villain'); return { id: x.id, col: x.col, row: x.row }; });
+  await page.evaluate(() => { selectEffectBrush('nevoa'); setPaintShape('emanation'); setPaintSize(3); });
+  const up = await cellPoint(u.col, u.row);
+  await page.mouse.click(up.x, up.y);
+  const z = await page.evaluate(() => STATE.effectZones.map(z => [z.type, z.unitId, z.radius]));
+  assert.deepEqual(z, [['nevoa', u.id, 3]]);
+  await page.evaluate(() => setLayerTransparency('effects', 30));
+  assert.equal(await page.evaluate(() => document.getElementById('transpVal_effects').textContent), '30 %');
+  await page.evaluate(() => setPaintShape('cell'));
+});
+
+await check('luz: tocha acende com ◆ no combate, anula a escuridão e fica acesa até apagar (sem custo)', async () => {
+  const r = await page.evaluate(() => {
+    const u = STATE.units.find(x => x.faction === 'hero');
+    u.items.push({ ...ITEM_CATALOG.tocha });
+    const k = `${u.col},${u.row}`;
+    const before = computeDarknessMap()[k];
+    setAppMode('combat');
+    selectActiveTurnUnit(u.id); u.actions = 3;
+    selectCombatMainMenu('items');
+    STATE.combat.selectedItemIdx = u.items.length - 1; syncCombatUI();
+    const label = document.getElementById('btnQuickSelfItem').textContent.trim();
+    document.getElementById('btnQuickSelfItem').click();
+    const lit = { actions: u.actions, lit: u.items.at(-1).lit, dark: computeDarknessMap()[k] || 0, label2: document.getElementById('btnQuickSelfItem').textContent.trim() };
+    nextTurn(); nextTurn();
+    const still = u.items.at(-1).lit;
+    selectActiveTurnUnit(u.id); u.actions = 0; selectCombatMainMenu('items'); STATE.combat.selectedItemIdx = u.items.length - 1; syncCombatUI();
+    document.getElementById('btnQuickSelfItem').click();
+    return { before, label, ...lit, still, off: u.items.at(-1).lit, darkAfter: computeDarknessMap()[k] };
+  });
+  assert.equal(r.before, 1);
+  assert.equal(r.label, 'Acender (◆)');
+  assert.deepEqual([r.actions, r.lit, r.dark, r.label2], [2, true, 0, 'Apagar (sem custo)']);
+  assert.equal(r.still, true, 'continua acesa em outros turnos');
+  assert.equal(r.off, false, 'apagar não exige ação');
+  assert.equal(r.darkAfter, 1);
+});
+
+await check('perigo: terminar o movimento na fogueira causa dano de fogo', async () => {
+  const r = await page.evaluate(() => {
+    const u = STATE.units.find(x => x.hp > 0 && x.faction === 'hero');
+    selectActiveTurnUnit(u.id); u.actions = 3; u.hp = u.maxHp; u.resistances = []; u.immunities = [];
+    selectCombatMainMenu('move');
+    const reach = computeReachableCells(u);
+    const key = Object.keys(reach).find(k => { const [c, rr] = k.split(',').map(Number); return reach[k].canAfford && !STATE.units.some(o => o.col === c && o.row === rr) && !STATE.objects.some(o => o.col === c && o.row === rr); });
+    const [c, rr] = key.split(',').map(Number);
+    STATE.objects.push({ id: 'hz', type: 'fogueira', col: c, row: rr });
+    handleCombatBoardClick({ col: c, row: rr }, null);
+    return { lost: u.maxHp - u.hp, log: document.getElementById('combatLogBox').firstElementChild.textContent };
+  });
+  assert.ok(r.lost >= 1 && r.lost <= 6, `dano ${r.lost}`);
+  assert.match(r.log, /Fogueira/);
+  await page.evaluate(() => setAppMode('setup'));
+});
+
+await check('salvar/carregar mantém terreno, objetos, clima, emanações, luz acesa e transparências', async () => {
+  const r = await page.evaluate(() => {
+    STATE.terrainMap['1,1'] = 'agua';
+    const payload = JSON.parse(JSON.stringify({ grid: STATE.grid, terrainMap: STATE.terrainMap, objects: STATE.objects, effects: STATE.effects, effectZones: STATE.effectZones, layers: STATE.layers, units: STATE.units, templates: UNIT_TEMPLATES, round: 1 }));
+    STATE.objects = []; STATE.effects = { escuridao: {} }; STATE.layers = { terrain: 50, effects: 50, map: 0 };
+    applyLoadedPayload(payload);
+    const old = JSON.parse(JSON.stringify({ grid: STATE.grid, units: STATE.units, templates: UNIT_TEMPLATES }));
+    const kept = { water: STATE.terrainMap['1,1'], objs: STATE.objects.length, dark: Object.keys(STATE.effects.escuridao).length, zones: STATE.effectZones.length, eff: STATE.layers.effects };
+    applyLoadedPayload(old); // arquivo antigo: sem ambiente
+    return { ...kept, oldObjs: STATE.objects.length, oldDark: Object.keys(STATE.effects.escuridao).length, oldLayers: STATE.layers };
+  });
+  assert.equal(r.water, 'agua');
+  assert.ok(r.objs >= 1 && r.dark > 0 && r.zones === 1);
+  assert.equal(r.eff, 30);
+  assert.deepEqual([r.oldObjs, r.oldDark, r.oldLayers], [0, 0, { terrain: 50, effects: 50, map: 0 }]);
+  await page.evaluate(() => { populateDemoBattle(); });
+});
+
+await check('escuridão no combate (PF2e): teste simples CD 11, desprevenido, cego na iniciativa, clarão até o fim da rodada', async () => {
+  const r = await page.evaluate(() => {
+    setAppMode('setup');
+    STATE.units = []; STATE.objects = []; STATE.terrainMap = {};
+    for (let c = 0; c < STATE.grid.cols; c++) for (let rr = 0; rr < STATE.grid.rows; rr++) STATE.effects.escuridao[c + ',' + rr] = 1;
+    spawnUnitFromTemplate('t_guerreiro', 2, 2);   // humano: visão normal
+    spawnUnitFromTemplate('t_goblin', 3, 2);      // goblin: visão no escuro
+    spawnUnitFromTemplate('t_feiticeiro', 2, 5);
+    const [hum, gob, feit] = STATE.units;
+    setAppMode('combat');
+    const realRandom = Math.random;
+    Math.random = () => 0.2; // d20 = 5
+    rollAllInitiatives();
+    const initLog = document.getElementById('combatLogBox').firstElementChild.textContent;
+    // humano ataca o goblin escondido na escuridão: teste simples 5 < 11 falha
+    selectActiveTurnUnit(hum.id); hum.actions = 3; hum.strikesMade = 0;
+    const gobHp = gob.hp;
+    executeWeaponAttackAndDamage(hum, gob, hum.weapons[0]);
+    const failLog = document.getElementById('combatLogBox').firstElementChild.textContent;
+    const after = { gobHp: gob.hp === gobHp, actions: hum.actions, strikes: hum.strikesMade };
+    // tooltip: prévia avisa do teste simples
+    selectCombatMainMenu('attack');
+    const tip = buildUnitTipHTML(gob);
+    // goblin ataca o humano: sem teste e humano desprevenido (CA −2)
+    Math.random = () => 0.5;
+    selectActiveTurnUnit(gob.id); gob.actions = 3; gob.strikesMade = 0;
+    executeWeaponAttackAndDamage(gob, hum, gob.weapons[0]);
+    const gobLog = document.getElementById('combatLogBox').firstElementChild.textContent;
+    // feiticeiro lança Bola de Fogo: clarão até o fim da rodada
+    selectActiveTurnUnit(feit.id); feit.actions = 3;
+    const fb = feit.spells.find(sp => sp.id === 'bola_de_fogo') || normalizeSpell({ ...SPELL_CATALOG.bola_de_fogo });
+    executeSpellCastOnCell(feit, fb, { col: 3, row: 4 }, null, false);
+    const flashes = STATE.flashLights.length;
+    const lit = computeDarknessMap()['3,4'] === undefined;
+    Math.random = realRandom;
+    const round = STATE.combat.round;
+    let guard = 0;
+    while (STATE.combat.round === round && guard++ < 10) nextTurn();
+    const afterRound = { flashes: STATE.flashLights.length, dark: computeDarknessMap()['3,4'] };
+    setAppMode('setup');
+    for (const t of Object.keys(STATE.effects)) STATE.effects[t] = {};
+    return { initLog, failLog, after, tip, gobLog, flashes, lit, afterRound };
+  });
+  assert.match(r.initLog, /Cegos na escuridão.*Guerreiro/);
+  assert.match(r.failLog, /teste simples 5 contra CD 11 — falhou/);
+  assert.deepEqual(r.after, { gobHp: true, actions: 2, strikes: 1 }, 'falhar no teste gasta a ação e conta para o MAP');
+  assert.match(r.tip, /teste simples CD 11 \(50%\)/);
+  assert.match(r.gobLog, /desprevenido −2/);
+  assert.ok(!/teste simples/.test(r.gobLog), 'goblin vê no escuro: sem teste simples');
+  assert.equal(r.flashes, 1);
+  assert.equal(r.lit, true, 'clarão ilumina a área');
+  assert.deepEqual(r.afterRound, { flashes: 0, dark: 1 }, 'fim da rodada: escuro de novo');
+  await page.evaluate(() => populateDemoBattle());
+});
+
+await check('barra do tabuleiro: mão move a visão, lixeira apaga (Ctrl+Z desfaz), lápis edita e move; título sem contagem', async () => {
+  await page.evaluate(() => { setAppMode('setup'); populateDemoBattle(); resetCamera(); STATE.objects = []; STATE.terrainMap = {}; });
+  const title = await page.locator('details[data-menu="tools"] > summary').innerText();
+  assert.ok(!/heróis|vilões/.test(title), 'título da Caixa de ferramentas sem contagem');
+  // mão
+  await page.click('#btnHudPan');
+  const cam0 = await page.evaluate(() => ({ x: STATE.camera.x, y: STATE.camera.y, units: STATE.units.length }));
+  const a = await cellPoint(6, 8);
+  await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(a.x + 80, a.y + 40, { steps: 5 }); await page.mouse.up();
+  const cam1 = await page.evaluate(() => ({ x: STATE.camera.x, y: STATE.camera.y, units: STATE.units.length }));
+  assert.ok(Math.abs(cam1.x - cam0.x - 80) < 2 && Math.abs(cam1.y - cam0.y - 40) < 2, 'a visão andou junto com o arrasto');
+  assert.equal(cam1.units, cam0.units, 'a mão não cria peça');
+  // lixeira: peça > objeto > perigo > terreno, nessa ordem
+  const target = await page.evaluate(() => { const u = STATE.units[0]; STATE.objects.push({ id: 'p1', type: 'pedra', col: u.col, row: u.row }, { id: 'h1', type: 'espinhos', col: u.col, row: u.row }); STATE.terrainMap[u.col + ',' + u.row] = 'lama'; return { id: u.id, col: u.col, row: u.row }; });
+  await page.click('#btnHudErase');
+  assert.equal(await page.evaluate(() => STATE.hudTool), 'erase');
+  const tp = await cellPoint(target.col, target.row);
+  const seq = [];
+  for (let i = 0; i < 4; i++) {
+    await page.mouse.click(tp.x, tp.y);
+    seq.push(await page.evaluate((id) => [STATE.units.some(u => u.id === id), STATE.objects.map(o => o.type).join('+'), STATE.terrainMap[Object.keys(STATE.terrainMap)[0]] || ''], target.id));
+  }
+  assert.deepEqual(seq, [
+    [false, 'pedra+espinhos', 'lama'],
+    [false, 'espinhos', 'lama'],
+    [false, '', 'lama'],
+    [false, '', '']
+  ]);
+  // Ctrl+Z desfaz em ordem inversa
+  for (let i = 0; i < 4; i++) await page.keyboard.press('Control+z');
+  const back = await page.evaluate((id) => ({ unit: STATE.units.some(u => u.id === id), objs: STATE.objects.length, terr: Object.keys(STATE.terrainMap).length }), target.id);
+  assert.deepEqual(back, { unit: true, objs: 2, terr: 1 });
+  // arrastar a lixeira apaga terreno/objetos, mas não peças
+  await page.evaluate(() => { STATE.objects = []; STATE.terrainMap = {}; for (let c = 0; c < 5; c++) STATE.terrainMap[c + ',9'] = 'neve'; STATE.units.push({ ...JSON.parse(JSON.stringify(STATE.units[0])), id: 'u_alvo', col: 2, row: 9 }); });
+  const d0 = await cellPoint(0, 9), d1 = await cellPoint(4, 9);
+  await page.mouse.move(d0.x, d0.y); await page.mouse.down(); await page.mouse.move(d1.x, d1.y, { steps: 12 }); await page.mouse.up();
+  const dragged = await page.evaluate(() => ({ terr: Object.keys(STATE.terrainMap).length, unit: STATE.units.some(u => u.id === 'u_alvo') }));
+  assert.deepEqual(dragged, { terr: 0, unit: true }, 'o arrasto limpa o chão, inclusive sob a peça, mas não apaga a peça');
+  // lápis: objeto abre editor; mudar tipo e luz; arrastar move
+  await page.evaluate(() => { STATE.units = STATE.units.filter(u => u.id !== 'u_alvo'); STATE.terrainMap = {}; STATE.objects = [{ id: 'l1', type: 'tocha_parede', col: 6, row: 9 }]; });
+  await page.click('#btnHudEdit');
+  const op = await cellPoint(6, 9);
+  await page.mouse.click(op.x, op.y);
+  await page.waitForSelector('#boardEditPop:not(.hidden)');
+  await page.selectOption('#boardEditPop select', 'lampiao');
+  await page.fill('#boardEditPop input[type="number"] >> nth=0', '12');
+  await page.locator('#boardEditPop input[type="number"] >> nth=0').dispatchEvent('change');
+  const edited = await page.evaluate(() => ({ type: STATE.objects[0].type, light: envObjectLight(STATE.objects[0]) }));
+  assert.equal(edited.type, 'lampiao');
+  assert.deepEqual([edited.light.bright, edited.light.dim], [12, 18]);
+  const np = await cellPoint(8, 9);
+  await page.mouse.move(op.x, op.y); await page.mouse.down(); await page.mouse.move(np.x, np.y, { steps: 6 }); await page.mouse.up();
+  assert.deepEqual(await page.evaluate(() => [STATE.objects[0].col, STATE.objects[0].row]), [8, 9]);
+  // lápis numa peça seleciona e abre o inspetor
+  const u = await page.evaluate(() => ({ id: STATE.units[3].id, col: STATE.units[3].col, row: STATE.units[3].row }));
+  const up = await cellPoint(u.col, u.row);
+  await page.mouse.click(up.x, up.y);
+  assert.equal(await page.evaluate(() => STATE.selectedUnitId), u.id);
+  // perigo: dano editável e usado no combate
+  await page.evaluate(() => { STATE.objects = [{ id: 'f', type: 'fogueira', col: 9, row: 9 }]; });
+  const hp = await cellPoint(9, 9);
+  await page.mouse.click(hp.x, hp.y);
+  await page.fill('#boardEditPop input[type="text"]', '3d10');
+  await page.locator('#boardEditPop input[type="text"]').dispatchEvent('change');
+  assert.equal(await page.evaluate(() => envHazardDamage(STATE.objects[0]).dmgDie), '3d10');
+  // no combate a lixeira e o lápis somem; a mão fica
+  await page.evaluate(() => setAppMode('combat'));
+  const vis = await page.evaluate(() => ['btnHudPan', 'btnHudErase', 'btnHudEdit'].map(id => getComputedStyle(document.getElementById(id)).display !== 'none'));
+  assert.deepEqual(vis, [true, false, false]);
+  assert.equal(await page.evaluate(() => STATE.hudTool), null, 'lápis desligado ao entrar no combate');
+  await page.evaluate(() => { setAppMode('setup'); STATE.objects = []; populateDemoBattle(); });
+});
+
+await check('animações: seguram número e barra de PV até o impacto, clique pula, desligar vale e fica salvo', async () => {
+  const r = await page.evaluate(() => {
+    setAppMode('setup'); setAppMode('combat');
+    setAnimationsEnabled(true);
+    const att = STATE.units.find(u => u.faction === 'hero' && u.hp > 0);
+    const tgt = STATE.units.find(u => u.faction !== 'hero' && u.hp > 0);
+    att.actions = 3; att.strikesMade = 0; tgt.ac = -100; tgt.hp = tgt.maxHp;
+    STATE.floatingTexts = [];
+    const before = tgt.hp;
+    executeWeaponAttackAndDamage(att, tgt, att.weapons[0]);
+    const during = { playing: animationPlaying(), kind: ANIM.current && ANIM.current.kind, dur: ANIM.current && ANIM.current.duration,
+      shown: displayHp(tgt), real: tgt.hp, texts: STATE.floatingTexts.length };
+    return { before, during, tgtId: tgt.id };
+  });
+  assert.equal(r.during.playing, true);
+  assert.equal(r.during.dur, 900, 'arma no ritmo normal');
+  assert.ok(r.during.real < r.before, 'regra aplicou o dano na hora');
+  assert.equal(r.during.shown, r.before, 'barra mostra o PV anterior até o impacto');
+  assert.equal(r.during.texts, 0, 'número flutuante espera o impacto');
+  // um clique no tabuleiro pula
+  const box = await page.locator('#battleCanvas').boundingBox();
+  await page.mouse.click(box.x + 20, box.y + box.height - 20);
+  const after = await page.evaluate((id) => { const t = STATE.units.find(u => u.id === id); return { playing: animationPlaying(), shown: displayHp(t), real: t.hp, texts: STATE.floatingTexts.length }; }, r.tgtId);
+  assert.equal(after.playing, false);
+  assert.equal(after.shown, after.real);
+  assert.ok(after.texts >= 1);
+  // magia: ritmo cinema e termina sozinha
+  const sp = await page.evaluate(() => {
+    const caster = STATE.units.find(u => u.faction === 'hero' && u.hp > 0);
+    const tgt = STATE.units.find(u => u.faction !== 'hero' && u.hp > 0);
+    caster.actions = 3; caster.col = 2; caster.row = 2; tgt.col = 4; tgt.row = 2;
+    const ok = executeSpellCastOnCell(caster, { ...SPELL_CATALOG.bola_de_fogo }, { col: 4, row: 2 }, tgt, false);
+    return { ok, kind: ANIM.current && ANIM.current.kind, dur: ANIM.current && ANIM.current.duration, radius: ANIM.current && ANIM.current.areaRadius };
+  });
+  assert.equal(sp.ok, true);
+  assert.equal(sp.kind, 'fireball');
+  assert.equal(sp.dur, 1400, 'magia no ritmo cinema');
+  assert.ok(sp.radius > 0);
+  await page.waitForFunction(() => !animationPlaying(), null, { timeout: 4000 });
+  // desligado: nada segura e a preferência fica salva
+  const off = await page.evaluate(() => {
+    toggleAnimations();
+    const att = STATE.units.find(u => u.faction === 'hero' && u.hp > 0);
+    const tgt = STATE.units.find(u => u.faction !== 'hero' && u.hp > 0);
+    att.actions = 3; att.strikesMade = 0; STATE.floatingTexts = [];
+    executeWeaponAttackAndDamage(att, tgt, att.weapons[0]);
+    const res = { playing: animationPlaying(), texts: STATE.floatingTexts.length, pref: readPrefs().animations, pressed: document.getElementById('btnHudAnim').getAttribute('aria-pressed') };
+    toggleAnimations();
+    return { ...res, prefOn: readPrefs().animations };
+  });
+  assert.equal(off.playing, false);
+  assert.ok(off.texts >= 1);
+  assert.equal(off.pref, false);
+  assert.equal(off.pressed, 'false');
+  assert.equal(off.prefOn, true);
+});
+
+await check('tokens 3D: seção na gaveta, seletor, caminhada, gestos de ataque/magia/item e salvar', async () => {
+  const r = await page.evaluate(() => {
+    setAppMode('setup');
+    setAnimationsEnabled(true);
+    renderPieceGallery();
+    const cards = document.querySelectorAll('#piece3dGalleryContainer .piece-card').length;
+    const thumbs = [...document.querySelectorAll('#piece3dGalleryContainer img.t3d-thumb')].every(i => i.src.startsWith('data:image/png'));
+    TOKEN_PICKERS.insp.tab = '3d';
+    STATE.selectedUnitId = STATE.units[0].id;
+    renderTokenPicker('insp');
+    const picks = document.querySelectorAll('#tokenPicker .token-pick').length;
+    // peça 3D nova e troca de token de uma peça existente
+    const before = STATE.units.length;
+    spawnUnitFromTemplate('t3d_arqueira', 1, 1);
+    const arq = STATE.units[STATE.units.length - 1];
+    const other = STATE.units.find(u => u.faction === 'villain' && u.hp > 0);
+    const target = STATE.units.find(u => u.faction === 'hero' && !/^t3_/.test(u.sculpt));
+    STATE.selectedUnitId = target.id;
+    TOKEN_PICKERS.insp.pick('t3_ladina');
+    const swapped = target.sculpt;
+    renderBoard();
+    // combate: andar, atacar, magia e poção
+    setAppMode('combat');
+    arq.actions = 3; arq.col = 1; arq.row = 1;
+    STATE.combat.activeUnitId = arq.id;
+    selectCombatMainMenu('move');
+    const reach = computeReachableCells(arq);
+    const dest = Object.entries(reach).find(([k, v]) => v.canAfford && v.actionsNeeded === 1 && k !== '1,1');
+    const [dc, dr] = dest[0].split(',').map(Number);
+    handleCombatBoardClick({ col: dc, row: dr }, null);
+    const walking = unit3DMotion(arq, performance.now()).anim;
+    T3D_RUNTIME.walks.clear();
+    arq.actions = 3; arq.strikesMade = 0; other.col = arq.col + 1; other.row = arq.row; other.hp = other.maxHp;
+    executeWeaponAttackAndDamage(arq, other, arq.weapons[1]);
+    const attacking = unit3DMotion(arq, performance.now()).anim;
+    finishAnimation();
+    const mago = (spawnUnitFromTemplate('t3d_mago_branco', 1, 3), STATE.units[STATE.units.length - 1]);
+    mago.actions = 3;
+    executeSpellCastOnCell(mago, mago.spells[1], { col: other.col, row: other.row }, other, false);
+    const casting = unit3DMotion(mago, performance.now()).anim;
+    finishAnimation();
+    mago.actions = 3; mago.hp = 5;
+    executeItemUseOnCell(mago, mago.items[0], { col: mago.col, row: mago.row }, mago);
+    const drinking = unit3DMotion(mago, performance.now()).anim;
+    finishAnimation();
+    renderBoard();
+    const saved = captureBoard(STATE).units.filter(u => /^t3_/.test(u.sculpt)).length;
+    return { cards, thumbs, picks, swapped, walking, attacking, casting, drinking, saved, added: STATE.units.length - before };
+  });
+  assert.equal(r.cards, 10);
+  assert.ok(r.thumbs, 'miniaturas geradas');
+  assert.equal(r.picks, 10, 'aba Tokens 3D do seletor');
+  assert.equal(r.swapped, 't3_ladina');
+  assert.equal(r.walking, 'walk');
+  assert.equal(r.attacking, 'attack');
+  assert.equal(r.casting, 'cast');
+  assert.equal(r.drinking, 'item');
+  assert.equal(r.saved, 3);
+});
+
+await check('troca de modo: ferramenta da montagem não age no combate; régua/mão desligam; turno válido e na ordem; Ctrl+Z só na montagem; peça não entra em parede', async () => {
+  const r = await page.evaluate(() => {
+    const out = {};
+    setAppMode('setup');
+    populateDemoBattle();
+    // escolhe uma peça na Caixa de ferramentas e vai para o combate
+    document.querySelector('details[data-menu="tools"]').open = true;
+    STATE.openMenu = 'tools'; setSetupTool('piece'); STATE.selectedTemplateId = 't_goblin';
+    toggleRulerTool(); setHudTool('pan');
+    setAppMode('combat');
+    out.template = STATE.selectedTemplateId; out.ruler = STATE.ruler.active; out.hud = STATE.hudTool;
+    // clique numa casa vazia no combate não cria peça
+    const n = STATE.units.length;
+    const occ = new Set(STATE.units.map(u => `${u.col},${u.row}`));
+    let empty = null;
+    for (let c = 0; c < STATE.grid.cols && !empty; c++) for (let rr = 0; rr < STATE.grid.rows; rr++) if (!occ.has(`${c},${rr}`) && !STATE.terrainMap[`${c},${rr}`]) { empty = { col: c, row: rr }; break; }
+    setupTap(empty, null); setupPointerDown(empty, null);
+    out.unitsSame = STATE.units.length === n;
+    // peças trocadas na montagem: o combate escolhe uma peça da vez que existe
+    setAppMode('setup');
+    STATE.units = []; spawnUnitFromTemplate('t_guerreiro', 1, 1); spawnUnitFromTemplate('t_goblin', 3, 1); spawnUnitFromTemplate('t_mago', 5, 1);
+    setAppMode('combat');
+    out.activeOk = STATE.units.some(u => u.id === STATE.combat.activeUnitId && u.hp > 0);
+    // a peça da vez morre no próprio turno: o turno vai para a seguinte na iniciativa
+    rollAllInitiatives();
+    const order = STATE.units.map(u => u.id);
+    const cur = STATE.combat.activeUnitId;
+    STATE.units.find(u => u.id === cur).hp = 0;
+    nextTurn();
+    out.nextOk = STATE.combat.activeUnitId === order[(order.indexOf(cur) + 1) % order.length];
+    // Ctrl+Z não age no combate
+    setAppMode('setup');
+    STATE.units.find(u => u.id === cur).hp = 10;
+    const victim = STATE.units[0];
+    eraseAt({ col: victim.col, row: victim.row });
+    setAppMode('combat');
+    const before = STATE.units.length;
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+    out.undoBlockedInCombat = STATE.units.length === before;
+    setAppMode('setup');
+    // casa ocupada depois de apagar: a peça volta numa casa livre
+    spawnUnitFromTemplate('t_goblin', victim.col, victim.row);
+    undoErase();
+    out.noStack = new Set(STATE.units.filter(u => u.hp > 0).map(u => `${u.col},${u.row}`)).size === STATE.units.filter(u => u.hp > 0).length;
+    // outro tabuleiro apaga o histórico da lixeira
+    eraseAt({ col: STATE.units[0].col, row: STATE.units[0].row });
+    populateDemoBattle();
+    out.undoCleared = undoErase() === false;
+    // parede não recebe peça
+    STATE.terrainMap['12,9'] = 'wall';
+    STATE.openMenu = 'tools'; setSetupTool('piece'); STATE.selectedTemplateId = 't_goblin';
+    const k = STATE.units.length;
+    setupTap({ col: 12, row: 9 }, null);
+    out.wallBlocked = STATE.units.length === k;
+    delete STATE.terrainMap['12,9'];
+    // encerrar o combate zera a peça da vez
+    setAppMode('combat'); nextTurn(); endCombatSession();
+    out.endReset = STATE.combat.activeUnitId === null;
+    return out;
+  });
+  assert.deepEqual(r, { template: null, ruler: false, hud: null, unitsSame: true, activeOk: true, nextOk: true, undoBlockedInCombat: true, noStack: true, undoCleared: true, wallBlocked: true, endReset: true });
+});
+
+await check('sem erros de JavaScript durante o fluxo', async () => {
+  assert.deepEqual(errors, []);
+});
+
+await browser.close();
+if (failed) { console.log(`\n${failed} falha(s)`); process.exit(1); }
+console.log('\ntudo certo');

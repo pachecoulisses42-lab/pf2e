@@ -1,0 +1,22 @@
+Sons do app D20 Companion
+=========================
+
+Todos os sons são CC0 1.0 (domínio público), encontrados pelo Openverse (openverse.org) e hospedados no
+Freesound. A licença não exige atribuição; os créditos ficam aqui por cortesia. Cada arquivo foi cortado,
+recebeu fade-in/out, foi convertido para mono e normalizado para um volume discreto.
+
+res/raw/sfx_tap.ogg
+  "Soft UI Button Click" por Jummit — https://freesound.org/s/528561/
+  Openverse: aa763a9d-65bd-4f53-b1ad-a38a4dc1e475
+
+res/raw/sfx_success.ogg
+  "[UI Sound] Approval - High Pitched Bell" por GabFitzgerald — https://freesound.org/s/625174/
+  Openverse: a0bcc4b8-0355-4c06-9e3f-e2c8300bface
+
+res/raw/sfx_critical.ogg
+  "Fantasy_ui_Button_6.wav" por ZenithInfinitiveStudios — https://freesound.org/s/376748/
+  Openverse: c141d3f4-84d9-4ea7-9bd6-3939e22ac231
+
+res/raw/sfx_failure.ogg e res/raw/sfx_critical_failure.ogg (a mesma fonte, 25% mais grave)
+  "sine tri tone down negative beep amb ver" por pan14 — https://freesound.org/s/263123/
+  Openverse: 72c5acee-18c5-4903-85c3-bc81f66cddc2

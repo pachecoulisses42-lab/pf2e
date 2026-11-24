@@ -1,0 +1,314 @@
+{
+  "name": "Ezren",
+  "class": "Wizard",
+  "dualClass": null,
+  "level": 5,
+  "xp": 0,
+  "ancestry": "Human",
+  "heritage": "Versatile Human",
+  "background": "Scholar",
+  "keyability": "int",
+  "languages": [
+    "Common"
+  ],
+  "resistances": [
+    "Fire 5"
+  ],
+  "abilities": {
+    "str": 10,
+    "dex": 14,
+    "con": 12,
+    "int": 19,
+    "wis": 12,
+    "cha": 8,
+    "breakdown": {}
+  },
+  "attributes": {
+    "ancestryhp": 8,
+    "classhp": 6,
+    "bonushp": 0,
+    "bonushpPerLevel": 0,
+    "speed": 25,
+    "speedBonus": 0
+  },
+  "proficiencies": {
+    "classDC": 2,
+    "perception": 2,
+    "fortitude": 2,
+    "reflex": 2,
+    "will": 4,
+    "heavy": 0,
+    "medium": 0,
+    "light": 0,
+    "unarmored": 2,
+    "advanced": 0,
+    "martial": 0,
+    "simple": 2,
+    "unarmed": 2,
+    "castingArcane": 2,
+    "castingDivine": 0,
+    "castingOccult": 0,
+    "castingPrimal": 0,
+    "acrobatics": 0,
+    "arcana": 4,
+    "athletics": 0,
+    "crafting": 2,
+    "deception": 0,
+    "diplomacy": 2,
+    "intimidation": 0,
+    "medicine": 0,
+    "nature": 0,
+    "occultism": 2,
+    "performance": 0,
+    "religion": 0,
+    "society": 2,
+    "stealth": 0,
+    "survival": 0,
+    "thievery": 0,
+    "piloting": 0,
+    "computers": 0
+  },
+  "mods": {
+    "Reflex": {
+      "Circumstance Bonus": 1
+    },
+    "Diplomacy": {
+      "Item Bonus": 1
+    },
+    "Lore: Academia": {
+      "Item Bonus": 2
+    }
+  },
+  "feats": [
+    [
+      "Versatile Human",
+      null,
+      "Heritage",
+      1,
+      "Heritage Feat",
+      "parentChoice",
+      null
+    ],
+    [
+      "Reach Spell",
+      null,
+      "Class Feat",
+      1,
+      "Wizard Feat 1",
+      "standardChoice",
+      null
+    ],
+    [
+      "Assurance",
+      "Arcana",
+      "Skill Feat",
+      2,
+      "Skill Feat 2",
+      "standardChoice",
+      null
+    ],
+    [
+      "Toughness",
+      null,
+      "General Feat",
+      3,
+      "General Feat 3",
+      "standardChoice",
+      null
+    ]
+  ],
+  "specials": [
+    "Arcane Bond",
+    "Arcane School: Battle Magic"
+  ],
+  "lores": [
+    [
+      "Academia",
+      4
+    ],
+    [
+      "Genie",
+      2
+    ]
+  ],
+  "equipment": [
+    [
+      "Backpack",
+      1,
+      "Invested"
+    ],
+    [
+      "Healing Potion (Lesser)",
+      2,
+      "Invested"
+    ],
+    [
+      "Rope",
+      1
+    ]
+  ],
+  "weapons": [
+    {
+      "name": "Staff",
+      "qty": 1,
+      "prof": "simple",
+      "die": "d4",
+      "pot": 0,
+      "str": "",
+      "mat": null,
+      "display": "Staff",
+      "runes": [],
+      "damageType": "B",
+      "attack": 7,
+      "damageBonus": 0,
+      "extraDamage": [],
+      "increasedDice": false,
+      "isInventor": false,
+      "grade": ""
+    }
+  ],
+  "money": {
+    "cp": 0,
+    "sp": 0,
+    "gp": 10,
+    "pp": 0
+  },
+  "armor": [
+    {
+      "name": "Explorer's Clothing",
+      "qty": 1,
+      "prof": "unarmored",
+      "pot": 0,
+      "res": "",
+      "mat": null,
+      "display": "",
+      "worn": true,
+      "runes": [],
+      "grade": ""
+    },
+    {
+      "name": "Wooden Shield",
+      "qty": 1,
+      "prof": "shield",
+      "pot": 0,
+      "res": "",
+      "mat": null,
+      "display": "",
+      "worn": true,
+      "runes": [],
+      "grade": ""
+    }
+  ],
+  "spellCasters": [
+    {
+      "name": "Wizard",
+      "magicTradition": "arcane",
+      "spellcastingType": "prepared",
+      "ability": "int",
+      "proficiency": 2,
+      "focusPoints": 0,
+      "innate": false,
+      "perDay": [
+        5,
+        3,
+        3,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "spells": [
+        {
+          "spellLevel": 0,
+          "list": [
+            "Electric Arc",
+            "Detect Magic"
+          ]
+        },
+        {
+          "spellLevel": 1,
+          "list": [
+            "Breathe Fire",
+            "Gust of Wind"
+          ]
+        },
+        {
+          "spellLevel": 2,
+          "list": [
+            "Gust of Wind",
+            "Invisibility"
+          ]
+        },
+        {
+          "spellLevel": 3,
+          "list": [
+            "Fireball",
+            "Gust of Wind"
+          ]
+        }
+      ],
+      "prepared": [],
+      "blendedSpells": []
+    },
+    {
+      "name": "Scroll Esoterica",
+      "magicTradition": "occult",
+      "spellcastingType": "prepared",
+      "ability": "int",
+      "proficiency": 2,
+      "focusPoints": 0,
+      "innate": false,
+      "perDay": [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "spells": [
+        {
+          "spellLevel": 1,
+          "list": [
+            "Daze"
+          ]
+        }
+      ],
+      "prepared": [],
+      "blendedSpells": []
+    }
+  ],
+  "focusPoints": 1,
+  "focus": {
+    "arcane": {
+      "int": {
+        "abilityBonus": 4,
+        "proficiency": 2,
+        "itemBonus": 0,
+        "focusCantrips": [],
+        "focusSpells": [
+          "Force Bolt"
+        ]
+      }
+    }
+  },
+  "formula": [],
+  "acTotal": {
+    "acProfBonus": 7,
+    "acAbilityBonus": 2,
+    "acItemBonus": 0,
+    "acTotal": 19,
+    "shieldBonus": "2"
+  },
+  "pets": [],
+  "familiars": []
+}

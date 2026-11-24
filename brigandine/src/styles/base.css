@@ -1,0 +1,48 @@
+/* ==========================================================================
+   Brigandine DS — Base (reset, tipografia, foco, utilitários)
+   ========================================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  background: var(--ink-950);
+  color: var(--text);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+h1, h2, h3, .display { font-family: var(--font-display); letter-spacing: -0.01em; }
+
+button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+input, select, textarea { font: inherit; color: inherit; }
+svg.icon {
+  width: 1.15em; height: 1.15em; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+svg.icon.fill { fill: currentColor; stroke: none; }
+
+.hidden { display: none !important; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--text-2); }
+.faint { color: var(--text-3); }
+
+:focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--r-xs); }
+
+/* Barras de rolagem discretas */
+* { scrollbar-width: thin; scrollbar-color: var(--ink-600) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--ink-600); border-radius: var(--r-pill); }
+::-webkit-scrollbar-track { background: transparent; }
