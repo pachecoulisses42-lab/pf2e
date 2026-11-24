@@ -10,17 +10,30 @@ import android.os.VibratorManager
 import com.d20companion.R
 import d20.engine.play.Cue
 
+/** How a sound is felt: nothing, the system's light "tick", or a curve that follows the sound's loudness. */
+sealed interface Haptic {
+    data object None : Haptic
+    data object Tick : Haptic
+    /** One amplitude (0..255) every [stepMs], taken from the sound's own volume envelope. */
+    class Envelope(val stepMs: Long, val amplitudes: IntArray) : Haptic
+}
+
 /**
  * The app's sounds (CC0, from Openverse; credits in assets/licenses/sounds.txt). [volume] keeps them discreet.
- * Each has a vibration that follows it: [timings] in ms (off/on alternating, starting with a pause) and
- * [amplitudes] 0..255, shaped like the sound (a tick, two pulses, a rising burst, one dull buzz).
+ * Only the tap and the two criticals vibrate: a gentle tick, and the criticals shaken to their own sound.
  */
-enum class Sfx(val res: Int, val volume: Float, val timings: LongArray, val amplitudes: IntArray) {
-    TAP(R.raw.sfx_tap, 0.45f, longArrayOf(0, 12), intArrayOf(0, 70)),
-    SUCCESS(R.raw.sfx_success, 0.6f, longArrayOf(0, 25, 70, 25), intArrayOf(0, 120, 0, 120)),
-    CRITICAL(R.raw.sfx_critical, 0.7f, longArrayOf(0, 30, 50, 30, 50, 90), intArrayOf(0, 140, 0, 190, 0, 255)),
-    FAILURE(R.raw.sfx_failure, 0.55f, longArrayOf(0, 110), intArrayOf(0, 90)),
-    CRITICAL_FAILURE(R.raw.sfx_critical_failure, 0.6f, longArrayOf(0, 70, 60, 160), intArrayOf(0, 120, 0, 200)),
+enum class Sfx(val res: Int, val volume: Float, val haptic: Haptic) {
+    TAP(R.raw.sfx_tap, 0.45f, Haptic.Tick),
+    SUCCESS(R.raw.sfx_success, 0.6f, Haptic.None),
+    CRITICAL(
+        R.raw.sfx_critical, 0.7f,
+        Haptic.Envelope(40, intArrayOf(103, 86, 89, 113, 133, 120, 66, 176, 208, 255, 190, 170, 144, 168, 167, 86, 74, 73, 72, 71, 35)),
+    ),
+    FAILURE(R.raw.sfx_failure, 0.55f, Haptic.None),
+    CRITICAL_FAILURE(
+        R.raw.sfx_critical_failure, 0.6f,
+        Haptic.Envelope(40, intArrayOf(226, 182, 168, 163, 94, 87, 178, 255, 219, 191, 110, 42, 49, 44)),
+    ),
 }
 
 fun Cue.sfx(): Sfx = when (this) {
@@ -64,9 +77,20 @@ object Feedback {
     private fun vibrate(sfx: Sfx) {
         runCatching {
             val v = vibrator?.takeIf { it.hasVibrator() } ?: return@runCatching
-            // Phones without amplitude control get the same rhythm at full strength.
-            val amplitudes = if (v.hasAmplitudeControl()) sfx.amplitudes else IntArray(sfx.amplitudes.size) { if (it % 2 == 1) 255 else 0 }
-            v.vibrate(VibrationEffect.createWaveform(sfx.timings, amplitudes, -1))
+            val effect = when (val h = sfx.haptic) {
+                Haptic.None -> return@runCatching
+                Haptic.Tick -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK)
+                } else {
+                    VibrationEffect.createOneShot(8, if (v.hasAmplitudeControl()) 60 else VibrationEffect.DEFAULT_AMPLITUDE)
+                }
+                is Haptic.Envelope -> {
+                    // Phones without amplitude control keep the rhythm: on where the sound is loud, off elsewhere.
+                    val amps = if (v.hasAmplitudeControl()) h.amplitudes else IntArray(h.amplitudes.size) { if (h.amplitudes[it] >= 128) 255 else 0 }
+                    VibrationEffect.createWaveform(LongArray(amps.size) { h.stepMs }, amps, -1)
+                }
+            }
+            v.vibrate(effect)
         }
     }
 
